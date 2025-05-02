@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CheerManager Frontend
 
-## Getting Started
+Este proyecto es la interfaz frontend de la aplicación **CheerManager**, diseñada para gestionar equipos, eventos y actividades relacionadas con el mundo del cheerleading. Proporciona una experiencia de usuario intuitiva y herramientas para la administración eficiente.
 
-First, run the development server:
+## Características principales
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Gestión de equipos y miembros.
+- Organización de eventos y calendarios.
+- Visualización de estadísticas y reportes.
+- Interfaz amigable y responsiva.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Requisitos previos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Antes de ejecutar el proyecto, asegúrate de tener instalado lo siguiente:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Node.js](https://nodejs.org/) (versión 16 o superior)
+- [npm](https://www.npmjs.com/) o [yarn](https://yarnpkg.com/)
 
-## Learn More
+## Instalación y ejecución
 
-To learn more about Next.js, take a look at the following resources:
+Sigue estos pasos para ejecutar el proyecto en tu máquina local:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Clona este repositorio:
+   ```bash
+   git clone https://github.com/varcal-dev/cheermanager_front.git
