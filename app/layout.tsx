@@ -9,8 +9,8 @@ import { TopBar } from "./components/top-bar"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Gestor Cheer Gym",
-  description: "Sistema de gestión para gimnasio de cheerleading",
+  title: "Cheer Manager",
+  description: "Cheer Manager: Sistema avanzado de gestión para gimnasios de cheerleading, organiza clases, horarios y atletas de manera eficiente.",
 }
 
 export default function RootLayout({
