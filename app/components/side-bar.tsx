@@ -22,6 +22,7 @@ import {
   ShoppingCart,
   CreditCard,
   Lock,
+  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -44,7 +45,14 @@ const Sidebar = () => {
     <aside className="w-64 border-r bg-card h-screen overflow-y-auto">
       <div className="p-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-purple-600">Cheer Manager</h1>
+         <div className="flex items-center gap-2">
+          <Link href="/perfil" passHref>
+            <Button variant="ghost" size="icon" className="rounded-full" title="Mi Perfil">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
         <ModeToggle />
+        </div>
       </div>
       <nav className="px-3 py-2">
         <div className="space-y-1">
