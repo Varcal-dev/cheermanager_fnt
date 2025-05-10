@@ -1,6 +1,12 @@
-import type React from "react"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type React from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Users,
   UserPlus,
@@ -15,26 +21,38 @@ import {
   CheckCircle,
   ArrowUpRight,
   ArrowDownRight,
-} from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Componente para gráficas (simulado con divs coloreados)
-function ChartPlaceholder({ height = "h-64", className = "" }: { height?: string; className?: string }) {
+function ChartPlaceholder({
+  height = "h-64",
+  className = "",
+}: {
+  height?: string;
+  className?: string;
+}) {
   return (
     <div
       className={`${height} w-full rounded-lg bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center ${className}`}
     >
-      <span className="text-purple-400 text-sm font-medium">Gráfica (Simulada)</span>
+      <span className="text-purple-400 text-sm font-medium">
+        Gráfica (Simulada)
+      </span>
     </div>
-  )
+  );
 }
 
 export default function Home() {
   return (
+    <ProtectedRoute requiredPermission="ver_dashboard">
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Bienvenido al sistema de gestión de Cheer Gym</p>
+        <p className="text-muted-foreground">
+          Bienvenido al sistema de gestión de Cheer Gym
+        </p>
       </div>
 
       {/* KPIs principales */}
@@ -93,7 +111,9 @@ export default function Home() {
             <Card className="col-span-2">
               <CardHeader>
                 <CardTitle>Resumen de Actividad</CardTitle>
-                <CardDescription>Deportistas activos y asistencia en los últimos 30 días</CardDescription>
+                <CardDescription>
+                  Deportistas activos y asistencia en los últimos 30 días
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartPlaceholder />
@@ -103,18 +123,28 @@ export default function Home() {
             {/* Alertas */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Alertas Importantes</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Alertas Importantes
+                </CardTitle>
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <AlertItem title="Pagos vencidos" description="8 deportistas tienen pagos vencidos" type="warning" />
+                  <AlertItem
+                    title="Pagos vencidos"
+                    description="8 deportistas tienen pagos vencidos"
+                    type="warning"
+                  />
                   <AlertItem
                     title="Inventario bajo"
                     description="3 productos están por debajo del stock mínimo"
                     type="warning"
                   />
-                  <AlertItem title="Evento próximo" description="Competencia Nacional en 5 días" type="info" />
+                  <AlertItem
+                    title="Evento próximo"
+                    description="Competencia Nacional en 5 días"
+                    type="info"
+                  />
                   <AlertItem
                     title="Evaluaciones pendientes"
                     description="12 deportistas requieren evaluación"
@@ -166,7 +196,9 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Actividad Reciente</CardTitle>
-                <CardDescription>Últimas acciones en el sistema</CardDescription>
+                <CardDescription>
+                  Últimas acciones en el sistema
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -243,7 +275,9 @@ export default function Home() {
             <Card className="col-span-2">
               <CardHeader>
                 <CardTitle>Ingresos vs Gastos</CardTitle>
-                <CardDescription>Análisis financiero de los últimos 6 meses</CardDescription>
+                <CardDescription>
+                  Análisis financiero de los últimos 6 meses
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartPlaceholder />
@@ -259,7 +293,9 @@ export default function Home() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Ingresos Totales</span>
-                  <span className="text-sm font-bold text-green-600">$12,450</span>
+                  <span className="text-sm font-bold text-green-600">
+                    $12,450
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Gastos Totales</span>
@@ -267,15 +303,23 @@ export default function Home() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Beneficio Neto</span>
-                  <span className="text-sm font-bold text-blue-600">$4,130</span>
+                  <span className="text-sm font-bold text-blue-600">
+                    $4,130
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Pagos Pendientes</span>
-                  <span className="text-sm font-bold text-amber-600">$2,850</span>
+                  <span className="text-sm font-bold text-amber-600">
+                    $2,850
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Margen de Beneficio</span>
-                  <span className="text-sm font-bold text-purple-600">33.2%</span>
+                  <span className="text-sm font-medium">
+                    Margen de Beneficio
+                  </span>
+                  <span className="text-sm font-bold text-purple-600">
+                    33.2%
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -290,7 +334,9 @@ export default function Home() {
               </CardHeader>
               <CardContent className="flex justify-center">
                 <div className="w-64 h-64 rounded-full bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
-                  <span className="text-purple-400 text-sm font-medium">Gráfica Circular</span>
+                  <span className="text-purple-400 text-sm font-medium">
+                    Gráfica Circular
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -303,11 +349,34 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <PaymentItem name="Carlos Rodríguez" amount="$350" dueDate="15/05/2024" status="vencido" />
-                  <PaymentItem name="Ana Martínez" amount="$280" dueDate="18/05/2024" status="pendiente" />
-                  <PaymentItem name="Luis Gómez" amount="$420" dueDate="22/05/2024" status="pendiente" />
-                  <PaymentItem name="Sofía Torres" amount="$350" dueDate="10/05/2024" status="vencido" />
-                  <Link href="/pagos" className="text-sm text-purple-600 hover:underline block text-center mt-2">
+                  <PaymentItem
+                    name="Carlos Rodríguez"
+                    amount="$350"
+                    dueDate="15/05/2024"
+                    status="vencido"
+                  />
+                  <PaymentItem
+                    name="Ana Martínez"
+                    amount="$280"
+                    dueDate="18/05/2024"
+                    status="pendiente"
+                  />
+                  <PaymentItem
+                    name="Luis Gómez"
+                    amount="$420"
+                    dueDate="22/05/2024"
+                    status="pendiente"
+                  />
+                  <PaymentItem
+                    name="Sofía Torres"
+                    amount="$350"
+                    dueDate="10/05/2024"
+                    status="vencido"
+                  />
+                  <Link
+                    href="/pagos"
+                    className="text-sm text-purple-600 hover:underline block text-center mt-2"
+                  >
                     Ver todos los pagos pendientes
                   </Link>
                 </div>
@@ -323,7 +392,9 @@ export default function Home() {
             <Card className="col-span-2">
               <CardHeader>
                 <CardTitle>Distribución por Nivel</CardTitle>
-                <CardDescription>Deportistas por categoría y nivel</CardDescription>
+                <CardDescription>
+                  Deportistas por categoría y nivel
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartPlaceholder />
@@ -393,8 +464,18 @@ export default function Home() {
                     achievement="Mayor progreso en tumbling"
                     rating={5}
                   />
-                  <AthleteItem name="Valeria Gómez" level="Senior Elite" achievement="Mejor asistencia" rating={4} />
-                  <AthleteItem name="Martín Torres" level="Youth Advanced" achievement="Mejor actitud" rating={4} />
+                  <AthleteItem
+                    name="Valeria Gómez"
+                    level="Senior Elite"
+                    achievement="Mejor asistencia"
+                    rating={4}
+                  />
+                  <AthleteItem
+                    name="Martín Torres"
+                    level="Youth Advanced"
+                    achievement="Mejor actitud"
+                    rating={4}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -414,22 +495,27 @@ export default function Home() {
                 <div className="bg-white rounded-lg p-4 border">
                   <div className="grid grid-cols-7 gap-1">
                     {["D", "L", "M", "X", "J", "V", "S"].map((day) => (
-                      <div key={day} className="text-center text-xs font-medium text-gray-500">
+                      <div
+                        key={day}
+                        className="text-center text-xs font-medium text-gray-500"
+                      >
                         {day}
                       </div>
                     ))}
                     {Array.from({ length: 35 }).map((_, i) => {
-                      const hasEvent = [3, 8, 15, 22, 27].includes(i)
+                      const hasEvent = [3, 8, 15, 22, 27].includes(i);
                       return (
                         <div
                           key={i}
                           className={`aspect-square rounded-md flex items-center justify-center text-xs ${
-                            hasEvent ? "bg-purple-100 text-purple-700" : "hover:bg-gray-100"
+                            hasEvent
+                              ? "bg-purple-100 text-purple-700"
+                              : "hover:bg-gray-100"
                           }`}
                         >
                           {i + 1 <= 31 ? i + 1 : ""}
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </div>
@@ -468,7 +554,10 @@ export default function Home() {
                     location="Estadio Olímpico"
                     type="competition"
                   />
-                  <Link href="/eventos" className="text-sm text-purple-600 hover:underline block text-center mt-2">
+                  <Link
+                    href="/eventos"
+                    className="text-sm text-purple-600 hover:underline block text-center mt-2"
+                  >
                     Ver todos los eventos
                   </Link>
                 </div>
@@ -521,10 +610,30 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <PreparationItem event="Competencia Regional" date="15/05/2024" progress={85} status="En progreso" />
-                  <PreparationItem event="Exhibición de Rutinas" date="25/05/2024" progress={70} status="En progreso" />
-                  <PreparationItem event="Campeonato Nacional" date="15/06/2024" progress={45} status="En progreso" />
-                  <PreparationItem event="Campamento de Verano" date="01/06/2024" progress={60} status="En progreso" />
+                  <PreparationItem
+                    event="Competencia Regional"
+                    date="15/05/2024"
+                    progress={85}
+                    status="En progreso"
+                  />
+                  <PreparationItem
+                    event="Exhibición de Rutinas"
+                    date="25/05/2024"
+                    progress={70}
+                    status="En progreso"
+                  />
+                  <PreparationItem
+                    event="Campeonato Nacional"
+                    date="15/06/2024"
+                    progress={45}
+                    status="En progreso"
+                  />
+                  <PreparationItem
+                    event="Campamento de Verano"
+                    date="01/06/2024"
+                    progress={60}
+                    status="En progreso"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -532,7 +641,8 @@ export default function Home() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+    </ProtectedRoute>
+  );
 }
 
 function KpiCard({
@@ -544,13 +654,13 @@ function KpiCard({
   icon,
   link,
 }: {
-  title: string
-  value: string
-  change: string
-  trend: "up" | "down" | "neutral"
-  description: string
-  icon: React.ReactNode
-  link: string
+  title: string;
+  value: string;
+  change: string;
+  trend: "up" | "down" | "neutral";
+  description: string;
+  icon: React.ReactNode;
+  link: string;
 }) {
   return (
     <Link href={link} className="block">
@@ -564,7 +674,11 @@ function KpiCard({
           <div className="flex items-center mt-1">
             <span
               className={`text-xs font-medium flex items-center ${
-                trend === "up" ? "text-green-600" : trend === "down" ? "text-red-600" : "text-gray-600"
+                trend === "up"
+                  ? "text-green-600"
+                  : trend === "down"
+                  ? "text-red-600"
+                  : "text-gray-600"
               }`}
             >
               {trend === "up" ? (
@@ -574,12 +688,14 @@ function KpiCard({
               ) : null}
               {change}
             </span>
-            <span className="text-xs text-muted-foreground ml-2">{description}</span>
+            <span className="text-xs text-muted-foreground ml-2">
+              {description}
+            </span>
           </div>
         </CardContent>
       </Card>
     </Link>
-  )
+  );
 }
 
 function ActivityItem({
@@ -588,10 +704,10 @@ function ActivityItem({
   description,
   timestamp,
 }: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  timestamp: string
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  timestamp: string;
 }) {
   return (
     <div className="flex items-start space-x-4">
@@ -602,7 +718,7 @@ function ActivityItem({
         <p className="text-xs text-muted-foreground">{timestamp}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function AlertItem({
@@ -610,9 +726,9 @@ function AlertItem({
   description,
   type,
 }: {
-  title: string
-  description: string
-  type: "warning" | "info" | "error"
+  title: string;
+  description: string;
+  type: "warning" | "info" | "error";
 }) {
   return (
     <div className="flex items-start space-x-4">
@@ -621,8 +737,8 @@ function AlertItem({
           type === "warning"
             ? "bg-yellow-100 text-yellow-600"
             : type === "error"
-              ? "bg-red-100 text-red-600"
-              : "bg-blue-100 text-blue-600"
+            ? "bg-red-100 text-red-600"
+            : "bg-blue-100 text-blue-600"
         }`}
       >
         <AlertTriangle className="h-4 w-4" />
@@ -632,7 +748,7 @@ function AlertItem({
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function CalendarItem({
@@ -641,40 +757,40 @@ function CalendarItem({
   type,
   description,
 }: {
-  title: string
-  date: string
-  type: "competition" | "evaluation" | "exhibition" | "camp"
-  description: string
+  title: string;
+  date: string;
+  type: "competition" | "evaluation" | "exhibition" | "camp";
+  description: string;
 }) {
   const getIcon = () => {
     switch (type) {
       case "competition":
-        return <Award className="h-4 w-4" />
+        return <Award className="h-4 w-4" />;
       case "evaluation":
-        return <ClipboardList className="h-4 w-4" />
+        return <ClipboardList className="h-4 w-4" />;
       case "exhibition":
-        return <Users className="h-4 w-4" />
+        return <Users className="h-4 w-4" />;
       case "camp":
-        return <Calendar className="h-4 w-4" />
+        return <Calendar className="h-4 w-4" />;
       default:
-        return <Calendar className="h-4 w-4" />
+        return <Calendar className="h-4 w-4" />;
     }
-  }
+  };
 
   const getColor = () => {
     switch (type) {
       case "competition":
-        return "bg-purple-100 text-purple-600"
+        return "bg-purple-100 text-purple-600";
       case "evaluation":
-        return "bg-blue-100 text-blue-600"
+        return "bg-blue-100 text-blue-600";
       case "exhibition":
-        return "bg-green-100 text-green-600"
+        return "bg-green-100 text-green-600";
       case "camp":
-        return "bg-orange-100 text-orange-600"
+        return "bg-orange-100 text-orange-600";
       default:
-        return "bg-gray-100 text-gray-600"
+        return "bg-gray-100 text-gray-600";
     }
-  }
+  };
 
   return (
     <div className="flex items-start space-x-4">
@@ -685,7 +801,7 @@ function CalendarItem({
         <p className="text-xs text-muted-foreground">{date}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function DataItem({
@@ -694,10 +810,10 @@ function DataItem({
   value,
   description,
 }: {
-  icon: React.ReactNode
-  title: string
-  value: string
-  description: string
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  description: string;
 }) {
   return (
     <div className="flex items-start space-x-4">
@@ -708,7 +824,7 @@ function DataItem({
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function PaymentItem({
@@ -717,10 +833,10 @@ function PaymentItem({
   dueDate,
   status,
 }: {
-  name: string
-  amount: string
-  dueDate: string
-  status: "pendiente" | "vencido" | "pagado"
+  name: string;
+  amount: string;
+  dueDate: string;
+  status: "pendiente" | "vencido" | "pagado";
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -732,14 +848,18 @@ function PaymentItem({
         <p className="text-sm font-bold">{amount}</p>
         <p
           className={`text-xs ${
-            status === "vencido" ? "text-red-600" : status === "pendiente" ? "text-amber-600" : "text-green-600"
+            status === "vencido"
+              ? "text-red-600"
+              : status === "pendiente"
+              ? "text-amber-600"
+              : "text-green-600"
           }`}
         >
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function AthleteItem({
@@ -748,10 +868,10 @@ function AthleteItem({
   achievement,
   rating,
 }: {
-  name: string
-  level: string
-  achievement: string
-  rating: number
+  name: string;
+  level: string;
+  achievement: string;
+  rating: number;
 }) {
   return (
     <div className="flex items-start space-x-4">
@@ -764,12 +884,17 @@ function AthleteItem({
         <p className="text-xs text-muted-foreground">{achievement}</p>
         <div className="flex items-center">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className={`h-3 w-3 ${i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} />
+            <Star
+              key={i}
+              className={`h-3 w-3 ${
+                i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"
+              }`}
+            />
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function EventItem({
@@ -778,36 +903,36 @@ function EventItem({
   location,
   type,
 }: {
-  title: string
-  date: string
-  location: string
-  type: "competition" | "exhibition" | "camp" | "other"
+  title: string;
+  date: string;
+  location: string;
+  type: "competition" | "exhibition" | "camp" | "other";
 }) {
   const getIcon = () => {
     switch (type) {
       case "competition":
-        return <Award className="h-4 w-4" />
+        return <Award className="h-4 w-4" />;
       case "exhibition":
-        return <Users className="h-4 w-4" />
+        return <Users className="h-4 w-4" />;
       case "camp":
-        return <Calendar className="h-4 w-4" />
+        return <Calendar className="h-4 w-4" />;
       default:
-        return <Calendar className="h-4 w-4" />
+        return <Calendar className="h-4 w-4" />;
     }
-  }
+  };
 
   const getColor = () => {
     switch (type) {
       case "competition":
-        return "bg-purple-100 text-purple-600"
+        return "bg-purple-100 text-purple-600";
       case "exhibition":
-        return "bg-green-100 text-green-600"
+        return "bg-green-100 text-green-600";
       case "camp":
-        return "bg-orange-100 text-orange-600"
+        return "bg-orange-100 text-orange-600";
       default:
-        return "bg-gray-100 text-gray-600"
+        return "bg-gray-100 text-gray-600";
     }
-  }
+  };
 
   return (
     <div className="flex items-start space-x-4">
@@ -818,7 +943,7 @@ function EventItem({
         <p className="text-xs text-muted-foreground">{date}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function CompetitionResult({
@@ -827,10 +952,10 @@ function CompetitionResult({
   category,
   result,
 }: {
-  name: string
-  date: string
-  category: string
-  result: string
+  name: string;
+  date: string;
+  category: string;
+  result: string;
 }) {
   return (
     <div className="flex items-start space-x-4">
@@ -846,7 +971,7 @@ function CompetitionResult({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function PreparationItem({
@@ -855,10 +980,10 @@ function PreparationItem({
   progress,
   status,
 }: {
-  event: string
-  date: string
-  progress: number
-  status: string
+  event: string;
+  date: string;
+  progress: number;
+  status: string;
 }) {
   return (
     <div className="space-y-2">
@@ -867,12 +992,15 @@ function PreparationItem({
         <p className="text-xs text-muted-foreground">{date}</p>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2">
-        <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+        <div
+          className="bg-purple-600 h-2 rounded-full"
+          style={{ width: `${progress}%` }}
+        ></div>
       </div>
       <div className="flex justify-between">
         <p className="text-xs text-muted-foreground">{status}</p>
         <p className="text-xs font-medium">{progress}%</p>
       </div>
     </div>
-  )
+  );
 }

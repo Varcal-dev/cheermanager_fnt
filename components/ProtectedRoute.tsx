@@ -24,8 +24,8 @@ const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) =
     }
   }, [user, permissions, loading, requiredPermission, router])
 
-  if (loading || !user || !permissions.includes(requiredPermission)) {
-    return <p>Cargando... .i.</p> // Mostrar un mensaje de carga mientras se verifica
+  if (loading) {
+    return <p>Cargando... .i.</p>
   }
 
   return <>{children}</>
