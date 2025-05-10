@@ -33,8 +33,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     // Obtener los datos del usuario y permisos al cargar la aplicación
     const fetchUserData = async () => {
       try {
-        const userResponse = await axios.get("/api/user/me", { withCredentials: true })
-        const permissionsResponse = await axios.get("/api/user/permisos", { withCredentials: true })
+        const userResponse = await axios.get("http://localhost:8080/api/user/me", { withCredentials: true })
+        const permissionsResponse = await axios.get("http://localhost:8080/api/user/permisos", { withCredentials: true })
 
         setUser(userResponse.data)
         setPermissions(permissionsResponse.data)
