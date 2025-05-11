@@ -24,23 +24,26 @@ export default function LoginPage() {
           password: password,
         },
         {
-            withCredentials: true,
+          withCredentials: true,
           headers: {
             "Content-Type": "application/json"
           }
         }
       )
-      // Mostrar mensaje del servidor
+      // Mostrar siempre el mensaje del servidor
+      setServerMessage(response.data.message || "")
       if (response.data.success) {
-        setServerMessage(response.data.message || "")
         setTimeout(() => {
           window.location.href = "/"
-        })
-      } else {
-        setError("Credenciales incorrectas")
+        }, 1500)
       }
-    } catch (err) {
-      setError("Error al conectar con el servidor")
+    } catch (err: any) {
+      // Si el backend responde con error, mostrar el mensaje del backend si existe
+      if (err.response && err.response.data && err.response.data.message) {
+        setServerMessage(err.response.data.message)
+      } else {
+        setServerMessage("Error al conectar con el servidor")
+      }
     } finally {
       setLoading(false)
     }
