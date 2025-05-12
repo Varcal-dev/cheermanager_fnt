@@ -23,9 +23,7 @@ import {
 const Sidebar = () => {
   return (
     <aside className="w-64 bg-white shadow-md">
-      <div className="p-4">
-        <h1 className="text-2xl font-bold text-purple-600">Gestor Cheer Gym</h1>
-      </div>
+      
       <nav className="mt-6">
         <Link href="/" className="block px-4 py-2 text-gray-600 hover:bg-purple-100 hover:text-purple-600">
           <Home className="inline-block mr-2" size={18} />

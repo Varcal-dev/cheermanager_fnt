@@ -9,14 +9,25 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Sidebar from "./side-bar"
 import Link from "next/link"
 
+// Importar los componentes necesarios
+import { LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
+
 export function TopBar() {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // En una aplicación real, eliminaríamos el token o cookie de sesión
+    localStorage.removeItem("isAuthenticated")
+    router.push("/login")
+  }
 
   return (
-    <div className="flex h-16 items-center border-b px-4 md:hidden">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="mr-2">
+          <Button variant="outline" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
@@ -26,7 +37,7 @@ export function TopBar() {
         </SheetContent>
       </Sheet>
       <div className="flex-1">
-        <h1 className="text-xl font-bold text-purple-600">Gestor Cheer Gym</h1>
+        <h1 className="text-xl font-semibold">Cheer Manager</h1>
       </div>
       <div className="flex items-center gap-2">
         <Link href="/perfil" passHref>
@@ -35,7 +46,11 @@ export function TopBar() {
           </Button>
         </Link>
         <ModeToggle />
+        <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <LogOut className="h-5 w-5" />
+          <span className="sr-only">Cerrar sesión</span>
+        </Button>
       </div>
-    </div>
+    </header>
   )
 }

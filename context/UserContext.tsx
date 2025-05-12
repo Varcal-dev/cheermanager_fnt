@@ -1,3 +1,5 @@
+"use client"
+
 import { createContext, useContext, useState, useEffect } from "react"
 import axios from "axios"
 
@@ -33,8 +35,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     // Obtener los datos del usuario y permisos al cargar la aplicación
     const fetchUserData = async () => {
       try {
-        const userResponse = await axios.get("http://localhost:8080/api/user/me", { withCredentials: true })
-        const permissionsResponse = await axios.get("http://localhost:8080/api/user/permisos", { withCredentials: true })
+        console.log("Fetching user data...")
+        const userResponse = await axios.get("http://localhost:8080/api/usuario/me", { withCredentials: true })
+        console.log("User data fetched:", userResponse.data)
+        console.log("Fetching permissions...")
+        const permissionsResponse = await axios.get("http://localhost:8080/api/usuario/permisos", { withCredentials: true })
+        console.log("Permissions fetched:", permissionsResponse.data)
 
         setUser(userResponse.data)
         setPermissions(permissionsResponse.data)
