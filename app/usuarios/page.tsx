@@ -50,7 +50,16 @@ import { Label } from "@/components/ui/label";
 import { useUser } from "@/context/UserContext";
 import { toast } from "@/components/ui/use-toast";
 
-// Define la interfaz para los datos del nuevo usuario (opcional pero recomendado)
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@radix-ui/react-checkbox";
+
+// Define la interfaz para los datos del nuevo usuario
 interface NewUserData {
   username: string;
   passwordHash: string;
@@ -58,7 +67,13 @@ interface NewUserData {
   rol: number;
   ultimoAcceso: Date | null;
   activo: boolean;
-  personaId: number | null;
+  personaId?: number | null;
+  nombre?: string;
+  apellidos?: string;
+  direccion?: string;
+  telefono?: string;
+  fechaNacimiento?: string;
+  generoId?: number | null; // ID del género, si es necesario
   // Agrega otros campos necesarios (contraseña, etc.)
 }
 
@@ -72,6 +87,9 @@ export default function UsuariosPage() {
   const [rolFiltro, setRolFiltro] = useState<string | null>(null);
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
+  const [rolesList, setRolesList] = useState<any[]>([]); // State to store roles
+  const [gendersList, setGendersList] = useState<any[]>([]); // State to store genders
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newUserData, setNewUserData] = useState<NewUserData>({
     username: "",
@@ -80,9 +98,18 @@ export default function UsuariosPage() {
     rol: 0,
     ultimoAcceso: null,
     activo: true,
-    personaId: null,
-    // Inicializa otros campos
+    // Initialize person fields as optional
+    personaId: undefined,
+    nombre: "",
+    apellidos: "",
   });
+
+  const [asociarPersona, setAsociarPersona] = useState(false);
+  const [personas, setPersonas] = useState<any[]>([]);
+  const [searchTermPersona, setSearchTermPersona] = useState(""); // Para el input de búsqueda
+  const [selectedPersonaId, setSelectedPersonaId] = useState<number | null>(
+    null
+  ); // Para la persona seleccionada del desplegable
 
   const [isSubmitting, setIsSubmitting] = useState(false); // Estado para deshabilitar el botón al enviar
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,21 +122,39 @@ export default function UsuariosPage() {
 
   const handleAddUser = async () => {
     setIsSubmitting(true);
+
     try {
+      const dataToSend = {
+        username: newUserData.username,
+        password: "0000",
+        email: `${newUserData.username}@cheermanager.com`,
+        rolId: newUserData.rol,
+        ...(!newUserData.personaId &&
+          newUserData.nombre && {
+            nombre: newUserData.nombre,
+            apellidos: newUserData.apellidos,
+            direccion: newUserData.direccion,
+            telefono: newUserData.telefono,
+            fechaNacimiento: newUserData.fechaNacimiento,
+            generoId: newUserData.generoId,
+          }),
+        ...(newUserData.personaId && { personaId: newUserData.personaId }),
+      };
+      console.log("Datos a enviar al Backend:", dataToSend);
       // Aquí haces la llamada a tu endpoint de backend para crear un usuario
       const response = await axios.post(
-        "http://localhost:8080/api/usuarios",
-        newUserData,
+        "http://localhost:8080/api/usuario/registrar",
+        dataToSend,
         {
-          withCredentials: true, // Si tu backend requiere autenticación para esta acción
+          withCredentials: true, // el backend requiere autenticación para esta acción
         }
       );
 
-      if (response.status === 201) {
-        // O el código de estado que tu backend devuelva al crear exitosamente
+      if (response.status === 200) {
         toast({
-          title: "Usuario agregado",
-          description: "El nuevo usuario ha sido creado exitosamente.",
+          title: "Usuario agregado exitosamente", // Título más específico
+          description: response.data || "El nuevo usuario ha sido creado.", // Usar la respuesta del backend si existe, o un mensaje genérico
+          variant: "default", // O "success" si tu sistema de toast lo soporta
         });
         // Opcional: Refrescar la lista de usuarios si la muestras en la página
         // (Necesitarías una forma de recargar los datos, quizás llamando a la API de listado de usuarios)
@@ -122,26 +167,85 @@ export default function UsuariosPage() {
           ultimoAcceso: null,
           activo: true,
           personaId: null,
+          nombre: "", // Restablecer campos de persona también
+          apellidos: "",
+          direccion: "",
+          telefono: "",
+          fechaNacimiento: "", // O null, dependiendo de tu tipo de dato
+          generoId: null,
         }); // Limpia el formulario
       } else {
-        // Manejar otros códigos de estado si es necesario
+        // *** Manejo de Otros Códigos de Estado Exitosos (menos comunes para creación) ***
+        // Aunque 201 es lo estándar para "Created", si tu backend devuelve 200 u otro código
+        // para un registro exitoso, puedes manejarlo aquí si es diferente a un error.
+        console.warn(
+          "Registro de usuario exitoso con código inesperado:",
+          response.status
+        );
         toast({
-          title: "Error",
-          description: `Error al agregar usuario: ${response.statusText}`,
-          variant: "destructive",
+          title: "Registro completo",
+          description:
+            response.data || `Usuario registrado con estado ${response.status}`,
+          variant: "default", // O "success"
         });
+        // ... (posiblemente cerrar modal y limpiar formulario si este estado también indica éxito) ...
       }
-    } catch (error: any) {
+    } catch (error: any) {      
+      // *** Manejo de Errores de Petición (4xx, 5xx, error de red, etc.) ***
       console.error("Error al agregar usuario:", error);
+
+      // Intentar obtener un mensaje de error más detallado de la respuesta del backend
+      const errorMessage =
+        error.response?.data?.message || // Mensaje específico del backend (si tu API lo envía)
+        error.response?.data || // A veces, la respuesta completa de error está en data
+        error.message || // Mensaje de error de Axios/JS
+        "Error desconocido al procesar la solicitud."; // Mensaje genérico de fallback
+
       toast({
-        title: "Error",
-        description: `No se pudo agregar el usuario. ${
-          error.response?.data?.message || error.message
-        }`,
-        variant: "destructive",
+        title: "Error al registrar usuario", // Título claro para el error
+        description: errorMessage, // Mostrar el mensaje de error obtenido
+        variant: "destructive", // Para indicar que es un error
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Siempre ocultar el indicador de carga/envío
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/usuario/rol/listar",
+        {
+          withCredentials: true,
+        }
+      );
+      if (response.data) {
+        setRolesList(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los roles.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fetch genders (assuming a similar endpoint exists)
+  const fetchGenders = async () => {
+    try {
+      // Replace with your actual gender list API endpoint
+      const response = await axios.get(
+        "http://localhost:8080/api/usuario/genero/listar",
+        { withCredentials: true }
+      );
+      if (response.data) {
+        setGendersList(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching genders:", error);
+      // Handle error
     }
   };
 
@@ -182,7 +286,28 @@ export default function UsuariosPage() {
         console.error("Error al obtener usuarios:", error);
         setLoading(false);
       });
+    // Obtener lista de personas
+    axios
+      .get("http://localhost:8080/api/personas/listar", {
+        withCredentials: true,
+      })
+      .then((response) => {
+        setPersonas(response.data);
+        // Aquí podrías establecer loading a false si esta es la última llamada
+        setLoading(false); // Por ejemplo, si la carga de personas es la última
+      })
+      .catch((error) => {
+        console.error("Error al obtener personas:", error);
+        setLoading(false); // Si ocurre un error en personas, puedes detener la carga
+      });
   }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      fetchRoles();
+      fetchGenders();
+    }
+  }, [isModalOpen]);
 
   const toggleUsuarioExpand = (usuarioId: number) => {
     setExpandedUsuarios((prev) =>
@@ -213,6 +338,13 @@ export default function UsuariosPage() {
   if (loading) {
     return <p className="text-center mt-10">Cargando usuarios...</p>;
   }
+
+  const filteredPersonas = personas.filter(
+    (persona) =>
+      persona.nombre.toLowerCase().includes(searchTermPersona.toLowerCase()) ||
+      persona.apellidos.toLowerCase().includes(searchTermPersona.toLowerCase())
+    // Puedes añadir otros campos de búsqueda si son relevantes (ej. identificación)
+  );
 
   return (
     <div className="space-y-6">
@@ -479,41 +611,178 @@ export default function UsuariosPage() {
                 className="col-span-3"
               />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="passwordHash" className="text-right">
-                Contraseña
-              </Label>
-              <Input
-                id="passwordHash"
-                value={newUserData.passwordHash}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUserData.email}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="rol" className="text-right">
                 Rol
               </Label>
-              {/* Podrías usar un Select en lugar de Input para el Rol */}
-              <Input
-                id="rol"
-                value={newUserData.rol}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
+              <Select
+                onValueChange={(value) =>
+                  setNewUserData({ ...newUserData, rol: parseInt(value) })
+                }
+                value={newUserData.rol.toString()}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona un rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rolesList.map((rol) => (
+                    <SelectItem key={rol.id} value={rol.id.toString()}>
+                      {rol.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            <div className="space-y-4">
+              {/* Checkbox para activar asociación */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="asociarPersona"
+                  checked={asociarPersona}
+                  onCheckedChange={(checked) => setAsociarPersona(!!checked)}
+                />
+                <Label htmlFor="asociarPersona">
+                  Asociar a persona existente
+                </Label>
+              </div>
+
+              {/* Si está activado, mostrar búsqueda y selección */}
+              {asociarPersona && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label
+                    htmlFor="searchPersona"
+                    className="text-right col-span-1"
+                  >
+                    Buscar Persona
+                  </Label>
+                  <Input
+                    id="searchPersona"
+                    type="text"
+                    value={searchTermPersona}
+                    onChange={(e) => setSearchTermPersona(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Escribe nombre o apellido"
+                  />
+
+                  {filteredPersonas.length > 0 && (
+                    <>
+                      <Label
+                        htmlFor="selectPersona"
+                        className="text-right col-span-1"
+                      >
+                        Seleccionar
+                      </Label>
+                      <select
+                        id="selectPersona"
+                        value={selectedPersonaId ?? ""}
+                        onChange={(e) =>
+                          setSelectedPersonaId(
+                            e.target.value ? parseInt(e.target.value) : null
+                          )
+                        }
+                        className="col-span-3 border rounded p-2"
+                      >
+                        <option value="">Seleccione una persona</option>
+                        {filteredPersonas.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} {p.apellidos}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Campos para nueva persona (condicional) */}
+            {newUserData.personaId === undefined && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="nombre" className="text-right">
+                    Nombre Persona
+                  </Label>
+                  <Input
+                    id="nombre"
+                    value={newUserData.nombre || ""}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="apellidos" className="text-right">
+                    Apellidos Persona
+                  </Label>
+                  <Input
+                    id="apellidos"
+                    value={newUserData.apellidos || ""}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="direccion" className="text-right">
+                    Dirección
+                  </Label>
+                  <Input
+                    id="direccion"
+                    value={newUserData.direccion || ""}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="telefono" className="text-right">
+                    Teléfono
+                  </Label>
+                  <Input
+                    id="telefono"
+                    value={newUserData.telefono || ""}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="fechaNacimiento" className="text-right">
+                    Fecha de Nacimiento
+                  </Label>
+                  <Input
+                    id="fechaNacimiento"
+                    type="date"
+                    value={newUserData.fechaNacimiento || ""}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="generoId" className="text-right">
+                    Género
+                  </Label>
+                  <Select
+                    onValueChange={(value) =>
+                      setNewUserData({
+                        ...newUserData,
+                        generoId: parseInt(value),
+                      })
+                    }
+                    value={newUserData.generoId?.toString() || ""}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecciona un género" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gendersList.map((genero) => (
+                        <SelectItem
+                          key={genero.id}
+                          value={genero.id.toString()}
+                        >
+                          {genero.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
             {/* Agrega otros campos del formulario aquí */}
           </div>
           <DialogFooter>
@@ -532,7 +801,4 @@ export default function UsuariosPage() {
       </Dialog>
     </div>
   );
-}
-function setIsModalOpen(arg0: boolean) {
-  throw new Error("Function not implemented.");
 }
