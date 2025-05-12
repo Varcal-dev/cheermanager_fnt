@@ -35,11 +35,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"; // Ajusta la importación según tu libreríaimport { useToast } from "@/components/ui/use-toast" // O tu sistema de notificaciones
+
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useUser } from "@/context/UserContext";
+import { toast } from "@/components/ui/use-toast";
+
+// Define la interfaz para los datos del nuevo usuario (opcional pero recomendado)
+interface NewUserData {
+  username: string;
+  passwordHash: string;
+  email: string;
+  rol: number;
+  ultimoAcceso: Date | null;
+  activo: boolean;
+  personaId: number | null;
+  // Agrega otros campos necesarios (contraseña, etc.)
+}
 
 export default function UsuariosPage() {
+  const { permissions } = useUser();
   const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
@@ -48,6 +72,79 @@ export default function UsuariosPage() {
   const [rolFiltro, setRolFiltro] = useState<string | null>(null);
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState<NewUserData>({
+    username: "",
+    passwordHash: "",
+    email: "",
+    rol: 0,
+    ultimoAcceso: null,
+    activo: true,
+    personaId: null,
+    // Inicializa otros campos
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para deshabilitar el botón al enviar
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewUserData((prevState) => ({
+      ...prevState,
+      [id]: value,
+    }));
+  };
+
+  const handleAddUser = async () => {
+    setIsSubmitting(true);
+    try {
+      // Aquí haces la llamada a tu endpoint de backend para crear un usuario
+      const response = await axios.post(
+        "http://localhost:8080/api/usuarios",
+        newUserData,
+        {
+          withCredentials: true, // Si tu backend requiere autenticación para esta acción
+        }
+      );
+
+      if (response.status === 201) {
+        // O el código de estado que tu backend devuelva al crear exitosamente
+        toast({
+          title: "Usuario agregado",
+          description: "El nuevo usuario ha sido creado exitosamente.",
+        });
+        // Opcional: Refrescar la lista de usuarios si la muestras en la página
+        // (Necesitarías una forma de recargar los datos, quizás llamando a la API de listado de usuarios)
+        setIsModalOpen(false); // Cierra el modal
+        setNewUserData({
+          username: "",
+          passwordHash: "",
+          email: "",
+          rol: 0,
+          ultimoAcceso: null,
+          activo: true,
+          personaId: null,
+        }); // Limpia el formulario
+      } else {
+        // Manejar otros códigos de estado si es necesario
+        toast({
+          title: "Error",
+          description: `Error al agregar usuario: ${response.statusText}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error al agregar usuario:", error);
+      toast({
+        title: "Error",
+        description: `No se pudo agregar el usuario. ${
+          error.response?.data?.message || error.message
+        }`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     axios
       .get("http://localhost:8080/api/usuario/listar", {
@@ -55,9 +152,7 @@ export default function UsuariosPage() {
       })
       .then((response) => {
         const data = response.data.map((u: any) => {
-          const fechaRaw = u.ultimoAcceso
-            ? new Date(u.ultimoAcceso)
-            : null;
+          const fechaRaw = u.ultimoAcceso ? new Date(u.ultimoAcceso) : null;
 
           return {
             id: u.id,
@@ -128,9 +223,11 @@ export default function UsuariosPage() {
             Gestiona los usuarios del sistema
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Usuario
-        </Button>
+        {permissions.includes("crear_usuario") && (
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Usuario
+          </Button>
+        )}
       </div>
 
       <div className="flex justify-between mb-4">
@@ -359,6 +456,83 @@ export default function UsuariosPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos del nuevo usuario. Haz clic en guardar cuando
+              termines.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Campos del formulario */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">
+                Nombre de Usuario
+              </Label>
+              <Input
+                id="username"
+                value={newUserData.username}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="passwordHash" className="text-right">
+                Contraseña
+              </Label>
+              <Input
+                id="passwordHash"
+                value={newUserData.passwordHash}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUserData.email}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rol" className="text-right">
+                Rol
+              </Label>
+              {/* Podrías usar un Select en lugar de Input para el Rol */}
+              <Input
+                id="rol"
+                value={newUserData.rol}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
+            </div>
+            {/* Agrega otros campos del formulario aquí */}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAddUser}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Guardando..." : "Guardar Usuario"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+function setIsModalOpen(arg0: boolean) {
+  throw new Error("Function not implemented.");
 }
