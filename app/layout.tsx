@@ -2,7 +2,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster"; // <-- Importa el Toaster
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
 
 import Sidebar from "./components/side-bar";
 import { ThemeProvider } from "./components/theme-provider";
@@ -45,9 +46,8 @@ export default function RootLayout({
               </div>
             </div>
           </UserProvider>
-          <Toaster />
         </ThemeProvider>
-        
+        <ToastContainer position="top-right" autoClose={5000} />
       </body>
     </html>
   );

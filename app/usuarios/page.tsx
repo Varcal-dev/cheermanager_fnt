@@ -47,9 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@/context/UserContext";
-import { toast } from "@/components/ui/use-toast";
-//import { useToast } from "@/components/ui/use-toast"; // O tu sistema de notificaciones
-
+import { toast } from 'react-toastify';
 import {
   Select,
   SelectContent,
@@ -110,7 +108,7 @@ export default function UsuariosPage() {
   const [selectedPersonaId, setSelectedPersonaId] = useState<number | null>(
     null
   ); // Para la persona seleccionada del desplegable
-  
+
   const [tipoAsociacion, setTipoAsociacion] = useState<
     "ninguna" | "nueva" | "existente"
   >("ninguna");
@@ -163,12 +161,7 @@ export default function UsuariosPage() {
       );
 
       if (response.status === 200) {
-        toast({
-          title: "Usuario agregado exitosamente", // Título más específico
-          description: response.data || "El nuevo usuario ha sido creado.", // Usar la respuesta del backend si existe, o un mensaje genérico
-          variant: "default", // O "success" si tu sistema de toast lo soporta
-        });
-
+        toast.success("Usuario agregado exitosamente"); 
         fetchUsuarios(); // Recarga la lista de usuarios
         // Opcional: Refrescar la lista de usuarios si la muestras en la página
         // (Necesitarías una forma de recargar los datos, quizás llamando a la API de listado de usuarios)
@@ -196,12 +189,7 @@ export default function UsuariosPage() {
           "Registro de usuario exitoso con código inesperado:",
           response.status
         );
-        toast({
-          title: "Registro completo",
-          description:
-            response.data || `Usuario registrado con estado ${response.status}`,
-          variant: "default", // O "success"
-        });
+        toast.info(`Usuario registrado con estado ${response.status}`);
         // ... (posiblemente cerrar modal y limpiar formulario si este estado también indica éxito) ...
       }
     } catch (error: any) {
@@ -215,11 +203,7 @@ export default function UsuariosPage() {
         error.message || // Mensaje de error de Axios/JS
         "Error desconocido al procesar la solicitud."; // Mensaje genérico de fallback
 
-      toast({
-        title: "Error al registrar usuario", // Título claro para el error
-        description: errorMessage, // Mostrar el mensaje de error obtenido
-        variant: "destructive", // Para indicar que es un error
-      });
+      toast.error( "Error al registrar usuario"); 
     } finally {
       setIsSubmitting(false); // Siempre ocultar el indicador de carga/envío
     }
@@ -238,11 +222,7 @@ export default function UsuariosPage() {
       }
     } catch (error) {
       console.error("Error fetching roles:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los roles.",
-        variant: "destructive",
-      });
+      toast.error( "Error");
     }
   };
 
@@ -308,6 +288,9 @@ export default function UsuariosPage() {
   };
 
   useEffect(() => {
+    fetchUsuarios(); // Carga inicial de usuarios
+    fetchRoles(); // <-- Carga inicial de roles
+
     axios
       .get("http://localhost:8080/api/usuario/listar", {
         withCredentials: true,
@@ -376,18 +359,18 @@ export default function UsuariosPage() {
   };
 
   // Obtener roles únicos
-  const roles = Array.from(
-    new Set(usuarios.map((u) => u.rolNombre || "Sin Rol"))
-  );
+  //const roles = Array.from(    new Set(usuarios.map((u) => u.rolNombre || "Sin Rol"))  );
 
   // Filtrar usuarios por término de búsqueda, rol y estado activo/inactivo
   const filteredUsuarios = usuarios.filter((usuario) => {
     const matchesSearch =
       usuario.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       usuario.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      usuario.rolNombre?.toLowerCase().includes(searchTerm.toLowerCase());
+      usuario.rol?.toLowerCase().includes(searchTerm.toLowerCase()); // Usa usuario.rol, que ya mapeaste a rolNombre
 
-    const matchesRol = rolFiltro ? usuario.rolNombre === rolFiltro : true;
+    // *** MODIFICA LA CONDICIÓN DE FILTRO DE ROL ***
+    // Ahora comparas con el nombre del rol (usuario.rol) en lugar de u.rolNombre
+    const matchesRol = rolFiltro ? usuario.rol === rolFiltro : true;
     const matchesActivo = mostrarInactivos ? true : usuario.activo;
 
     return matchesSearch && matchesRol && matchesActivo;
@@ -452,9 +435,14 @@ export default function UsuariosPage() {
               <DropdownMenuItem onClick={() => setRolFiltro(null)}>
                 Todos los roles
               </DropdownMenuItem>
-              {roles.map((rol) => (
-                <DropdownMenuItem key={rol} onClick={() => setRolFiltro(rol)}>
-                  {rol}
+              {/* *** USA rolesList AQUÍ *** */}
+              {rolesList.map((rol) => (
+                <DropdownMenuItem
+                  key={rol.id}
+                  // Al seleccionar, guardamos el NOMBRE del rol, no el ID, porque filtras por nombre
+                  onClick={() => setRolFiltro(rol.nombre)}
+                >
+                  {rol.nombre}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
