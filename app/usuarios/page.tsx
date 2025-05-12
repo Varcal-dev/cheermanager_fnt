@@ -42,13 +42,13 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"; 
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@/context/UserContext";
 import { toast } from "@/components/ui/use-toast";
-import { useToast } from "@/components/ui/use-toast"; // O tu sistema de notificaciones
+//import { useToast } from "@/components/ui/use-toast"; // O tu sistema de notificaciones
 
 import {
   Select,
@@ -57,7 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@radix-ui/react-checkbox";
+//import { Checkbox } from "@radix-ui/react-checkbox";
 
 // Define la interfaz para los datos del nuevo usuario
 interface NewUserData {
@@ -110,6 +110,7 @@ export default function UsuariosPage() {
   const [selectedPersonaId, setSelectedPersonaId] = useState<number | null>(
     null
   ); // Para la persona seleccionada del desplegable
+  
   const [tipoAsociacion, setTipoAsociacion] = useState<
     "ninguna" | "nueva" | "existente"
   >("ninguna");
@@ -167,6 +168,8 @@ export default function UsuariosPage() {
           description: response.data || "El nuevo usuario ha sido creado.", // Usar la respuesta del backend si existe, o un mensaje genérico
           variant: "default", // O "success" si tu sistema de toast lo soporta
         });
+
+        fetchUsuarios(); // Recarga la lista de usuarios
         // Opcional: Refrescar la lista de usuarios si la muestras en la página
         // (Necesitarías una forma de recargar los datos, quizás llamando a la API de listado de usuarios)
         setIsModalOpen(false); // Cierra el modal
@@ -257,6 +260,50 @@ export default function UsuariosPage() {
     } catch (error) {
       console.error("Error fetching genders:", error);
       // Handle error
+    }
+  };
+
+  // Define una función para cargar usuarios (si no la tienes ya separada)
+  const fetchUsuarios = async () => {
+    setLoading(true); // Opcional: mostrar un indicador de carga mientras se refresca
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/usuario/listar",
+        {
+          withCredentials: true,
+        }
+      );
+      const data = response.data.map((u: any) => {
+        // ... (tu lógica de mapeo de datos actual) ...
+        const fechaRaw = u.ultimoAcceso ? new Date(u.ultimoAcceso) : null;
+
+        return {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          rol: u.rolNombre || "Sin Rol",
+          ultimo_acceso: u.ultimoAcceso,
+          fechaUltimoAcceso: fechaRaw
+            ? fechaRaw.toLocaleDateString("es-CO", { dateStyle: "short" })
+            : "Sin acceso",
+          horaUltimoAcceso: fechaRaw
+            ? fechaRaw.toLocaleTimeString("es-CO", { timeStyle: "medium" })
+            : "",
+          activo: u.activo,
+          nombre: u.nombre,
+          apellidos: u.apellidos,
+          direccion: u.direccion,
+          telefono: u.telefono,
+          fechaNacimiento: u.fechaNacimiento,
+          generoId: u.generoId,
+        };
+      });
+      setUsuarios(data); // Actualiza el estado con los nuevos datos
+    } catch (error) {
+      console.error("Error al recargar usuarios:", error);
+      // Manejar error al recargar (quizás mostrar un toast)
+    } finally {
+      setLoading(false); // Ocultar indicador de carga
     }
   };
 
