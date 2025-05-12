@@ -41,13 +41,13 @@ export default function RootLayout({
                 <div className="hidden md:block">
                   <Sidebar />
                 </div>
-                <main className="flex-1 overflow-y-auto p-8">{children}
-                     <Toaster />
-                </main>
+                <main className="flex-1 overflow-y-auto p-8">{children}</main>
               </div>
             </div>
           </UserProvider>
+          <Toaster />
         </ThemeProvider>
+        
       </body>
     </html>
   );

@@ -16,8 +16,7 @@ const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) =
   useEffect(() => {
     console.log("Verificando permisos...")
     if (!loading) {
-      console.log("Usuario:", user)
-      console.log("Permisos:", permissions)
+      
       if (!user) {
         console.log("Usuario no autenticado, redirigiendo a login...")
         // Redirigir al login si no está autenticado

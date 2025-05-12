@@ -42,13 +42,13 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"; // Ajusta la importación según tu libreríaimport { useToast } from "@/components/ui/use-toast" // O tu sistema de notificaciones
-
+} from "@/components/ui/dialog"; 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@/context/UserContext";
 import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast"; // O tu sistema de notificaciones
 
 import {
   Select,
@@ -99,7 +99,7 @@ export default function UsuariosPage() {
     ultimoAcceso: null,
     activo: true,
     // Initialize person fields as optional
-    personaId: undefined,
+    personaId: null,
     nombre: "",
     apellidos: "",
   });
@@ -110,6 +110,9 @@ export default function UsuariosPage() {
   const [selectedPersonaId, setSelectedPersonaId] = useState<number | null>(
     null
   ); // Para la persona seleccionada del desplegable
+  const [tipoAsociacion, setTipoAsociacion] = useState<
+    "ninguna" | "nueva" | "existente"
+  >("ninguna");
 
   const [isSubmitting, setIsSubmitting] = useState(false); // Estado para deshabilitar el botón al enviar
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,22 +127,30 @@ export default function UsuariosPage() {
     setIsSubmitting(true);
 
     try {
-      const dataToSend = {
+      let dataToSend: any = {
         username: newUserData.username,
         password: "0000",
         email: `${newUserData.username}@cheermanager.com`,
         rolId: newUserData.rol,
-        ...(!newUserData.personaId &&
-          newUserData.nombre && {
-            nombre: newUserData.nombre,
-            apellidos: newUserData.apellidos,
-            direccion: newUserData.direccion,
-            telefono: newUserData.telefono,
-            fechaNacimiento: newUserData.fechaNacimiento,
-            generoId: newUserData.generoId,
-          }),
-        ...(newUserData.personaId && { personaId: newUserData.personaId }),
       };
+
+      if (tipoAsociacion === "nueva") {
+        dataToSend = {
+          ...dataToSend,
+          personaId: null,
+          nombre: newUserData.nombre,
+          apellidos: newUserData.apellidos,
+          direccion: newUserData.direccion,
+          telefono: newUserData.telefono,
+          fechaNacimiento: newUserData.fechaNacimiento,
+          generoId: newUserData.generoId,
+        };
+      } else if (tipoAsociacion === "existente") {
+        dataToSend.personaId = selectedPersonaId;
+      } else {
+        dataToSend.personaId = null;
+      }
+
       console.log("Datos a enviar al Backend:", dataToSend);
       // Aquí haces la llamada a tu endpoint de backend para crear un usuario
       const response = await axios.post(
@@ -190,7 +201,7 @@ export default function UsuariosPage() {
         });
         // ... (posiblemente cerrar modal y limpiar formulario si este estado también indica éxito) ...
       }
-    } catch (error: any) {      
+    } catch (error: any) {
       // *** Manejo de Errores de Petición (4xx, 5xx, error de red, etc.) ***
       console.error("Error al agregar usuario:", error);
 
@@ -634,69 +645,102 @@ export default function UsuariosPage() {
               </Select>
             </div>
             <div className="space-y-4">
-              {/* Checkbox para activar asociación */}
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="asociarPersona"
-                  checked={asociarPersona}
-                  onCheckedChange={(checked) => setAsociarPersona(!!checked)}
-                />
-                <Label htmlFor="asociarPersona">
-                  Asociar a persona existente
-                </Label>
-              </div>
-
-              {/* Si está activado, mostrar búsqueda y selección */}
-              {asociarPersona && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label
-                    htmlFor="searchPersona"
-                    className="text-right col-span-1"
-                  >
-                    Buscar Persona
-                  </Label>
-                  <Input
-                    id="searchPersona"
-                    type="text"
-                    value={searchTermPersona}
-                    onChange={(e) => setSearchTermPersona(e.target.value)}
-                    className="col-span-3"
-                    placeholder="Escribe nombre o apellido"
+              {/* check radio */}
+              <Label className="font-semibold">Asociación de Persona</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="asociacion"
+                    value="ninguna"
+                    checked={tipoAsociacion === "ninguna"}
+                    onChange={() => {
+                      setTipoAsociacion("ninguna");
+                      setNewUserData({ ...newUserData, personaId: null });
+                    }}
                   />
+                  Sin persona
+                </label>
 
-                  {filteredPersonas.length > 0 && (
-                    <>
-                      <Label
-                        htmlFor="selectPersona"
-                        className="text-right col-span-1"
-                      >
-                        Seleccionar
-                      </Label>
-                      <select
-                        id="selectPersona"
-                        value={selectedPersonaId ?? ""}
-                        onChange={(e) =>
-                          setSelectedPersonaId(
-                            e.target.value ? parseInt(e.target.value) : null
-                          )
-                        }
-                        className="col-span-3 border rounded p-2"
-                      >
-                        <option value="">Seleccione una persona</option>
-                        {filteredPersonas.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} {p.apellidos}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                </div>
-              )}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="asociacion"
+                    value="nueva"
+                    checked={tipoAsociacion === "nueva"}
+                    onChange={() => {
+                      setTipoAsociacion("nueva");
+                      setNewUserData({ ...newUserData, personaId: undefined });
+                    }}
+                  />
+                  Nueva persona
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="asociacion"
+                    value="existente"
+                    checked={tipoAsociacion === "existente"}
+                    onChange={() => {
+                      setTipoAsociacion("existente");
+                      setNewUserData({ ...newUserData, personaId: null });
+                    }}
+                  />
+                  Persona existente
+                </label>
+              </div>
             </div>
             {/* Campos para nueva persona (condicional) */}
-            {newUserData.personaId === undefined && (
+            {tipoAsociacion === "existente" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="searchPersona"
+                  className="text-right col-span-1"
+                >
+                  Buscar Persona
+                </Label>
+                <Input
+                  id="searchPersona"
+                  type="text"
+                  value={searchTermPersona}
+                  onChange={(e) => setSearchTermPersona(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Escribe nombre o apellido"
+                />
+
+                {filteredPersonas.length > 0 && (
+                  <>
+                    <Label
+                      htmlFor="selectPersona"
+                      className="text-right col-span-1"
+                    >
+                      Seleccionar
+                    </Label>
+                    <select
+                      id="selectPersona"
+                      value={selectedPersonaId ?? ""}
+                      onChange={(e) =>
+                        setSelectedPersonaId(
+                          e.target.value ? parseInt(e.target.value) : null
+                        )
+                      }
+                      className="col-span-3 border rounded p-2"
+                    >
+                      <option value="">Seleccione una persona</option>
+                      {filteredPersonas.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} {p.apellidos}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
+            {tipoAsociacion === "nueva" && (
               <>
+                {/* mismos campos que ya tienes para nueva persona */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="nombre" className="text-right">
                     Nombre Persona
@@ -783,6 +827,7 @@ export default function UsuariosPage() {
                 </div>
               </>
             )}
+
             {/* Agrega otros campos del formulario aquí */}
           </div>
           <DialogFooter>
