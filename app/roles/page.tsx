@@ -43,6 +43,7 @@ type ConteoRol = {
   usuariosCount: number;
 };
 
+/*
 // Datos de ejemplo para roles
 const roles = [
   {
@@ -224,6 +225,7 @@ const rolPermisos = {
   3: [9, 13, 17, 18, 20, 21], // Recepcionista
   4: [17, 18, 19, 20, 21, 22, 23, 24], // Contabilidad
 };
+*/
 
 export default function RolesPage() {
   {
