@@ -1,4 +1,5 @@
 "use client";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -388,6 +389,7 @@ export default function UsuariosPage() {
   );
 
   return (
+    <ProtectedRoute requiredPermission="ver_usuarios">
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
@@ -880,5 +882,6 @@ export default function UsuariosPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   );
 }
