@@ -68,7 +68,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 
 export interface Categoria {
   id: number;
@@ -147,11 +147,7 @@ export default function NivelesPage() {
     axios
       .post("http://localhost:8080/api/niveles", payload)
       .then(() => {
-        toast({
-          title: "Nivel Creado",
-          description: `El nivel ${nombre} fue creado correctamente.`,
-          variant: "default",
-        });
+        toast( `El nivel ${nombre} fue creado correctamente.`);
 
         onCreated();
         setModalAbierto(false);
@@ -162,11 +158,7 @@ export default function NivelesPage() {
       
       .catch((err) => {
         console.error("Error Creando el nivel:", err);
-        toast({
-          title: "Error al eliminar",
-          description: "No se pudo crear el nivel. Intenta nuevamente.",
-          variant: "destructive",
-        });
+        toast("No se pudo crear el nivel. Intenta nuevamente.");
       });
   };
 
@@ -185,11 +177,7 @@ export default function NivelesPage() {
     axios
       .delete(`http://localhost:8080/api/niveles/${nivelAEliminar}`)
       .then(() => {
-        toast({
-          title: "Nivel eliminado",
-          description: `El nivel con ID ${nivelAEliminar} fue eliminado correctamente.`,
-          variant: "default",
-        });
+        toast.error( `El nivel fue eliminado correctamente.`);
 
         setDialogAbierto(false);
         setNivelAEliminar(null);
@@ -197,11 +185,7 @@ export default function NivelesPage() {
       })
       .catch((err) => {
         console.error("Error eliminando nivel:", err);
-        toast({
-          title: "Error al eliminar",
-          description: "No se pudo eliminar el nivel. Intenta nuevamente.",
-          variant: "destructive",
-        });
+        toast( "Error al eliminar");
       });
   };
 
@@ -383,13 +367,7 @@ export default function NivelesPage() {
           </TabsContent>
         </Tabs>
         {/* Pestaña de Categorías */}
-        <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Nivel
-            </Button>
-          </DialogTrigger>
+        <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>          
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Crear Nuevo Nivel</DialogTitle>
@@ -429,13 +407,7 @@ export default function NivelesPage() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </Button>
-          </AlertDialogTrigger>
+        <AlertDialog open={dialogAbierto} onOpenChange={setDialogAbierto}>          
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar este nivel?</AlertDialogTitle>
