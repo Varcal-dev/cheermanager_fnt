@@ -147,7 +147,7 @@ export default function NivelesPage() {
     axios
       .post("http://localhost:8080/api/niveles", payload)
       .then(() => {
-        toast( `El nivel ${nombre} fue creado correctamente.`);
+        toast(`El nivel ${nombre} fue creado correctamente.`);
 
         onCreated();
         setModalAbierto(false);
@@ -155,7 +155,7 @@ export default function NivelesPage() {
         setDescripcion("");
         setCategoriaId("");
       })
-      
+
       .catch((err) => {
         console.error("Error Creando el nivel:", err);
         toast("No se pudo crear el nivel. Intenta nuevamente.");
@@ -177,7 +177,7 @@ export default function NivelesPage() {
     axios
       .delete(`http://localhost:8080/api/niveles/${nivelAEliminar}`)
       .then(() => {
-        toast.error( `El nivel fue eliminado correctamente.`);
+        toast.error(`El nivel fue eliminado correctamente.`);
 
         setDialogAbierto(false);
         setNivelAEliminar(null);
@@ -185,7 +185,7 @@ export default function NivelesPage() {
       })
       .catch((err) => {
         console.error("Error eliminando nivel:", err);
-        toast( "Error al eliminar");
+        toast("Error al eliminar");
       });
   };
 
@@ -214,9 +214,11 @@ export default function NivelesPage() {
                     deportistas
                   </CardDescription>
                 </div>
-                <Button onClick={abrirModal}>
-                  <Plus className="mr-2 h-4 w-4" /> Nuevo Nivel
-                </Button>
+                <ProtectedRoute requiredPermission="crear_nivel">
+                  <Button onClick={abrirModal}>
+                    <Plus className="mr-2 h-4 w-4" /> Nuevo Nivel
+                  </Button>
+                </ProtectedRoute>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between mb-4">
@@ -289,14 +291,18 @@ export default function NivelesPage() {
                               <Button variant="outline" size="sm">
                                 <Pencil className="h-4 w-4 mr-1" /> Editar
                               </Button>*/}
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => abrirDialogoEliminar(nivel.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Eliminar
-                                </Button>
+                                <ProtectedRoute requiredPermission="eliminar_nivel">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() =>
+                                      abrirDialogoEliminar(nivel.id)
+                                    }
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                  </Button>
+                                </ProtectedRoute>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -367,7 +373,7 @@ export default function NivelesPage() {
           </TabsContent>
         </Tabs>
         {/* Pestaña de Categorías */}
-        <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>          
+        <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Crear Nuevo Nivel</DialogTitle>
@@ -407,7 +413,7 @@ export default function NivelesPage() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={dialogAbierto} onOpenChange={setDialogAbierto}>          
+        <AlertDialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar este nivel?</AlertDialogTitle>
