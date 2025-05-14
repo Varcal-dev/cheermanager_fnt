@@ -43,220 +43,24 @@ type ConteoRol = {
   usuariosCount: number;
 };
 
-/*
-// Datos de ejemplo para roles
-const roles = [
-  {
-    id: 1,
-    nombre: "Administrador",
-    descripcion: "Acceso completo al sistema",
-    usuarios: 1,
-    permisos: 25,
-  },
-  {
-    id: 2,
-    nombre: "Entrenador",
-    descripcion: "Gestión de deportistas, grupos y evaluaciones",
-    usuarios: 3,
-    permisos: 15,
-  },
-  {
-    id: 3,
-    nombre: "Recepcionista",
-    descripcion: "Gestión de pagos y asistencias",
-    usuarios: 1,
-    permisos: 10,
-  },
-  {
-    id: 4,
-    nombre: "Contabilidad",
-    descripcion: "Gestión financiera y reportes",
-    usuarios: 1,
-    permisos: 8,
-  },
-];
-
-// Datos de ejemplo para permisos
-const permisos = [
-  {
-    id: 1,
-    nombre: "usuarios.ver",
-    descripcion: "Ver usuarios",
-    modulo: "Usuarios",
-  },
-  {
-    id: 2,
-    nombre: "usuarios.crear",
-    descripcion: "Crear usuarios",
-    modulo: "Usuarios",
-  },
-  {
-    id: 3,
-    nombre: "usuarios.editar",
-    descripcion: "Editar usuarios",
-    modulo: "Usuarios",
-  },
-  {
-    id: 4,
-    nombre: "usuarios.eliminar",
-    descripcion: "Eliminar usuarios",
-    modulo: "Usuarios",
-  },
-  { id: 5, nombre: "roles.ver", descripcion: "Ver roles", modulo: "Usuarios" },
-  {
-    id: 6,
-    nombre: "roles.crear",
-    descripcion: "Crear roles",
-    modulo: "Usuarios",
-  },
-  {
-    id: 7,
-    nombre: "roles.editar",
-    descripcion: "Editar roles",
-    modulo: "Usuarios",
-  },
-  {
-    id: 8,
-    nombre: "roles.eliminar",
-    descripcion: "Eliminar roles",
-    modulo: "Usuarios",
-  },
-  {
-    id: 9,
-    nombre: "deportistas.ver",
-    descripcion: "Ver deportistas",
-    modulo: "Deportistas",
-  },
-  {
-    id: 10,
-    nombre: "deportistas.crear",
-    descripcion: "Crear deportistas",
-    modulo: "Deportistas",
-  },
-  {
-    id: 11,
-    nombre: "deportistas.editar",
-    descripcion: "Editar deportistas",
-    modulo: "Deportistas",
-  },
-  {
-    id: 12,
-    nombre: "deportistas.eliminar",
-    descripcion: "Eliminar deportistas",
-    modulo: "Deportistas",
-  },
-  { id: 13, nombre: "grupos.ver", descripcion: "Ver grupos", modulo: "Grupos" },
-  {
-    id: 14,
-    nombre: "grupos.crear",
-    descripcion: "Crear grupos",
-    modulo: "Grupos",
-  },
-  {
-    id: 15,
-    nombre: "grupos.editar",
-    descripcion: "Editar grupos",
-    modulo: "Grupos",
-  },
-  {
-    id: 16,
-    nombre: "grupos.eliminar",
-    descripcion: "Eliminar grupos",
-    modulo: "Grupos",
-  },
-  { id: 17, nombre: "pagos.ver", descripcion: "Ver pagos", modulo: "Finanzas" },
-  {
-    id: 18,
-    nombre: "pagos.crear",
-    descripcion: "Crear pagos",
-    modulo: "Finanzas",
-  },
-  {
-    id: 19,
-    nombre: "pagos.editar",
-    descripcion: "Editar pagos",
-    modulo: "Finanzas",
-  },
-  {
-    id: 20,
-    nombre: "facturas.ver",
-    descripcion: "Ver facturas",
-    modulo: "Finanzas",
-  },
-  {
-    id: 21,
-    nombre: "facturas.crear",
-    descripcion: "Crear facturas",
-    modulo: "Finanzas",
-  },
-  {
-    id: 22,
-    nombre: "facturas.editar",
-    descripcion: "Editar facturas",
-    modulo: "Finanzas",
-  },
-  {
-    id: 23,
-    nombre: "reportes.ver",
-    descripcion: "Ver reportes",
-    modulo: "Reportes",
-  },
-  {
-    id: 24,
-    nombre: "reportes.exportar",
-    descripcion: "Exportar reportes",
-    modulo: "Reportes",
-  },
-  {
-    id: 25,
-    nombre: "auditoria.ver",
-    descripcion: "Ver auditoría",
-    modulo: "Auditoría",
-  },
-];
-
-// Datos de ejemplo para permisos por rol
-const rolPermisos = {
-  1: [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-    22, 23, 24, 25,
-  ], // Administrador
-  2: [9, 10, 11, 13, 14, 15], // Entrenador
-  3: [9, 13, 17, 18, 20, 21], // Recepcionista
-  4: [17, 18, 19, 20, 21, 22, 23, 24], // Contabilidad
-};
-*/
-
 export default function RolesPage() {
-  {
-    /* old*/
-  }
-  //const [searchTerm, setSearchTerm] = useState("");
-  //const [selectedRol, setSelectedRol] = useState<number | null>(null);
-  //const [searchPermiso, setSearchPermiso] = useState("");
-
-  {
-    /* new */
-  }
   const [roles, setRoles] = useState<Rol[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<Rol[]>([]);
   const [selectedRol, setSelectedRol] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  //const [selectedRol, setSelectedRol] = useState(null);
   const [searchPermiso, setSearchPermiso] = useState("");
-
-  //const [roles, setRoles] = useState([]); // Datos base de roles
   const [conteos, setConteos] = useState<ConteoRol[]>([]);
-
   const [permisos, setPermisos] = useState<Permiso[]>([]);
-  //const [filteredPermisos, setFilteredPermisos] = useState<Permiso[]>([]);
+  
 
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/usuario/rol/listar");
-        const data = await res.json();
-        setRoles(data);
+        console.log("Obteniendo roles...");
+        const res = await axios.get(
+          "http://localhost:8080/api/usuario/rol/listar"
+        );
+        setRoles(res.data);
       } catch (error) {
         console.error("Error al cargar roles", error);
       }
@@ -273,6 +77,20 @@ export default function RolesPage() {
   }, []);
 
   useEffect(() => {
+    const fetchPermisos = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/permisos/listar");
+        const data = await res.json();
+        setPermisos(data);
+      } catch (error) {
+        console.error("Error al cargar permisos", error);
+      }
+    };
+
+    fetchPermisos();
+  }, []);
+
+  useEffect(() => {
     const filtered = roles.filter((rol) =>
       rol.nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -285,15 +103,7 @@ export default function RolesPage() {
   });
 
   // Obtener módulos únicos
-  const modulos = [...new Set(filteredPermisos.map((p) => p.nombre))];
-
-  // Agrupar permisos por prefijo (antes del punto)
-  const permisosAgrupados = filteredPermisos.reduce((acc, permiso) => {
-    const [grupo] = permiso.nombre.split("_");
-    if (!acc[grupo]) acc[grupo] = [];
-    acc[grupo].push(permiso);
-    return acc;
-  }, {} as Record<string, Permiso[]>);
+  const modulos = [...new Set(filteredPermisos.map((p) => p.modulo))];
 
   // Verificar si un permiso está asignado al rol seleccionado
   const isPermisoAsignado = (permisoId: number): boolean => {
@@ -301,7 +111,18 @@ export default function RolesPage() {
     return rolActual?.permisos?.some((p) => p.id === permisoId) ?? false;
   };
 
+  const rolPermisos: Record<number, number[]> = roles.reduce((acc, rol) => {
+  acc[rol.id] = rol.permisos.map(p => p.id);
+  return acc;
+}, {} as Record<number, number[]>);
+
+
   const conteoMap = new Map(conteos.map((rol) => [rol.id, rol.usuariosCount]));
+
+  const rolSeleccionado = roles.find((r) => r.id === selectedRol);
+  const permisosAgrupados = rolSeleccionado
+    ? agruparPermisosPorEntidad(rolSeleccionado.permisos || [])
+    : {};
 
   return (
     <div className="space-y-6">
@@ -376,7 +197,11 @@ export default function RolesPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedRol(rol.id)}
+                              onClick={() =>
+                                setSelectedRol((prev) =>
+                                  prev === rol.id ? null : rol.id
+                                )
+                              }
                             >
                               <Shield className="h-4 w-4 mr-1" /> Permisos
                             </Button>
@@ -397,6 +222,7 @@ export default function RolesPage() {
                 <CardHeader>
                   <CardTitle>
                     Permisos del rol:{" "}
+                    {/* Asegúrate de encontrar el rol en el estado 'roles' */}
                     {roles.find((r) => r.id === selectedRol)?.nombre}
                   </CardTitle>
                   <CardDescription>
@@ -410,27 +236,59 @@ export default function RolesPage() {
                     onChange={(e) => setSearchPermiso(e.target.value)}
                     className="mb-4"
                   />
-                  {modulos.map((modulo) => (
-                    <div key={modulo} className="mb-4">
-                      <h3 className="font-semibold mb-2">{modulo}</h3>
-                      <div className="space-y-1">
-                        {filteredPermisos
-                          .filter((permiso) => permiso.modulo === modulo)
-                          .map((permiso) => (
-                            <div
-                              key={permiso.id}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                checked={isPermisoAsignado(permiso.id)}
-                                disabled
-                              />
-                              <span>{permiso.descripcion}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
+                  {Object.entries(permisosAgrupados).map(
+                    ([entidad, permisosDeEntidad]) => {
+                      // Filter the permissions within this entity group by the search term
+                      const filteredPermisosDeEntidad =
+                        permisosDeEntidad.filter(
+                          (permiso) =>
+                            permiso.nombre
+                              .toLowerCase()
+                              .includes(searchPermiso.toLowerCase()) ||
+                            permiso.descripcion
+                              .toLowerCase()
+                              .includes(searchPermiso.toLowerCase())
+                        );
+
+                      // Don't render the entity heading if no permissions match the search within it
+                      if (filteredPermisosDeEntidad.length === 0) return null;
+
+                      return (
+                        <div key={entidad} className="space-y-2">
+                          {/* Display the entity heading */}
+                          <h3 className="font-semibold text-lg capitalize">
+                            {entidad.replaceAll("_", " ")}{" "}
+                            {/* Format entity name */}
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {/* Iterate over the filtered permissions for this entity */}
+                            {filteredPermisosDeEntidad.map((permiso) => (
+                              <div
+                                key={permiso.id}
+                                className="flex items-center space-x-2 border rounded-md p-2"
+                              >
+                                <Checkbox
+                                  id={`permiso-${selectedRol}-${permiso.id}`}
+                                  checked={isPermisoAsignado(permiso.id)}
+                                  disabled
+                                  // onCheckedChange={(checked) => handlePermissionChange(selectedRol, permiso.id, checked)}
+                                />
+                                <label
+                                  htmlFor={`permiso-${selectedRol}-${permiso.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+                                >
+                                  {permiso.descripcion}
+                                  <span className="block text-xs text-muted-foreground mt-1">
+                                    {permiso.nombre}
+                                  </span>
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -505,4 +363,32 @@ export default function RolesPage() {
       </Tabs>
     </div>
   );
+}
+
+function agruparPermisosPorEntidad(
+  permisos: Permiso[]
+): Record<string, Permiso[]> {
+  const agrupados: Record<string, Permiso[]> = {};
+
+  for (const permiso of permisos) {
+    const entidad = getEntidadFromNombre(permiso.nombre);
+    if (!agrupados[entidad]) {
+      agrupados[entidad] = [];
+    }
+    agrupados[entidad].push(permiso);
+  }
+
+  return agrupados;
+}
+
+function getEntidadFromNombre(nombre: string): string {
+  // Esta función extrae la "entidad" del nombre del permiso.
+  // Si tus nombres son como "ver_evento", la entidad sería "evento".
+  const partes = nombre.split("_");
+  // Toma todas las partes excepto la primera (la acción)
+  const entidadPartes = partes.slice(1);
+  // Si hay partes de entidad, únelas con underscore, de lo contrario usa 'otros'
+  return entidadPartes.length > 0 && partes.length > 1
+    ? entidadPartes.join("_")
+    : "otros";
 }
