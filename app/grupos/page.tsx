@@ -109,7 +109,7 @@ export default function GruposPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchGrupos(); // Solo llama a la función, no la duplica
+    fetchGrupos(); // Solo llama a la función
   }, []);
 
   const fetchGrupos = async () => {

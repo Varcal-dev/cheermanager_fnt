@@ -13,6 +13,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 
 export function TopBar() {
@@ -33,11 +34,7 @@ export function TopBar() {
       if (response.status === 200) {
         // Si el backend responde exitosamente, la sesión se cerró
         console.log("Sesión cerrada exitosamente");
-
-        // *** Aquí agregas la lógica para redirigir al usuario a la página de inicio de sesión ***
-        // Puedes usar el hook useRouter de Next.js para esto
-        // import { useRouter } from 'next/navigation';
-        const router = useRouter();
+        setUsuario(null); // Aquí puedes limpiar el estado del usuario si lo tienes en un contexto o estado global
         router.push('/login'); // Reemplaza '/login' con la ruta de tu página de inicio de sesión
 
         // También podrías limpiar cualquier estado local o contexto de usuario si los tienes
@@ -45,14 +42,11 @@ export function TopBar() {
       } else {
         // Manejar si el backend devuelve un código de estado diferente (aunque 200 es lo esperado para éxito)
         console.error("Error al cerrar sesión:", response.statusText);
-        // Mostrar un mensaje de error al usuario si es necesario
       }
     } catch (error: any) {
       // Manejar errores de la petición (ej. error de red, servidor caído)
       console.error("Error en la petición de cierre de sesión:", error);
-      // Mostrar un mensaje de error al usuario
-      // Podrías considerar redirigir al usuario a la página de login incluso en caso de error
-      // si asumes que la sesión ya no es válida en el frontend.
+      router.push('/login');
     }
   };
 

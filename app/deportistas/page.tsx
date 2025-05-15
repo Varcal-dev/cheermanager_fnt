@@ -39,51 +39,6 @@ const deportistas = [
     grupos: ["Mini Estrellas"],
   },
   {
-    id: 2,
-    nombre: "Lucas Martínez",
-    fecha_nacimiento: "2018-03-22",
-    genero: "Masculino",
-    telefono: "555-234-5678",
-    estado: "Activo",
-    nivel: "Nivel 1",
-    fecha_inscripcion: "2023-02-10",
-    contacto_emergencia: "Carlos Martínez (Padre)",
-    historial_medico: "Alergia a penicilina",
-    peso: 23,
-    altura: 115,
-    grupos: ["Mini Estrellas"],
-  },
-  {
-    id: 3,
-    nombre: "Emma Rodríguez",
-    fecha_nacimiento: "2016-11-05",
-    genero: "Femenino",
-    telefono: "555-345-6789",
-    estado: "Activo",
-    nivel: "Nivel 1",
-    fecha_inscripcion: "2022-09-01",
-    contacto_emergencia: "Ana Rodríguez (Madre)",
-    historial_medico: "Asma leve",
-    peso: 28,
-    altura: 125,
-    grupos: ["Mini Estrellas"],
-  },
-  {
-    id: 4,
-    nombre: "Mateo González",
-    fecha_nacimiento: "2014-07-18",
-    genero: "Masculino",
-    telefono: "555-456-7890",
-    estado: "Activo",
-    nivel: "Nivel 2",
-    fecha_inscripcion: "2022-08-15",
-    contacto_emergencia: "Laura González (Madre)",
-    historial_medico: "Sin condiciones médicas",
-    peso: 35,
-    altura: 140,
-    grupos: ["Youth Rockets"],
-  },
-  {
     id: 5,
     nombre: "Valentina López",
     fecha_nacimiento: "2013-09-30",
@@ -115,21 +70,7 @@ const evaluaciones = [
     fecha: "2023-10-15",
     criterio: "Saltos",
     puntaje: 7,
-  },
-  {
-    id: 3,
-    deportista_id: 2,
-    fecha: "2023-10-15",
-    criterio: "Flexibilidad",
-    puntaje: 6,
-  },
-  {
-    id: 4,
-    deportista_id: 2,
-    fecha: "2023-10-15",
-    criterio: "Saltos",
-    puntaje: 8,
-  },
+  }
 ]
 
 // Datos de ejemplo para objetivos
@@ -151,16 +92,7 @@ const objetivos = [
     fecha_creacion: "2023-09-15",
     fecha_final: "2023-11-15",
     estado: "En proceso",
-  },
-  {
-    id: 3,
-    deportista_id: 2,
-    nombre: "Dominar back handspring",
-    descripcion: "Realizar back handspring sin asistencia",
-    fecha_creacion: "2023-08-20",
-    fecha_final: "2023-10-20",
-    estado: "Cumplido",
-  },
+  }
 ]
 
 // Datos de ejemplo para pagos
@@ -199,21 +131,7 @@ const historialNiveles = [
     nivel: "Nivel 1",
     fecha_cambio: "2023-01-15",
     motivo: "Inscripción inicial",
-  },
-  {
-    id: 2,
-    deportista_id: 4,
-    nivel: "Nivel 1",
-    fecha_cambio: "2022-08-15",
-    motivo: "Inscripción inicial",
-  },
-  {
-    id: 3,
-    deportista_id: 4,
-    nivel: "Nivel 2",
-    fecha_cambio: "2023-06-10",
-    motivo: "Promoción por evaluación",
-  },
+  }
 ]
 
 // Datos de ejemplo para historial de planes
@@ -235,6 +153,8 @@ const historialPlanes = [
     motivo_cambio: "Upgrade por participación en competencias",
   },
 ]
+
+
 
 // Datos de ejemplo para historial de grupos
 const historialGrupos = [
@@ -369,16 +289,17 @@ export default function DeportistasPage() {
               <DropdownMenuItem onClick={() => setActiveTab("activos")}>Activos</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveTab("inactivos")}>Inactivos</DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu>{/*
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Exportar
-          </Button>
+          </Button>*/}
         </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
+          {/* tabla info deportista */}
           <Table>
             <TableHeader>
               <TableRow>
@@ -393,6 +314,8 @@ export default function DeportistasPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+
+              {/* datos iniciales*/}
               {filteredDeportistas.map((deportista) => (
                 <>
                   <TableRow key={deportista.id}>
@@ -432,6 +355,8 @@ export default function DeportistasPage() {
                       </div>
                     </TableCell>
                   </TableRow>
+
+                  {/* Detalles del deportista */}
                   {expandedDeportistas.includes(deportista.id) && (
                     <TableRow key={`${deportista.id}-details`} className="bg-muted/50">
                       <TableCell colSpan={8} className="p-0">
@@ -488,6 +413,7 @@ export default function DeportistasPage() {
                               </div>
                             </TabsContent>
 
+                            {/* Historial */}
                             <TabsContent value="historial" className="mt-4">
                               <Tabs defaultValue="niveles">
                                 <TabsList>
@@ -496,6 +422,7 @@ export default function DeportistasPage() {
                                   <TabsTrigger value="grupos">Historial de Grupos</TabsTrigger>
                                 </TabsList>
 
+                                {/* Historial de Niveles */}
                                 <TabsContent value="niveles" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
                                     <h4 className="font-semibold">Historial de Niveles</h4>
@@ -539,6 +466,7 @@ export default function DeportistasPage() {
                                   )}
                                 </TabsContent>
 
+                                {/* Historial de Planes */}
                                 <TabsContent value="planes" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
                                     <h4 className="font-semibold">Historial de Planes</h4>
@@ -588,6 +516,7 @@ export default function DeportistasPage() {
                                   )}
                                 </TabsContent>
 
+                                {/* Historial de Grupos */}
                                 <TabsContent value="grupos" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
                                     <h4 className="font-semibold">Historial de Grupos</h4>
@@ -639,6 +568,7 @@ export default function DeportistasPage() {
                               </Tabs>
                             </TabsContent>
 
+                            {/* Evaluaciones, Objetivos y Pagos */}
                             <TabsContent value="evaluaciones" className="mt-4">
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Evaluaciones</h4>
