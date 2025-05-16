@@ -34,6 +34,24 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 import axios from "axios";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "react-toastify";
+import { useUser } from "@/context/UserContext";
 
 // Datos de ejemplo para entrenadores
 const entrenadores = [
@@ -104,9 +122,22 @@ interface Entrenador {
   estado: string;
 }
 
+export interface Genero {
+  id: number;
+  nombre: string;
+}
+
+export interface Estado {
+  id: number;
+  nombre: string;
+}
+
 export default function EntrenadoresPage() {
   const [expandedEntrenadores, setExpandedEntrenadores] = useState<number[]>(
     []
+  );
+  const [entrenadoAEliminar, setEntrenadoAEliminar] = useState<number | null>(
+    null
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("todos");
@@ -122,36 +153,138 @@ export default function EntrenadoresPage() {
   const [entrenadores, setEntrenadores] = useState<Entrenador[]>([]);
 
   useEffect(() => {
-    const fetchEntrenadores = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:8080/api/entrenadores",
-          {
-            withCredentials: true, // el backend requiere autenticación para esta acción
-          }
-        );
-        const rawData = response.data;
-
-        const mappedEntrenadores = rawData.map((entrenador: any) => ({
-          id: entrenador.id,
-          nombre: entrenador.persona?.nombre ?? "N/A",
-          telefono: entrenador.persona?.telefono ?? "N/A", // viene de persona
-          email: entrenador.persona?.email ?? "N/A", // si email está en persona
-          fecha_contratacion: entrenador.fechaContratacion ?? "Sin Datos", // respetar nombre exacto y mayúsculas
-          especializacion: entrenador.especializacion ?? "N/A",
-          experiencia: entrenador.experiencia ?? "N/A",
-          certificaciones: entrenador.certificaciones ?? "N/A",
-          estado: entrenador.estado?.estado ?? "N/A",
-        }));  
-
-        setEntrenadores(mappedEntrenadores);
-      } catch (error) {
-        console.error("Error al cargar entrenadores:", error);
-      }
-    };
-
     fetchEntrenadores();
   }, []);
+
+  const fetchEntrenadores = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/entrenadores",
+        {
+          withCredentials: true,
+        }
+      );
+      const rawData = response.data;
+
+      const mappedEntrenadores = rawData.map((entrenador: any) => ({
+        id: entrenador.id,
+        nombre: entrenador.persona?.nombre ?? "N/A",
+        telefono: entrenador.persona?.telefono ?? "N/A",
+        email: entrenador.persona?.email ?? "N/A",
+        fecha_contratacion: entrenador.fechaContratacion ?? "Sin Datos",
+        especializacion: entrenador.especializacion ?? "N/A",
+        experiencia: entrenador.experiencia ?? "N/A",
+        certificaciones: entrenador.certificaciones ?? "N/A",
+        estado: entrenador.estado?.estado ?? "N/A",
+      }));
+
+      setEntrenadores(mappedEntrenadores);
+    } catch (error) {
+      console.error("Error al cargar entrenadores:", error);
+    }
+  };
+
+  const obtenerGeneros = async () => {
+    const res = await axios.get(
+      "http://localhost:8080/api/usuario/genero/listar"
+    );
+    return res.data;
+  };
+
+  const guardarEntrenador = async () => {
+    try {
+      // Aquí mapea tu objeto según lo que espera tu API
+      const payload = {
+        nombre: nuevoEntrenador.nombre,
+        apellidos: nuevoEntrenador.apellidos,
+        direccion: nuevoEntrenador.direccion,
+        telefono: nuevoEntrenador.telefono,
+        fechaNacimiento: nuevoEntrenador.fechaNacimiento,
+        generoId: nuevoEntrenador.generoId,
+        fechaContratacion: new Date().toISOString(),
+        especializacion: nuevoEntrenador.especializacion,
+        estadoId: nuevoEntrenador.estadoId,
+      };
+      console.log("Entrenador guardado:", payload);
+      await axios.post("http://localhost:8080/api/entrenadores", payload, {
+        withCredentials: true,
+      });
+      
+      toast.success("Entrenador guardado con éxito");
+      // Aquí puedes refrescar la lista de entrenadores
+      setModalAbierto(false);
+      fetchEntrenadores();
+      // Aquí deberías refrescar la lista de entrenadores
+    } catch (error) {
+      console.error("Error guardando entrenador:", error);
+      toast.error("Error guardando entrenador");
+    }
+  };
+
+  const eliminarEntrenador = async (id: number) => {
+    try {
+      await axios.delete(`http://localhost:8080/api/entrenadores/${id}`, {
+        withCredentials: true,
+      });
+      toast.success("Entrenado eliminado correctamente");
+      // Aquí puedes llamar a una función para recargar la lista de deportistas o actualizar el estado
+      fetchEntrenadores(); // asumiendo que tienes esta función para refrescar la lista
+    } catch (error) {
+      console.error("Error al eliminar Entrenador", error);
+      toast.error("No se pudo eliminar el Entrenador");
+    }
+  };
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  //const [generos, setGeneros] = useState<{ id: number; nombre: string }[]>([]);
+  //const [estados, setEstados] = useState<{ id: number; nombre: string }[]>([]);
+  const [nuevoEntrenador, setNuevoEntrenador] = useState({
+    nombre: "",
+    apellidos: "",
+    direccion: "",
+    telefono: "",
+    fechaNacimiento: "",
+    generoId: 0,
+    especializacion: "",
+    estadoId: 0,
+  });
+
+  const obtenerEstadosPersona = async () => {
+    const res = await axios.get("http://localhost:8080/api/personas/estados"); // este endpoint lo crearemos abajo
+    return res.data;
+  };
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const generosData = await obtenerGeneros();
+      const estadosData = await obtenerEstadosPersona();
+
+      setGeneros(generosData);
+      setEstados(estadosData);
+    };
+    cargarDatos();
+  }, []);
+
+  const [generos, setGeneros] = useState<Genero[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNuevoEntrenador((prev) => ({
+      ...prev,
+      [name]:
+        name === "generoId" || name === "estadoId" ? Number(value) : value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setNuevoEntrenador((prev) => ({
+      ...prev,
+      [name]: Number(value),
+    }));
+  };
 
   // Filtrar entrenadores por término de búsqueda y estado activo/inactivo
   const filteredEntrenadores = entrenadores.filter((entrenador) => {
@@ -180,6 +313,8 @@ export default function EntrenadoresPage() {
     return horariosEntrenadores.filter((h) => h.entrenador_id === entrenadorId);
   };
 
+  const { permissions } = useUser();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -189,8 +324,8 @@ export default function EntrenadoresPage() {
             Gestiona la información de los entrenadores
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Entrenador
+        <Button onClick={() => setModalAbierto(true)}>
+          Agregar Entrenador
         </Button>
       </div>
 
@@ -287,9 +422,15 @@ export default function EntrenadoresPage() {
                         <Button variant="outline" size="sm">
                           <Pencil className="h-4 w-4 mr-1" /> Editar
                         </Button>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                        </Button>
+                        {permissions.includes("eliminar_deportista") && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setEntrenadoAEliminar(entrenador.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -534,6 +675,148 @@ export default function EntrenadoresPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Nuevo Entrenador</DialogTitle>
+            <DialogDescription>
+              Completa el formulario para agregar un nuevo entrenador al
+              sistema.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4 grid-cols-2">
+            <div>
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                name="nombre"
+                value={nuevoEntrenador.nombre}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="apellidos">Apellidos</Label>
+              <Input
+                id="apellidos"
+                name="apellidos"
+                value={nuevoEntrenador.apellidos}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="direccion">Dirección</Label>
+              <Input
+                id="direccion"
+                name="direccion"
+                value={nuevoEntrenador.direccion}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                name="telefono"
+                value={nuevoEntrenador.telefono}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="fechaNacimiento">Fecha Nacimiento</Label>
+              <Input
+                type="date"
+                id="fechaNacimiento"
+                name="fechaNacimiento"
+                value={nuevoEntrenador.fechaNacimiento}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="especializacion">Especialización</Label>
+              <Input
+                id="especializacion"
+                name="especializacion"
+                value={nuevoEntrenador.especializacion}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="generoId">Género</Label>
+              <Select
+                onValueChange={(value) => handleSelectChange("generoId", value)}
+                value={nuevoEntrenador.generoId.toString() || ""}
+              >
+                <SelectTrigger id="generoId" className="w-full">
+                  <SelectValue placeholder="Seleccionar género" />
+                </SelectTrigger>
+                <SelectContent>
+                  {generos.map((g) => (
+                    <SelectItem key={g.id} value={g.id.toString()}>
+                      {g.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="estadoId">Estado</Label>
+              <Select
+                onValueChange={(value) => handleSelectChange("estadoId", value)}
+                value={nuevoEntrenador.estadoId.toString() || ""}
+              >
+                <SelectTrigger id="estadoId" className="w-full">
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map((e) => (
+                    <SelectItem key={e.id} value={e.id.toString()}>
+                      {e.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={guardarEntrenador}>Guardar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Eliminar Deportista */}
+      <Dialog
+        open={entrenadoAEliminar !== null}
+        onOpenChange={() => setEntrenadoAEliminar(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+          </DialogHeader>
+          <p>¿Estás seguro que deseas eliminar este deportista?</p>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setEntrenadoAEliminar(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (entrenadoAEliminar !== null) {
+                  await eliminarEntrenador(entrenadoAEliminar);
+                  setEntrenadoAEliminar(null);
+                }
+              }}
+            >
+              Sí, eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
