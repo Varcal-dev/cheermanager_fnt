@@ -1,3 +1,4 @@
+"use client";
 import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -11,20 +12,28 @@ import { TopBar } from "./components/top-bar";
 
 import { UserProvider } from "@/context/UserContext"; // <--- Importa UserProvider
 import ProtectedRoute from "@/components/ProtectedRoute"; // <--- Importa ProtectedRoute si lo usas aquí
+import { usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
+{
+  /*
 export const metadata: Metadata = {
   title: "Cheer Manager",
   description:
     "Cheer Manager: Sistema avanzado de gestión para gimnasios de cheerleading, organiza clases, horarios y atletas de manera eficiente.",
 };
-
+*/
+}
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAuthRoute =
+    pathname.startsWith("/login") || pathname.startsWith("/recuperar-password");
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
@@ -37,11 +46,13 @@ export default function RootLayout({
           {/* Envuelve la parte principal con UserProvider */}
           <UserProvider>
             <div className="flex h-screen bg-background flex-col">
-              <TopBar />
+              {!isAuthRoute && <TopBar />}
               <div className="flex flex-1 overflow-hidden">
-                <div className="hidden md:block">
-                  <Sidebar />
-                </div>
+                {!isAuthRoute && (
+                  <div className="hidden md:block">
+                    <Sidebar />
+                  </div>
+                )}
                 <main className="flex-1 overflow-y-auto p-8">{children}</main>
               </div>
             </div>

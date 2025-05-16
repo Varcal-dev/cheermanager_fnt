@@ -1,9 +1,16 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   ChevronDown,
   ChevronRight,
@@ -15,11 +22,38 @@ import {
   Search,
   FileText,
   Target,
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { Label } from "@/components/ui/label";
+
+import axios from "axios";
+import { toast } from "react-toastify";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import React from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Datos de ejemplo
 const deportistas = [
@@ -53,7 +87,7 @@ const deportistas = [
     altura: 145,
     grupos: ["Youth Rockets"],
   },
-]
+];
 
 // Datos de ejemplo para evaluaciones
 const evaluaciones = [
@@ -70,8 +104,8 @@ const evaluaciones = [
     fecha: "2023-10-15",
     criterio: "Saltos",
     puntaje: 7,
-  }
-]
+  },
+];
 
 // Datos de ejemplo para objetivos
 const objetivos = [
@@ -92,8 +126,8 @@ const objetivos = [
     fecha_creacion: "2023-09-15",
     fecha_final: "2023-11-15",
     estado: "En proceso",
-  }
-]
+  },
+];
 
 // Datos de ejemplo para pagos
 const pagos = [
@@ -121,7 +155,7 @@ const pagos = [
     fecha: "2024-03-10",
     estado: "Pendiente",
   },
-]
+];
 
 // Datos de ejemplo para historial de niveles
 const historialNiveles = [
@@ -131,8 +165,8 @@ const historialNiveles = [
     nivel: "Nivel 1",
     fecha_cambio: "2023-01-15",
     motivo: "Inscripción inicial",
-  }
-]
+  },
+];
 
 // Datos de ejemplo para historial de planes
 const historialPlanes = [
@@ -152,9 +186,7 @@ const historialPlanes = [
     fecha_fin: null,
     motivo_cambio: "Upgrade por participación en competencias",
   },
-]
-
-
+];
 
 // Datos de ejemplo para historial de grupos
 const historialGrupos = [
@@ -182,84 +214,268 @@ const historialGrupos = [
     fecha_fin: null,
     observaciones: "Promoción por habilidades destacadas",
   },
-]
+];
+
+export interface Deportista {
+  deportistaId: number;
+  personaId: number;
+  nombre: string;
+  apellidos: string;
+  direccion: string;
+  telefono: string;
+  fechaNacimiento: string;
+  generoId: number;
+  genero: string;
+  altura: number;
+  peso: number;
+  fechaInscripcion: string;
+  contactoEmergencia: string;
+  estadoId: number;
+  estadoNombre: string;
+  nivelActualId: number;
+  nivelNombre: string;
+  convenioId: number | null;
+  convenioNombre: string | null;
+  grupos: string[]; // Suponiendo que el backend pronto los incluirá
+}
+
+export interface Nivel {
+  id: number;
+  nombre: string;
+}
+
+export interface Genero {
+  id: number;
+  nombre: string;
+}
+
+export interface Estado {
+  id: number;
+  nombre: string;
+}
 
 export default function DeportistasPage() {
-  const [expandedDeportistas, setExpandedDeportistas] = useState<number[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("todos")
+  useEffect(() => {
+    cargarDeportistas(); // Solo llama a la función
+  }, []);
 
+  const cargarDeportistas = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/deportistas",
+        {
+          withCredentials: true, // el backend requiere autenticación para esta acción
+        }
+      );
+      setDeportistas(response.data); // Guarda los datos en el estado
+    } catch (error) {
+      console.error("Error al obtener los grupos:", error);
+      toast.error("Error al cargar los grupos.");
+    }
+  };
+
+  const obtenerNiveles = async () => {
+    const res = await axios.get("http://localhost:8080/api/niveles");
+    return res.data;
+  };
+
+  const obtenerGeneros = async () => {
+    const res = await axios.get(
+      "http://localhost:8080/api/usuario/genero/listar"
+    );
+    return res.data;
+  };
+
+  const obtenerEstadosPersona = async () => {
+    const res = await axios.get("http://localhost:8080/api/personas/estados"); // este endpoint lo crearemos abajo
+    return res.data;
+  };
+
+  const [niveles, setNiveles] = useState<Nivel[]>([]);
+  const [generos, setGeneros] = useState<Genero[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const nivelesData = await obtenerNiveles();
+      const generosData = await obtenerGeneros();
+      const estadosData = await obtenerEstadosPersona();
+
+      setNiveles(nivelesData);
+      setGeneros(generosData);
+      setEstados(estadosData);
+    };
+    cargarDatos();
+  }, []);
+
+  const eliminarDeportista = async (id: number) => {
+    try {
+      await axios.delete(`http://localhost:8080/api/deportistas/${id}`, {
+        withCredentials: true, // el backend requiere autenticación para esta acción
+      });
+      toast("Deportista eliminado correctamente");
+      // Aquí puedes llamar a una función para recargar la lista de deportistas o actualizar el estado
+      cargarDeportistas(); // asumiendo que tienes esta función para refrescar la lista
+    } catch (error) {
+      console.error("Error al eliminar deportista", error);
+      toast("No se pudo eliminar el deportista");
+    }
+  };
+  const [deportistaAEliminar, setDeportistaAEliminar] = useState<number | null>(
+    null
+  );
+
+  const [deportistas, setDeportistas] = useState<Deportista[]>([]);
+  const [expandedDeportistas, setExpandedDeportistas] = useState<number[]>([]);
+
+  const toggleDeportistaExpand = (id: number) => {
+    setExpandedDeportistas((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  //const [expandedDeportistas, setExpandedDeportistas] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("todos");
+
+  {
+    /* Función para alternar la expansión de los deportistas
   const toggleDeportistaExpand = (deportistaId: number) => {
     setExpandedDeportistas((prev) =>
-      prev.includes(deportistaId) ? prev.filter((id) => id !== deportistaId) : [...prev, deportistaId],
-    )
+      prev.includes(deportistaId)
+        ? prev.filter((id) => id !== deportistaId)
+        : [...prev, deportistaId]
+    );
+  }; */
   }
 
   // Filtrar deportistas por término de búsqueda y estado activo/inactivo
   const filteredDeportistas = deportistas.filter((deportista) => {
     const matchesSearch =
       deportista.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deportista.nivel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deportista.grupos.some((g) => g.toLowerCase().includes(searchTerm.toLowerCase()))
+      deportista.nivelNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deportista.grupos.some((g) =>
+        g.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    if (activeTab === "todos") return matchesSearch
-    if (activeTab === "activos") return matchesSearch && deportista.estado === "Activo"
-    if (activeTab === "inactivos") return matchesSearch && deportista.estado === "Inactivo"
-    return matchesSearch
-  })
+    if (activeTab === "todos") return matchesSearch;
+    if (activeTab === "activos")
+      return matchesSearch && deportista.estadoNombre === "Activo";
+    if (activeTab === "inactivos")
+      return matchesSearch && deportista.estadoNombre === "Inactivo";
+    return matchesSearch;
+  });
 
   // Obtener evaluaciones de un deportista
   const getEvaluacionesDeportista = (deportistaId: number) => {
-    return evaluaciones.filter((e) => e.deportista_id === deportistaId)
-  }
+    return evaluaciones.filter((e) => e.deportista_id === deportistaId);
+  };
 
   // Obtener objetivos de un deportista
   const getObjetivosDeportista = (deportistaId: number) => {
-    return objetivos.filter((o) => o.deportista_id === deportistaId)
-  }
+    return objetivos.filter((o) => o.deportista_id === deportistaId);
+  };
 
   // Obtener pagos de un deportista
   const getPagosDeportista = (deportistaId: number) => {
-    return pagos.filter((p) => p.deportista_id === deportistaId)
-  }
+    return pagos.filter((p) => p.deportista_id === deportistaId);
+  };
 
   // Obtener historial de niveles de un deportista
   const getHistorialNivelesDeportista = (deportistaId: number) => {
-    return historialNiveles.filter((h) => h.deportista_id === deportistaId)
-  }
+    return historialNiveles.filter((h) => h.deportista_id === deportistaId);
+  };
 
   // Obtener historial de planes de un deportista
   const getHistorialPlanesDeportista = (deportistaId: number) => {
-    return historialPlanes.filter((h) => h.deportista_id === deportistaId)
-  }
+    return historialPlanes.filter((h) => h.deportista_id === deportistaId);
+  };
 
   // Obtener historial de grupos de un deportista
   const getHistorialGruposDeportista = (deportistaId: number) => {
-    return historialGrupos.filter((h) => h.deportista_id === deportistaId)
-  }
+    return historialGrupos.filter((h) => h.deportista_id === deportistaId);
+  };
 
   // Calcular edad a partir de fecha de nacimiento
   const calcularEdad = (fechaNacimiento: string) => {
-    const hoy = new Date()
-    const fechaNac = new Date(fechaNacimiento)
-    let edad = hoy.getFullYear() - fechaNac.getFullYear()
-    const mes = hoy.getMonth() - fechaNac.getMonth()
+    const hoy = new Date();
+    const fechaNac = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
 
     if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
-      edad--
+      edad--;
     }
 
-    return edad
-  }
+    return edad;
+  };
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [nuevoDeportista, setNuevoDeportista] = useState({
+    nombre: "",
+    apellidos: "",
+    direccion: "",
+    telefono: "",
+    fechaNacimiento: "",
+    generoId: 1,
+    estadoId: 1,
+    altura: 0,
+    peso: 0,
+    nivelActualId: 1,
+    fechaInscripcion: "",
+    contactoEmergencia: "",
+    convenioId: null,
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNuevoDeportista((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const guardarDeportista = async () => {
+    try {
+      await axios.post(
+        "http://localhost:8080/api/deportistas",
+        {
+          ...nuevoDeportista,
+          altura: Number(nuevoDeportista.altura),
+          peso: Number(nuevoDeportista.peso),
+          generoId: Number(nuevoDeportista.generoId),
+          estadoId: Number(nuevoDeportista.estadoId),
+          nivelActualId: Number(nuevoDeportista.nivelActualId),
+          convenioId: nuevoDeportista.convenioId
+            ? Number(nuevoDeportista.convenioId)
+            : null,
+        },
+        {
+          withCredentials: true, // el backend requiere autenticación para esta acción
+        }
+      );
+      //const dataActualizada = await obtenerDeportistas();
+      //setDeportistas(dataActualizada);
+      cargarDeportistas();
+      toast.success("Deportista guardado exitosamente");
+      setModalAbierto(false);
+    } catch (error) {
+      console.error("Error al guardar deportista", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Deportistas</h1>
-          <p className="text-muted-foreground">Gestiona la información de los deportistas registrados</p>
+          <p className="text-muted-foreground">
+            Gestiona la información de los deportistas registrados
+          </p>
         </div>
-        <Button>
+        <Button onClick={() => setModalAbierto(true)}>
           <Plus className="mr-2 h-4 w-4" /> Nuevo Deportista
         </Button>
       </div>
@@ -285,11 +501,18 @@ export default function DeportistasPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setActiveTab("todos")}>Todos</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("activos")}>Activos</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("inactivos")}>Inactivos</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("todos")}>
+                Todos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("activos")}>
+                Activos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("inactivos")}>
+                Inactivos
+              </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>{/*
+          </DropdownMenu>
+          {/*
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Exportar
@@ -314,34 +537,51 @@ export default function DeportistasPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-
               {/* datos iniciales*/}
               {filteredDeportistas.map((deportista) => (
-                <>
-                  <TableRow key={deportista.id}>
+                <React.Fragment key={deportista.deportistaId}>
+                  <TableRow key={deportista.deportistaId}>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => toggleDeportistaExpand(deportista.id)}>
-                        {expandedDeportistas.includes(deportista.id) ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          toggleDeportistaExpand(deportista.deportistaId)
+                        }
+                      >
+                        {expandedDeportistas.includes(
+                          deportista.deportistaId
+                        ) ? (
                           <ChevronDown className="h-4 w-4" />
                         ) : (
                           <ChevronRight className="h-4 w-4" />
                         )}
                       </Button>
                     </TableCell>
-                    <TableCell className="font-medium">{deportista.nombre}</TableCell>
-                    <TableCell>{calcularEdad(deportista.fecha_nacimiento)} años</TableCell>
-                    <TableCell>{deportista.genero}</TableCell>
-                    <TableCell>{deportista.nivel}</TableCell>
+                    <TableCell className="font-medium">
+                      {deportista.nombre}
+                    </TableCell>
                     <TableCell>
-                      {deportista.grupos.map((grupo, index) => (
+                      {calcularEdad(deportista.fechaNacimiento)} años
+                    </TableCell>
+                    <TableCell>{deportista.genero}</TableCell>
+                    <TableCell>{deportista.nivelNombre}</TableCell>
+                    <TableCell>
+                      {deportista.grupos?.map((grupo, index) => (
                         <Badge key={index} variant="outline" className="mr-1">
                           {grupo}
                         </Badge>
                       ))}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={deportista.estado === "Activo" ? "default" : "secondary"}>
-                        {deportista.estado}
+                      <Badge
+                        variant={
+                          deportista.estadoNombre === "Activo"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {deportista.estadoNombre}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -349,7 +589,13 @@ export default function DeportistasPage() {
                         <Button variant="outline" size="sm">
                           <Pencil className="h-4 w-4 mr-1" /> Editar
                         </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() =>
+                            setDeportistaAEliminar(deportista.deportistaId)
+                          }
+                        >
                           <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                         </Button>
                       </div>
@@ -357,56 +603,97 @@ export default function DeportistasPage() {
                   </TableRow>
 
                   {/* Detalles del deportista */}
-                  {expandedDeportistas.includes(deportista.id) && (
-                    <TableRow key={`${deportista.id}-details`} className="bg-muted/50">
+                  {expandedDeportistas.includes(deportista.deportistaId) && (
+                    <TableRow
+                      key={`${deportista.deportistaId}-details`}
+                      className="bg-muted/50"
+                    >
                       <TableCell colSpan={8} className="p-0">
                         <div className="p-4">
                           <Tabs defaultValue="info" className="w-full">
                             <TabsList>
-                              <TabsTrigger value="info">Información Personal</TabsTrigger>
-                              <TabsTrigger value="historial">Historial</TabsTrigger>
-                              <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
-                              <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
+                              <TabsTrigger value="info">
+                                Información Personal
+                              </TabsTrigger>
+                              <TabsTrigger value="historial">
+                                Historial
+                              </TabsTrigger>
+                              <TabsTrigger value="evaluaciones">
+                                Evaluaciones
+                              </TabsTrigger>
+                              <TabsTrigger value="objetivos">
+                                Objetivos
+                              </TabsTrigger>
                               <TabsTrigger value="pagos">Pagos</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="info" className="mt-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <h4 className="font-semibold mb-2">Datos Personales</h4>
+                                  <h4 className="font-semibold mb-2">
+                                    Datos Personales
+                                  </h4>
                                   <div className="space-y-2">
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Fecha de Nacimiento:</span>
-                                      <span>{new Date(deportista.fecha_nacimiento).toLocaleDateString()}</span>
+                                      <span className="text-muted-foreground">
+                                        Fecha de Nacimiento:
+                                      </span>
+                                      <span>
+                                        {new Date(
+                                          deportista.fechaNacimiento
+                                        ).toLocaleDateString()}
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Teléfono:</span>
+                                      <span className="text-muted-foreground">
+                                        Teléfono:
+                                      </span>
                                       <span>{deportista.telefono}</span>
                                     </div>
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Fecha de Inscripción:</span>
-                                      <span>{new Date(deportista.fecha_inscripcion).toLocaleDateString()}</span>
+                                      <span className="text-muted-foreground">
+                                        Fecha de Inscripción:
+                                      </span>
+                                      <span>
+                                        {new Date(
+                                          deportista.fechaInscripcion
+                                        ).toLocaleDateString()}
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Peso:</span>
+                                      <span className="text-muted-foreground">
+                                        Peso:
+                                      </span>
                                       <span>{deportista.peso} kg</span>
                                     </div>
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Altura:</span>
+                                      <span className="text-muted-foreground">
+                                        Altura:
+                                      </span>
                                       <span>{deportista.altura} cm</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div>
-                                  <h4 className="font-semibold mb-2">Información Médica</h4>
+                                  <h4 className="font-semibold mb-2">
+                                    Información Médica
+                                  </h4>
                                   <div className="space-y-2">
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Contacto de Emergencia:</span>
-                                      <span>{deportista.contacto_emergencia}</span>
+                                      <span className="text-muted-foreground">
+                                        Contacto de Emergencia:
+                                      </span>
+                                      <span>
+                                        {deportista.contactoEmergencia}
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2">
-                                      <span className="text-muted-foreground">Historial Médico:</span>
-                                      <span>{deportista.historial_medico}</span>
+                                      <span className="text-muted-foreground">
+                                        Historial Médico:
+                                      </span>
+                                      <span>
+                                        {deportista.contactoEmergencia}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
@@ -417,20 +704,31 @@ export default function DeportistasPage() {
                             <TabsContent value="historial" className="mt-4">
                               <Tabs defaultValue="niveles">
                                 <TabsList>
-                                  <TabsTrigger value="niveles">Historial de Niveles</TabsTrigger>
-                                  <TabsTrigger value="planes">Historial de Planes</TabsTrigger>
-                                  <TabsTrigger value="grupos">Historial de Grupos</TabsTrigger>
+                                  <TabsTrigger value="niveles">
+                                    Historial de Niveles
+                                  </TabsTrigger>
+                                  <TabsTrigger value="planes">
+                                    Historial de Planes
+                                  </TabsTrigger>
+                                  <TabsTrigger value="grupos">
+                                    Historial de Grupos
+                                  </TabsTrigger>
                                 </TabsList>
 
                                 {/* Historial de Niveles */}
                                 <TabsContent value="niveles" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">Historial de Niveles</h4>
+                                    <h4 className="font-semibold">
+                                      Historial de Niveles
+                                    </h4>
                                     <Button size="sm" variant="outline">
-                                      <Plus className="h-4 w-4 mr-1" /> Registrar Cambio de Nivel
+                                      <Plus className="h-4 w-4 mr-1" />{" "}
+                                      Registrar Cambio de Nivel
                                     </Button>
                                   </div>
-                                  {getHistorialNivelesDeportista(deportista.id).length > 0 ? (
+                                  {getHistorialNivelesDeportista(
+                                    deportista.deportistaId
+                                  ).length > 0 ? (
                                     <Table>
                                       <TableHeader>
                                         <TableRow>
@@ -441,17 +739,29 @@ export default function DeportistasPage() {
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                        {getHistorialNivelesDeportista(deportista.id).map((historial) => (
+                                        {getHistorialNivelesDeportista(
+                                          deportista.deportistaId
+                                        ).map((historial) => (
                                           <TableRow key={historial.id}>
-                                            <TableCell>{historial.nivel}</TableCell>
                                             <TableCell>
-                                              {new Date(historial.fecha_cambio).toLocaleDateString()}
+                                              {historial.nivel}
                                             </TableCell>
-                                            <TableCell>{historial.motivo}</TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                historial.fecha_cambio
+                                              ).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              {historial.motivo}
+                                            </TableCell>
                                             <TableCell>
                                               <div className="flex space-x-2">
-                                                <Button variant="outline" size="sm">
-                                                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
                                                 </Button>
                                               </div>
                                             </TableCell>
@@ -469,39 +779,60 @@ export default function DeportistasPage() {
                                 {/* Historial de Planes */}
                                 <TabsContent value="planes" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">Historial de Planes</h4>
+                                    <h4 className="font-semibold">
+                                      Historial de Planes
+                                    </h4>
                                     <Button size="sm" variant="outline">
-                                      <Plus className="h-4 w-4 mr-1" /> Registrar Cambio de Plan
+                                      <Plus className="h-4 w-4 mr-1" />{" "}
+                                      Registrar Cambio de Plan
                                     </Button>
                                   </div>
-                                  {getHistorialPlanesDeportista(deportista.id).length > 0 ? (
+                                  {getHistorialPlanesDeportista(
+                                    deportista.deportistaId
+                                  ).length > 0 ? (
                                     <Table>
                                       <TableHeader>
                                         <TableRow>
                                           <TableHead>Plan</TableHead>
                                           <TableHead>Fecha Inicio</TableHead>
                                           <TableHead>Fecha Fin</TableHead>
-                                          <TableHead>Motivo de Cambio</TableHead>
+                                          <TableHead>
+                                            Motivo de Cambio
+                                          </TableHead>
                                           <TableHead>Acciones</TableHead>
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                        {getHistorialPlanesDeportista(deportista.id).map((historial) => (
+                                        {getHistorialPlanesDeportista(
+                                          deportista.deportistaId
+                                        ).map((historial) => (
                                           <TableRow key={historial.id}>
-                                            <TableCell>{historial.plan}</TableCell>
                                             <TableCell>
-                                              {new Date(historial.fecha_inicio).toLocaleDateString()}
+                                              {historial.plan}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                historial.fecha_inicio
+                                              ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
                                               {historial.fecha_fin
-                                                ? new Date(historial.fecha_fin).toLocaleDateString()
+                                                ? new Date(
+                                                    historial.fecha_fin
+                                                  ).toLocaleDateString()
                                                 : "Activo"}
                                             </TableCell>
-                                            <TableCell>{historial.motivo_cambio}</TableCell>
+                                            <TableCell>
+                                              {historial.motivo_cambio}
+                                            </TableCell>
                                             <TableCell>
                                               <div className="flex space-x-2">
-                                                <Button variant="outline" size="sm">
-                                                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
                                                 </Button>
                                               </div>
                                             </TableCell>
@@ -519,12 +850,17 @@ export default function DeportistasPage() {
                                 {/* Historial de Grupos */}
                                 <TabsContent value="grupos" className="mt-4">
                                   <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">Historial de Grupos</h4>
+                                    <h4 className="font-semibold">
+                                      Historial de Grupos
+                                    </h4>
                                     <Button size="sm" variant="outline">
-                                      <Plus className="h-4 w-4 mr-1" /> Registrar Cambio de Grupo
+                                      <Plus className="h-4 w-4 mr-1" />{" "}
+                                      Registrar Cambio de Grupo
                                     </Button>
                                   </div>
-                                  {getHistorialGruposDeportista(deportista.id).length > 0 ? (
+                                  {getHistorialGruposDeportista(
+                                    deportista.deportistaId
+                                  ).length > 0 ? (
                                     <Table>
                                       <TableHeader>
                                         <TableRow>
@@ -536,22 +872,36 @@ export default function DeportistasPage() {
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                        {getHistorialGruposDeportista(deportista.id).map((historial) => (
+                                        {getHistorialGruposDeportista(
+                                          deportista.deportistaId
+                                        ).map((historial) => (
                                           <TableRow key={historial.id}>
-                                            <TableCell>{historial.grupo}</TableCell>
                                             <TableCell>
-                                              {new Date(historial.fecha_inicio).toLocaleDateString()}
+                                              {historial.grupo}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                historial.fecha_inicio
+                                              ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
                                               {historial.fecha_fin
-                                                ? new Date(historial.fecha_fin).toLocaleDateString()
+                                                ? new Date(
+                                                    historial.fecha_fin
+                                                  ).toLocaleDateString()
                                                 : "Activo"}
                                             </TableCell>
-                                            <TableCell>{historial.observaciones}</TableCell>
+                                            <TableCell>
+                                              {historial.observaciones}
+                                            </TableCell>
                                             <TableCell>
                                               <div className="flex space-x-2">
-                                                <Button variant="outline" size="sm">
-                                                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
                                                 </Button>
                                               </div>
                                             </TableCell>
@@ -573,10 +923,13 @@ export default function DeportistasPage() {
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Evaluaciones</h4>
                                 <Button size="sm" variant="outline">
-                                  <Plus className="h-4 w-4 mr-1" /> Nueva Evaluación
+                                  <Plus className="h-4 w-4 mr-1" /> Nueva
+                                  Evaluación
                                 </Button>
                               </div>
-                              {getEvaluacionesDeportista(deportista.id).length > 0 ? (
+                              {getEvaluacionesDeportista(
+                                deportista.deportistaId
+                              ).length > 0 ? (
                                 <Table>
                                   <TableHeader>
                                     <TableRow>
@@ -587,18 +940,33 @@ export default function DeportistasPage() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {getEvaluacionesDeportista(deportista.id).map((evaluacion) => (
+                                    {getEvaluacionesDeportista(
+                                      deportista.deportistaId
+                                    ).map((evaluacion) => (
                                       <TableRow key={evaluacion.id}>
-                                        <TableCell>{new Date(evaluacion.fecha).toLocaleDateString()}</TableCell>
-                                        <TableCell>{evaluacion.criterio}</TableCell>
-                                        <TableCell>{evaluacion.puntaje}/10</TableCell>
+                                        <TableCell>
+                                          {new Date(
+                                            evaluacion.fecha
+                                          ).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell>
+                                          {evaluacion.criterio}
+                                        </TableCell>
+                                        <TableCell>
+                                          {evaluacion.puntaje}/10
+                                        </TableCell>
                                         <TableCell>
                                           <div className="flex space-x-2">
                                             <Button variant="outline" size="sm">
-                                              <Pencil className="h-4 w-4 mr-1" /> Editar
+                                              <Pencil className="h-4 w-4 mr-1" />{" "}
+                                              Editar
                                             </Button>
-                                            <Button variant="destructive" size="sm">
-                                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                                            <Button
+                                              variant="destructive"
+                                              size="sm"
+                                            >
+                                              <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                              Eliminar
                                             </Button>
                                           </div>
                                         </TableCell>
@@ -617,10 +985,12 @@ export default function DeportistasPage() {
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Objetivos</h4>
                                 <Button size="sm" variant="outline">
-                                  <Target className="h-4 w-4 mr-1" /> Nuevo Objetivo
+                                  <Target className="h-4 w-4 mr-1" /> Nuevo
+                                  Objetivo
                                 </Button>
                               </div>
-                              {getObjetivosDeportista(deportista.id).length > 0 ? (
+                              {getObjetivosDeportista(deportista.deportistaId)
+                                .length > 0 ? (
                                 <Table>
                                   <TableHeader>
                                     <TableRow>
@@ -633,20 +1003,33 @@ export default function DeportistasPage() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {getObjetivosDeportista(deportista.id).map((objetivo) => (
+                                    {getObjetivosDeportista(
+                                      deportista.deportistaId
+                                    ).map((objetivo) => (
                                       <TableRow key={objetivo.id}>
                                         <TableCell>{objetivo.nombre}</TableCell>
-                                        <TableCell>{objetivo.descripcion}</TableCell>
-                                        <TableCell>{new Date(objetivo.fecha_creacion).toLocaleDateString()}</TableCell>
-                                        <TableCell>{new Date(objetivo.fecha_final).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                          {objetivo.descripcion}
+                                        </TableCell>
+                                        <TableCell>
+                                          {new Date(
+                                            objetivo.fecha_creacion
+                                          ).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell>
+                                          {new Date(
+                                            objetivo.fecha_final
+                                          ).toLocaleDateString()}
+                                        </TableCell>
                                         <TableCell>
                                           <Badge
                                             variant={
                                               objetivo.estado === "Cumplido"
                                                 ? "default"
-                                                : objetivo.estado === "En proceso"
-                                                  ? "outline"
-                                                  : "secondary"
+                                                : objetivo.estado ===
+                                                  "En proceso"
+                                                ? "outline"
+                                                : "secondary"
                                             }
                                           >
                                             {objetivo.estado}
@@ -655,10 +1038,15 @@ export default function DeportistasPage() {
                                         <TableCell>
                                           <div className="flex space-x-2">
                                             <Button variant="outline" size="sm">
-                                              <Pencil className="h-4 w-4 mr-1" /> Editar
+                                              <Pencil className="h-4 w-4 mr-1" />{" "}
+                                              Editar
                                             </Button>
-                                            <Button variant="destructive" size="sm">
-                                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                                            <Button
+                                              variant="destructive"
+                                              size="sm"
+                                            >
+                                              <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                              Eliminar
                                             </Button>
                                           </div>
                                         </TableCell>
@@ -677,10 +1065,12 @@ export default function DeportistasPage() {
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Pagos</h4>
                                 <Button size="sm" variant="outline">
-                                  <FileText className="h-4 w-4 mr-1" /> Registrar Pago
+                                  <FileText className="h-4 w-4 mr-1" />{" "}
+                                  Registrar Pago
                                 </Button>
                               </div>
-                              {getPagosDeportista(deportista.id).length > 0 ? (
+                              {getPagosDeportista(deportista.deportistaId)
+                                .length > 0 ? (
                                 <Table>
                                   <TableHeader>
                                     <TableRow>
@@ -692,23 +1082,39 @@ export default function DeportistasPage() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {getPagosDeportista(deportista.id).map((pago) => (
+                                    {getPagosDeportista(
+                                      deportista.deportistaId
+                                    ).map((pago) => (
                                       <TableRow key={pago.id}>
                                         <TableCell>{pago.concepto}</TableCell>
-                                        <TableCell>${pago.monto.toFixed(2)}</TableCell>
-                                        <TableCell>{new Date(pago.fecha).toLocaleDateString()}</TableCell>
                                         <TableCell>
-                                          <Badge variant={pago.estado === "Pagado" ? "default" : "secondary"}>
+                                          ${pago.monto.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell>
+                                          {new Date(
+                                            pago.fecha
+                                          ).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            variant={
+                                              pago.estado === "Pagado"
+                                                ? "default"
+                                                : "secondary"
+                                            }
+                                          >
                                             {pago.estado}
                                           </Badge>
                                         </TableCell>
                                         <TableCell>
                                           <div className="flex space-x-2">
                                             <Button variant="outline" size="sm">
-                                              <Pencil className="h-4 w-4 mr-1" /> Editar
+                                              <Pencil className="h-4 w-4 mr-1" />{" "}
+                                              Editar
                                             </Button>
                                             <Button variant="outline" size="sm">
-                                              <FileText className="h-4 w-4 mr-1" /> Ver Factura
+                                              <FileText className="h-4 w-4 mr-1" />{" "}
+                                              Ver Factura
                                             </Button>
                                           </div>
                                         </TableCell>
@@ -717,7 +1123,9 @@ export default function DeportistasPage() {
                                   </TableBody>
                                 </Table>
                               ) : (
-                                <div className="text-center py-4 text-muted-foreground">No hay pagos registrados</div>
+                                <div className="text-center py-4 text-muted-foreground">
+                                  No hay pagos registrados
+                                </div>
                               )}
                             </TabsContent>
                           </Tabs>
@@ -725,12 +1133,211 @@ export default function DeportistasPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+        <DialogContent>
+          <DialogTitle>Registrar Nuevo Deportista</DialogTitle>
+          <DialogDescription>
+            Completa el formulario para agregar un nuevo deportista al sistema.
+          </DialogDescription>
+          <DialogHeader>
+            <DialogTitle>Registrar Nuevo Deportista</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Nombre</Label>
+                <Input
+                  name="nombre"
+                  value={nuevoDeportista.nombre}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Apellidos</Label>
+                <Input
+                  name="apellidos"
+                  value={nuevoDeportista.apellidos}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Dirección</Label>
+                <Input
+                  name="direccion"
+                  value={nuevoDeportista.direccion}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Teléfono</Label>
+                <Input
+                  name="telefono"
+                  value={nuevoDeportista.telefono}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Fecha Nacimiento</Label>
+                <Input
+                  type="date"
+                  name="fechaNacimiento"
+                  value={nuevoDeportista.fechaNacimiento}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Fecha Inscripción</Label>
+                <Input
+                  type="date"
+                  name="fechaInscripcion"
+                  value={nuevoDeportista.fechaInscripcion}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Altura (cm)</Label>
+                <Input
+                  type="number"
+                  name="altura"
+                  value={nuevoDeportista.altura}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label>Peso (kg)</Label>
+                <Input
+                  type="number"
+                  name="peso"
+                  value={nuevoDeportista.peso}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="genero-select">Género</Label>
+                <Select
+                  name="generoId"
+                  value={nuevoDeportista.generoId?.toString() ?? ""}
+                  onValueChange={(value) =>
+                    setNuevoDeportista({
+                      ...nuevoDeportista,
+                      generoId: Number(value),
+                    })
+                  }
+                >
+                  <SelectTrigger id="genero-select" className="w-full">
+                    <SelectValue placeholder="Seleccionar género" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generos.map((genero) => (
+                      <SelectItem key={genero.id} value={genero.id.toString()}>
+                        {genero.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Versión corregida para el componente Nivel */}
+              <div>
+                <Label htmlFor="nivel-select">Nivel</Label>
+                <Select
+                  name="nivelActualId"
+                  onValueChange={(value) =>
+                    setNuevoDeportista({
+                      ...nuevoDeportista,
+                      nivelActualId: Number(value),
+                    })
+                  }
+                >
+                  <SelectTrigger id="nivel-select" className="w-full">
+                    <SelectValue placeholder="Seleccionar nivel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveles.map((nivel) => (
+                      <SelectItem key={nivel.id} value={nivel.id.toString()}>
+                        {nivel.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Versión corregida para el componente Estado */}
+              <Select
+                name="estadoId"
+                value={nuevoDeportista.estadoId?.toString() ?? ""}
+                onValueChange={(value) =>
+                  setNuevoDeportista({
+                    ...nuevoDeportista,
+                    estadoId: Number(value),
+                  })
+                }
+              >
+                <SelectTrigger id="estado-select" className="w-full">
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map((estado) => (
+                    <SelectItem key={estado.id} value={estado.id.toString()}>
+                      {estado.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="col-span-2">
+                <Label>Contacto Emergencia</Label>
+                <Input
+                  name="contactoEmergencia"
+                  value={nuevoDeportista.contactoEmergencia}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={guardarDeportista}>Guardar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deportistaAEliminar !== null}
+        onOpenChange={() => setDeportistaAEliminar(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+          </DialogHeader>
+          <p>¿Estás seguro que deseas eliminar este deportista?</p>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setDeportistaAEliminar(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (deportistaAEliminar !== null) {
+                  await eliminarDeportista(deportistaAEliminar);
+                  setDeportistaAEliminar(null);
+                }
+              }}
+            >
+              Sí, eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }

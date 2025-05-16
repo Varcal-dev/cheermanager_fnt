@@ -8,6 +8,8 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Sidebar from "./side-bar";
 import Link from "next/link";
+import { useUser } from "@/context/UserContext" // Asegúrate de importar correctamente el hook
+
 
 // Importar los componentes necesarios
 import { LogOut } from "lucide-react";
@@ -19,6 +21,8 @@ import { toast } from "react-toastify";
 export function TopBar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+
+  const { setUser } = useUser()
 
   const handleLogout = async () => {
     try {
@@ -34,19 +38,18 @@ export function TopBar() {
       if (response.status === 200) {
         // Si el backend responde exitosamente, la sesión se cerró
         console.log("Sesión cerrada exitosamente");
-        setUsuario(null); // Aquí puedes limpiar el estado del usuario si lo tienes en un contexto o estado global
+        setUser(null) // Aquí puedes limpiar el estado del usuario si lo tienes en un contexto o estado global
         router.push('/login'); // Reemplaza '/login' con la ruta de tu página de inicio de sesión
-
-        // También podrías limpiar cualquier estado local o contexto de usuario si los tienes
-        setUsuario(null); // Por ejemplo, si tienes un estado de usuario en un contexto
       } else {
         // Manejar si el backend devuelve un código de estado diferente (aunque 200 es lo esperado para éxito)
         console.error("Error al cerrar sesión:", response.statusText);
+        toast.error("Error al cerrar sesión. Por favor, inténtalo de nuevo.");
       }
     } catch (error: any) {
       // Manejar errores de la petición (ej. error de red, servidor caído)
       console.error("Error en la petición de cierre de sesión:", error);
-      router.push('/login');
+      toast.error("Error al cerrar sesión. Por favor, inténtalo de nuevo.");
+      //router.push('/login');
     }
   };
 
@@ -86,7 +89,5 @@ export function TopBar() {
     </header>
   );
 }
-function setUsuario(arg0: null) {
-  throw new Error("Function not implemented.");
-}
+
 
