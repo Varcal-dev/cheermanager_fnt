@@ -1350,7 +1350,7 @@ export default function DeportistasPage() {
                   <Label>Fecha Inscripción</Label>
                   <Input
                     type="date"
-                    name="fechaInscripcion"
+                    name="fechaRegistro "
                     value={nuevoDeportista.fechaRegistro}
                     onChange={handleInputChange}
                   />
@@ -1560,12 +1560,13 @@ export default function DeportistasPage() {
                 />
               </div>
               <div>
-                <Label>Fecha de inscripción</Label>
+                <Label>Fecha de Registro</Label>
+                jsx
                 <Input
                   type="date"
                   value={formData.fechaRegistro}
-                  onChange={(e) =>
-                    handleChange("fechaInscripcion", e.target.value)
+                  onChange={
+                    (e) => handleChange("fechaRegistro", e.target.value) // Asegúrate de que sea "fechaRegistro" aquí
                   }
                 />
               </div>
