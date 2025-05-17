@@ -147,6 +147,7 @@ const Sidebar = () => {
                     Divisiones
                   </Button>
                 </Link>
+                {/*
                 <Link href="/categorias-nivel" passHref>
                   <Button
                     variant={
@@ -157,7 +158,7 @@ const Sidebar = () => {
                     <Layers className="mr-2 h-4 w-4" />
                     Categorias por Nivel
                   </Button>
-                </Link>
+                </Link>*/}
                 <Link href="/grupos" passHref>
                   <Button
                     variant={isActive("/grupos") ? "secondary" : "ghost"}
