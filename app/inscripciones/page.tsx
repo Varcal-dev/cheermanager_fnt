@@ -155,11 +155,10 @@ export default function InscripcionesPage() {
               Gestiona el proceso de inscripción de deportistas
             </p>
           </div>
-          {permissions.includes("editar_usuarios") && (
+          
             <InscribirDeportistaModal
               onInscripcionExitosa={fetchInscripciones}
             />
-          )}
           {/*
         <Button>
           <Plus className="mr-2 h-4 w-4" /> Nueva Inscripción

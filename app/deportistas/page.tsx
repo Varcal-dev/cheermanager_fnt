@@ -230,7 +230,7 @@ export interface Deportista {
   genero: string;
   altura: number;
   peso: number;
-  fechaInscripcion: string;
+  fechaRegistro: string;
   contactoEmergencia: string;
   estadoId: number;
   estadoNombre: string;
@@ -248,12 +248,12 @@ export interface Nivel {
 
 export interface Genero {
   id: number;
-  nombre: string;
+  genero: string; // Cambiado de 'nombre' a 'genero'
 }
 
 export interface Estado {
   id: number;
-  nombre: string;
+  estado: string; // Cambiado de 'nombre' a 'estado'
 }
 
 export default function DeportistasPage() {
@@ -340,7 +340,7 @@ export default function DeportistasPage() {
     altura: 0,
     peso: 0,
     nivelActualId: 1,
-    fechaInscripcion: "",
+    fechaRegistro: "",
     contactoEmergencia: "",
     convenioId: deportistaSeleccionado?.convenioId || "",
   });
@@ -359,7 +359,7 @@ export default function DeportistasPage() {
         altura: deportistaSeleccionado.altura || 0,
         peso: deportistaSeleccionado.peso || 0,
         nivelActualId: deportistaSeleccionado.nivelActualId || 1,
-        fechaInscripcion: deportistaSeleccionado.fechaInscripcion || "",
+        fechaRegistro: deportistaSeleccionado.fechaRegistro || "",
         contactoEmergencia: deportistaSeleccionado.contactoEmergencia || "",
         convenioId: deportistaSeleccionado.convenioId ?? "",
       });
@@ -369,7 +369,7 @@ export default function DeportistasPage() {
   const handleSubmit = () => {
     axios
       .put(`http://localhost:8080/api/deportistas/${formData.id}`, formData, {
-        withCredentials: true, // el backend requiere autenticación para esta acción
+        withCredentials: true,
       })
       .then(() => {
         setIsEditModalOpen(false);
@@ -480,7 +480,7 @@ export default function DeportistasPage() {
     altura: 0,
     peso: 0,
     nivelActualId: 1,
-    fechaInscripcion: "",
+    fechaRegistro: "",
     contactoEmergencia: "",
     convenioId: null,
   });
@@ -504,6 +504,7 @@ export default function DeportistasPage() {
           ...nuevoDeportista,
           altura: Number(nuevoDeportista.altura),
           peso: Number(nuevoDeportista.peso),
+          fechaRegistro: String(nuevoDeportista.fechaRegistro),
           generoId: Number(nuevoDeportista.generoId),
           estadoId: Number(nuevoDeportista.estadoId),
           nivelActualId: Number(nuevoDeportista.nivelActualId),
@@ -625,8 +626,7 @@ export default function DeportistasPage() {
                           No hay deportistas inscritos aún.
                         </p>
                         <p className="text-sm text-gray-400">
-                          Puedes agregar uno usando el botón “Nuevo
-                          Deportista.”
+                          Puedes agregar uno usando el botón “Nuevo Deportista.”
                         </p>
                       </div>
                     </TableCell>
@@ -769,7 +769,7 @@ export default function DeportistasPage() {
                                           </span>
                                           <span>
                                             {new Date(
-                                              deportista.fechaInscripcion
+                                              deportista.fechaRegistro
                                             ).toLocaleDateString()}
                                           </span>
                                         </div>
@@ -1351,7 +1351,7 @@ export default function DeportistasPage() {
                   <Input
                     type="date"
                     name="fechaInscripcion"
-                    value={nuevoDeportista.fechaInscripcion}
+                    value={nuevoDeportista.fechaRegistro}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -1389,19 +1389,20 @@ export default function DeportistasPage() {
                       <SelectValue placeholder="Seleccionar género" />
                     </SelectTrigger>
                     <SelectContent>
-                      {generos.map((genero) => (
-                        <SelectItem
-                          key={genero.id}
-                          value={genero.id.toString()}
-                        >
-                          {genero.nombre}
-                        </SelectItem>
-                      ))}
+                      {generos.map(
+                        (
+                          g // Cambiado 'genero' a 'g' para claridad, opcional
+                        ) => (
+                          <SelectItem key={g.id} value={g.id.toString()}>
+                            {g.genero} {/* Accede a g.genero */}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Versión corregida para el componente Nivel */}
+                {/* componente Nivel */}
                 <div>
                   <Label htmlFor="nivel-select">Nivel</Label>
                   <Select
@@ -1426,28 +1427,36 @@ export default function DeportistasPage() {
                   </Select>
                 </div>
 
-                {/* Versión corregida para el componente Estado */}
-                <Select
-                  name="estadoId"
-                  value={nuevoDeportista.estadoId?.toString() ?? ""}
-                  onValueChange={(value) =>
-                    setNuevoDeportista({
-                      ...nuevoDeportista,
-                      estadoId: Number(value),
-                    })
-                  }
-                >
-                  <SelectTrigger id="estado-select" className="w-full">
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {estados.map((estado) => (
-                      <SelectItem key={estado.id} value={estado.id.toString()}>
-                        {estado.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* componente Estado */}
+                <div>
+                  <Label htmlFor="nivel-select">Nivel</Label>
+
+                  <Select
+                    name="estadoId"
+                    value={nuevoDeportista.estadoId?.toString() ?? ""}
+                    onValueChange={(value) =>
+                      setNuevoDeportista({
+                        ...nuevoDeportista,
+                        estadoId: Number(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger id="estado-select" className="w-full">
+                      <SelectValue placeholder="Seleccionar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {estados.map(
+                        (
+                          e // Cambiado 'estado' a 'e' para claridad, opcional
+                        ) => (
+                          <SelectItem key={e.id} value={e.id.toString()}>
+                            {e.estado} {/* Accede a e.estado */}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="col-span-2">
                   <Label>Contacto Emergencia</Label>
@@ -1524,7 +1533,7 @@ export default function DeportistasPage() {
                   <SelectContent>
                     {generos.map((genero) => (
                       <SelectItem key={genero.id} value={genero.id.toString()}>
-                        {genero.nombre}
+                        {genero.genero}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1554,7 +1563,7 @@ export default function DeportistasPage() {
                 <Label>Fecha de inscripción</Label>
                 <Input
                   type="date"
-                  value={formData.fechaInscripcion}
+                  value={formData.fechaRegistro}
                   onChange={(e) =>
                     handleChange("fechaInscripcion", e.target.value)
                   }
@@ -1603,7 +1612,7 @@ export default function DeportistasPage() {
                   <SelectContent>
                     {estados.map((estado) => (
                       <SelectItem key={estado.id} value={estado.id.toString()}>
-                        {estado.nombre}
+                        {estado.estado}
                       </SelectItem>
                     ))}
                   </SelectContent>
