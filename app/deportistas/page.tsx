@@ -497,6 +497,7 @@ export default function DeportistasPage() {
 
   const guardarDeportista = async () => {
     try {
+      console.log("datos deportista:", nuevoDeportista)
       await axios.post(
         "http://localhost:8080/api/deportistas",
         {
