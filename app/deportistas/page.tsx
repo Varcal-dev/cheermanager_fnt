@@ -497,7 +497,7 @@ export default function DeportistasPage() {
 
   const guardarDeportista = async () => {
     try {
-      console.log("datos deportista:", nuevoDeportista)
+      //console.log("datos deportista:", nuevoDeportista);
       await axios.post(
         "http://localhost:8080/api/deportistas",
         {
@@ -558,10 +558,11 @@ export default function DeportistasPage() {
           <div className="flex space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
+                {/*
                 <Button variant="outline" size="sm">
                   <Filter className="mr-2 h-4 w-4" />
                   Filtrar
-                </Button>
+                </Button>*/}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setActiveTab("todos")}>
@@ -601,635 +602,692 @@ export default function DeportistasPage() {
               </TableHeader>
               <TableBody>
                 {/* datos iniciales*/}
-                {filteredDeportistas.map((deportista) => (
-                  <React.Fragment key={deportista.deportistaId}>
-                    <TableRow key={deportista.deportistaId}>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            toggleDeportistaExpand(deportista.deportistaId)
-                          }
-                        >
-                          {expandedDeportistas.includes(
-                            deportista.deportistaId
-                          ) ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {deportista.nombre}
-                      </TableCell>
-                      <TableCell>
-                        {calcularEdad(deportista.fechaNacimiento)} años
-                      </TableCell>
-                      <TableCell>{deportista.genero}</TableCell>
-                      <TableCell>{deportista.nivelNombre}</TableCell>
-                      <TableCell>
-                        {deportista.grupos?.map((grupo, index) => (
-                          <Badge key={index} variant="outline" className="mr-1">
-                            {grupo}
-                          </Badge>
-                        ))}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            deportista.estadoNombre === "Activo"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {deportista.estadoNombre}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          {permissions.includes("modificar_deportista") && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setDeportistaSeleccionado(deportista);
-                                setIsEditModalOpen(true);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4 mr-1" /> Editar
-                            </Button>
-                          )}
-                          {permissions.includes("eliminar_deportista") && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() =>
-                                setDeportistaAEliminar(deportista.deportistaId)
-                              }
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                            </Button>
-                          )}
+                {filteredDeportistas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9}>
+                      <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                        <div className="mb-4">
+                          <svg
+                            className="w-10 h-10 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 9V5.25m0 0A2.25 2.25 0 0013.5 3H6.75A2.25 2.25 0 004.5 5.25v13.5A2.25 2.25 0 006.75 21h10.5a2.25 2.25 0 002.25-2.25V11.25a2.25 2.25 0 00-2.25-2.25H9l-1.5-1.5H6.75"
+                            />
+                          </svg>
                         </div>
-                      </TableCell>
-                    </TableRow>
-
-                    {/* Detalles del deportista */}
-                    {expandedDeportistas.includes(deportista.deportistaId) && (
-                      <TableRow
-                        key={`${deportista.deportistaId}-details`}
-                        className="bg-muted/50"
-                      >
-                        <TableCell colSpan={8} className="p-0">
-                          <div className="p-4">
-                            <Tabs defaultValue="info" className="w-full">
-                              <TabsList>
-                                <TabsTrigger value="info">
-                                  Información Personal
-                                </TabsTrigger>
-                                <TabsTrigger value="historial">
-                                  Historial
-                                </TabsTrigger>
-                                <TabsTrigger value="evaluaciones">
-                                  Evaluaciones
-                                </TabsTrigger>
-                                <TabsTrigger value="objetivos">
-                                  Objetivos
-                                </TabsTrigger>
-                                <TabsTrigger value="pagos">Pagos</TabsTrigger>
-                              </TabsList>
-
-                              <TabsContent value="info" className="mt-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <h4 className="font-semibold mb-2">
-                                      Datos Personales
-                                    </h4>
-                                    <div className="space-y-2">
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Fecha de Nacimiento:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            deportista.fechaNacimiento
-                                          ).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Teléfono:
-                                        </span>
-                                        <span>{deportista.telefono}</span>
-                                      </div>
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Fecha de Inscripción:
-                                        </span>
-                                        <span>
-                                          {new Date(
-                                            deportista.fechaInscripcion
-                                          ).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Peso:
-                                        </span>
-                                        <span>{deportista.peso} kg</span>
-                                      </div>
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Altura:
-                                        </span>
-                                        <span>{deportista.altura} cm</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold mb-2">
-                                      Información Médica
-                                    </h4>
-                                    <div className="space-y-2">
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Contacto de Emergencia:
-                                        </span>
-                                        <span>
-                                          {deportista.contactoEmergencia}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-2">
-                                        <span className="text-muted-foreground">
-                                          Historial Médico:
-                                        </span>
-                                        <span>
-                                          {deportista.contactoEmergencia}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </TabsContent>
-
-                              {/* Historial */}
-                              <TabsContent value="historial" className="mt-4">
-                                <Tabs defaultValue="niveles">
-                                  <TabsList>
-                                    <TabsTrigger value="niveles">
-                                      Historial de Niveles
-                                    </TabsTrigger>
-                                    <TabsTrigger value="planes">
-                                      Historial de Planes
-                                    </TabsTrigger>
-                                    <TabsTrigger value="grupos">
-                                      Historial de Grupos
-                                    </TabsTrigger>
-                                  </TabsList>
-
-                                  {/* Historial de Niveles */}
-                                  <TabsContent value="niveles" className="mt-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                      <h4 className="font-semibold">
-                                        Historial de Niveles
-                                      </h4>
-                                      <Button size="sm" variant="outline">
-                                        <Plus className="h-4 w-4 mr-1" />{" "}
-                                        Registrar Cambio de Nivel
-                                      </Button>
-                                    </div>
-                                    {getHistorialNivelesDeportista(
-                                      deportista.deportistaId
-                                    ).length > 0 ? (
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Nivel</TableHead>
-                                            <TableHead>
-                                              Fecha de Cambio
-                                            </TableHead>
-                                            <TableHead>Motivo</TableHead>
-                                            <TableHead>Acciones</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {getHistorialNivelesDeportista(
-                                            deportista.deportistaId
-                                          ).map((historial) => (
-                                            <TableRow key={historial.id}>
-                                              <TableCell>
-                                                {historial.nivel}
-                                              </TableCell>
-                                              <TableCell>
-                                                {new Date(
-                                                  historial.fecha_cambio
-                                                ).toLocaleDateString()}
-                                              </TableCell>
-                                              <TableCell>
-                                                {historial.motivo}
-                                              </TableCell>
-                                              <TableCell>
-                                                <div className="flex space-x-2">
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                  >
-                                                    <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                    Editar
-                                                  </Button>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    ) : (
-                                      <div className="text-center py-4 text-muted-foreground">
-                                        No hay historial de niveles registrado
-                                      </div>
-                                    )}
-                                  </TabsContent>
-
-                                  {/* Historial de Planes */}
-                                  <TabsContent value="planes" className="mt-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                      <h4 className="font-semibold">
-                                        Historial de Planes
-                                      </h4>
-                                      <Button size="sm" variant="outline">
-                                        <Plus className="h-4 w-4 mr-1" />{" "}
-                                        Registrar Cambio de Plan
-                                      </Button>
-                                    </div>
-                                    {getHistorialPlanesDeportista(
-                                      deportista.deportistaId
-                                    ).length > 0 ? (
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Plan</TableHead>
-                                            <TableHead>Fecha Inicio</TableHead>
-                                            <TableHead>Fecha Fin</TableHead>
-                                            <TableHead>
-                                              Motivo de Cambio
-                                            </TableHead>
-                                            <TableHead>Acciones</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {getHistorialPlanesDeportista(
-                                            deportista.deportistaId
-                                          ).map((historial) => (
-                                            <TableRow key={historial.id}>
-                                              <TableCell>
-                                                {historial.plan}
-                                              </TableCell>
-                                              <TableCell>
-                                                {new Date(
-                                                  historial.fecha_inicio
-                                                ).toLocaleDateString()}
-                                              </TableCell>
-                                              <TableCell>
-                                                {historial.fecha_fin
-                                                  ? new Date(
-                                                      historial.fecha_fin
-                                                    ).toLocaleDateString()
-                                                  : "Activo"}
-                                              </TableCell>
-                                              <TableCell>
-                                                {historial.motivo_cambio}
-                                              </TableCell>
-                                              <TableCell>
-                                                <div className="flex space-x-2">
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                  >
-                                                    <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                    Editar
-                                                  </Button>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    ) : (
-                                      <div className="text-center py-4 text-muted-foreground">
-                                        No hay historial de planes registrado
-                                      </div>
-                                    )}
-                                  </TabsContent>
-
-                                  {/* Historial de Grupos */}
-                                  <TabsContent value="grupos" className="mt-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                      <h4 className="font-semibold">
-                                        Historial de Grupos
-                                      </h4>
-                                      <Button size="sm" variant="outline">
-                                        <Plus className="h-4 w-4 mr-1" />{" "}
-                                        Registrar Cambio de Grupo
-                                      </Button>
-                                    </div>
-                                    {getHistorialGruposDeportista(
-                                      deportista.deportistaId
-                                    ).length > 0 ? (
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Grupo</TableHead>
-                                            <TableHead>Fecha Inicio</TableHead>
-                                            <TableHead>Fecha Fin</TableHead>
-                                            <TableHead>Observaciones</TableHead>
-                                            <TableHead>Acciones</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {getHistorialGruposDeportista(
-                                            deportista.deportistaId
-                                          ).map((historial) => (
-                                            <TableRow key={historial.id}>
-                                              <TableCell>
-                                                {historial.grupo}
-                                              </TableCell>
-                                              <TableCell>
-                                                {new Date(
-                                                  historial.fecha_inicio
-                                                ).toLocaleDateString()}
-                                              </TableCell>
-                                              <TableCell>
-                                                {historial.fecha_fin
-                                                  ? new Date(
-                                                      historial.fecha_fin
-                                                    ).toLocaleDateString()
-                                                  : "Activo"}
-                                              </TableCell>
-                                              <TableCell>
-                                                {historial.observaciones}
-                                              </TableCell>
-                                              <TableCell>
-                                                <div className="flex space-x-2">
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                  >
-                                                    <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                    Editar
-                                                  </Button>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    ) : (
-                                      <div className="text-center py-4 text-muted-foreground">
-                                        No hay historial de grupos registrado
-                                      </div>
-                                    )}
-                                  </TabsContent>
-                                </Tabs>
-                              </TabsContent>
-
-                              {/* Evaluaciones, Objetivos y Pagos */}
-                              <TabsContent
-                                value="evaluaciones"
-                                className="mt-4"
+                        <p className="text-lg font-semibold text-gray-500">
+                          No hay deportistas inscritos aún.
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Puedes agregar uno usando el botón “Nuevo
+                          Deportista.”
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDeportistas.map((deportista) => (
+                    <React.Fragment key={deportista.deportistaId}>
+                      <TableRow key={deportista.deportistaId}>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              toggleDeportistaExpand(deportista.deportistaId)
+                            }
+                          >
+                            {expandedDeportistas.includes(
+                              deportista.deportistaId
+                            ) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {deportista.nombre}
+                        </TableCell>
+                        <TableCell>
+                          {calcularEdad(deportista.fechaNacimiento)} años
+                        </TableCell>
+                        <TableCell>{deportista.genero}</TableCell>
+                        <TableCell>{deportista.nivelNombre}</TableCell>
+                        <TableCell>
+                          {deportista.grupos?.map((grupo, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="mr-1"
+                            >
+                              {grupo}
+                            </Badge>
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              deportista.estadoNombre === "Activo"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {deportista.estadoNombre}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {permissions.includes("modificar_deportista") && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setDeportistaSeleccionado(deportista);
+                                  setIsEditModalOpen(true);
+                                }}
                               >
-                                <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-semibold">
-                                    Evaluaciones
-                                  </h4>
-                                  <Button size="sm" variant="outline">
-                                    <Plus className="h-4 w-4 mr-1" /> Nueva
-                                    Evaluación
-                                  </Button>
-                                </div>
-                                {getEvaluacionesDeportista(
-                                  deportista.deportistaId
-                                ).length > 0 ? (
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Criterio</TableHead>
-                                        <TableHead>Puntaje</TableHead>
-                                        <TableHead>Acciones</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {getEvaluacionesDeportista(
-                                        deportista.deportistaId
-                                      ).map((evaluacion) => (
-                                        <TableRow key={evaluacion.id}>
-                                          <TableCell>
-                                            {new Date(
-                                              evaluacion.fecha
-                                            ).toLocaleDateString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            {evaluacion.criterio}
-                                          </TableCell>
-                                          <TableCell>
-                                            {evaluacion.puntaje}/10
-                                          </TableCell>
-                                          <TableCell>
-                                            <div className="flex space-x-2">
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                              >
-                                                <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                Editar
-                                              </Button>
-                                              <Button
-                                                variant="destructive"
-                                                size="sm"
-                                              >
-                                                <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                Eliminar
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <div className="text-center py-4 text-muted-foreground">
-                                    No hay evaluaciones registradas
-                                  </div>
-                                )}
-                              </TabsContent>
-
-                              <TabsContent value="objetivos" className="mt-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-semibold">Objetivos</h4>
-                                  <Button size="sm" variant="outline">
-                                    <Target className="h-4 w-4 mr-1" /> Nuevo
-                                    Objetivo
-                                  </Button>
-                                </div>
-                                {getObjetivosDeportista(deportista.deportistaId)
-                                  .length > 0 ? (
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Objetivo</TableHead>
-                                        <TableHead>Descripción</TableHead>
-                                        <TableHead>Fecha Creación</TableHead>
-                                        <TableHead>Fecha Final</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead>Acciones</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {getObjetivosDeportista(
-                                        deportista.deportistaId
-                                      ).map((objetivo) => (
-                                        <TableRow key={objetivo.id}>
-                                          <TableCell>
-                                            {objetivo.nombre}
-                                          </TableCell>
-                                          <TableCell>
-                                            {objetivo.descripcion}
-                                          </TableCell>
-                                          <TableCell>
-                                            {new Date(
-                                              objetivo.fecha_creacion
-                                            ).toLocaleDateString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            {new Date(
-                                              objetivo.fecha_final
-                                            ).toLocaleDateString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            <Badge
-                                              variant={
-                                                objetivo.estado === "Cumplido"
-                                                  ? "default"
-                                                  : objetivo.estado ===
-                                                    "En proceso"
-                                                  ? "outline"
-                                                  : "secondary"
-                                              }
-                                            >
-                                              {objetivo.estado}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell>
-                                            <div className="flex space-x-2">
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                              >
-                                                <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                Editar
-                                              </Button>
-                                              <Button
-                                                variant="destructive"
-                                                size="sm"
-                                              >
-                                                <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                Eliminar
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <div className="text-center py-4 text-muted-foreground">
-                                    No hay objetivos registrados
-                                  </div>
-                                )}
-                              </TabsContent>
-
-                              <TabsContent value="pagos" className="mt-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-semibold">Pagos</h4>
-                                  <Button size="sm" variant="outline">
-                                    <FileText className="h-4 w-4 mr-1" />{" "}
-                                    Registrar Pago
-                                  </Button>
-                                </div>
-                                {getPagosDeportista(deportista.deportistaId)
-                                  .length > 0 ? (
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Concepto</TableHead>
-                                        <TableHead>Monto</TableHead>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead>Acciones</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {getPagosDeportista(
-                                        deportista.deportistaId
-                                      ).map((pago) => (
-                                        <TableRow key={pago.id}>
-                                          <TableCell>{pago.concepto}</TableCell>
-                                          <TableCell>
-                                            ${pago.monto.toFixed(2)}
-                                          </TableCell>
-                                          <TableCell>
-                                            {new Date(
-                                              pago.fecha
-                                            ).toLocaleDateString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            <Badge
-                                              variant={
-                                                pago.estado === "Pagado"
-                                                  ? "default"
-                                                  : "secondary"
-                                              }
-                                            >
-                                              {pago.estado}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell>
-                                            <div className="flex space-x-2">
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                              >
-                                                <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                Editar
-                                              </Button>
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                              >
-                                                <FileText className="h-4 w-4 mr-1" />{" "}
-                                                Ver Factura
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <div className="text-center py-4 text-muted-foreground">
-                                    No hay pagos registrados
-                                  </div>
-                                )}
-                              </TabsContent>
-                            </Tabs>
+                                <Pencil className="h-4 w-4 mr-1" /> Editar
+                              </Button>
+                            )}
+                            {permissions.includes("eliminar_deportista") && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() =>
+                                  setDeportistaAEliminar(
+                                    deportista.deportistaId
+                                  )
+                                }
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
+
+                      {/* Detalles del deportista */}
+                      {expandedDeportistas.includes(
+                        deportista.deportistaId
+                      ) && (
+                        <TableRow
+                          key={`${deportista.deportistaId}-details`}
+                          className="bg-muted/50"
+                        >
+                          <TableCell colSpan={8} className="p-0">
+                            <div className="p-4">
+                              <Tabs defaultValue="info" className="w-full">
+                                <TabsList>
+                                  <TabsTrigger value="info">
+                                    Información Personal
+                                  </TabsTrigger>
+                                  <TabsTrigger value="historial">
+                                    Historial
+                                  </TabsTrigger>
+                                  <TabsTrigger value="evaluaciones">
+                                    Evaluaciones
+                                  </TabsTrigger>
+                                  <TabsTrigger value="objetivos">
+                                    Objetivos
+                                  </TabsTrigger>
+                                  <TabsTrigger value="pagos">Pagos</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="info" className="mt-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">
+                                        Datos Personales
+                                      </h4>
+                                      <div className="space-y-2">
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Fecha de Nacimiento:
+                                          </span>
+                                          <span>
+                                            {new Date(
+                                              deportista.fechaNacimiento
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Teléfono:
+                                          </span>
+                                          <span>{deportista.telefono}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Fecha de Inscripción:
+                                          </span>
+                                          <span>
+                                            {new Date(
+                                              deportista.fechaInscripcion
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Peso:
+                                          </span>
+                                          <span>{deportista.peso} kg</span>
+                                        </div>
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Altura:
+                                          </span>
+                                          <span>{deportista.altura} cm</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">
+                                        Información Médica
+                                      </h4>
+                                      <div className="space-y-2">
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Contacto de Emergencia:
+                                          </span>
+                                          <span>
+                                            {deportista.contactoEmergencia}
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Historial Médico:
+                                          </span>
+                                          <span>
+                                            {deportista.contactoEmergencia}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </TabsContent>
+
+                                {/* Historial */}
+                                <TabsContent value="historial" className="mt-4">
+                                  <Tabs defaultValue="niveles">
+                                    <TabsList>
+                                      <TabsTrigger value="niveles">
+                                        Historial de Niveles
+                                      </TabsTrigger>
+                                      <TabsTrigger value="planes">
+                                        Historial de Planes
+                                      </TabsTrigger>
+                                      <TabsTrigger value="grupos">
+                                        Historial de Grupos
+                                      </TabsTrigger>
+                                    </TabsList>
+
+                                    {/* Historial de Niveles */}
+                                    <TabsContent
+                                      value="niveles"
+                                      className="mt-4"
+                                    >
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">
+                                          Historial de Niveles
+                                        </h4>
+                                        <Button size="sm" variant="outline">
+                                          <Plus className="h-4 w-4 mr-1" />{" "}
+                                          Registrar Cambio de Nivel
+                                        </Button>
+                                      </div>
+                                      {getHistorialNivelesDeportista(
+                                        deportista.deportistaId
+                                      ).length > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Nivel</TableHead>
+                                              <TableHead>
+                                                Fecha de Cambio
+                                              </TableHead>
+                                              <TableHead>Motivo</TableHead>
+                                              <TableHead>Acciones</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {getHistorialNivelesDeportista(
+                                              deportista.deportistaId
+                                            ).map((historial) => (
+                                              <TableRow key={historial.id}>
+                                                <TableCell>
+                                                  {historial.nivel}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {new Date(
+                                                    historial.fecha_cambio
+                                                  ).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.motivo}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex space-x-2">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                    >
+                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                      Editar
+                                                    </Button>
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          No hay historial de niveles registrado
+                                        </div>
+                                      )}
+                                    </TabsContent>
+
+                                    {/* Historial de Planes */}
+                                    <TabsContent
+                                      value="planes"
+                                      className="mt-4"
+                                    >
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">
+                                          Historial de Planes
+                                        </h4>
+                                        <Button size="sm" variant="outline">
+                                          <Plus className="h-4 w-4 mr-1" />{" "}
+                                          Registrar Cambio de Plan
+                                        </Button>
+                                      </div>
+                                      {getHistorialPlanesDeportista(
+                                        deportista.deportistaId
+                                      ).length > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Plan</TableHead>
+                                              <TableHead>
+                                                Fecha Inicio
+                                              </TableHead>
+                                              <TableHead>Fecha Fin</TableHead>
+                                              <TableHead>
+                                                Motivo de Cambio
+                                              </TableHead>
+                                              <TableHead>Acciones</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {getHistorialPlanesDeportista(
+                                              deportista.deportistaId
+                                            ).map((historial) => (
+                                              <TableRow key={historial.id}>
+                                                <TableCell>
+                                                  {historial.plan}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {new Date(
+                                                    historial.fecha_inicio
+                                                  ).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.fecha_fin
+                                                    ? new Date(
+                                                        historial.fecha_fin
+                                                      ).toLocaleDateString()
+                                                    : "Activo"}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.motivo_cambio}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex space-x-2">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                    >
+                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                      Editar
+                                                    </Button>
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          No hay historial de planes registrado
+                                        </div>
+                                      )}
+                                    </TabsContent>
+
+                                    {/* Historial de Grupos */}
+                                    <TabsContent
+                                      value="grupos"
+                                      className="mt-4"
+                                    >
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">
+                                          Historial de Grupos
+                                        </h4>
+                                        <Button size="sm" variant="outline">
+                                          <Plus className="h-4 w-4 mr-1" />{" "}
+                                          Registrar Cambio de Grupo
+                                        </Button>
+                                      </div>
+                                      {getHistorialGruposDeportista(
+                                        deportista.deportistaId
+                                      ).length > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Grupo</TableHead>
+                                              <TableHead>
+                                                Fecha Inicio
+                                              </TableHead>
+                                              <TableHead>Fecha Fin</TableHead>
+                                              <TableHead>
+                                                Observaciones
+                                              </TableHead>
+                                              <TableHead>Acciones</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {getHistorialGruposDeportista(
+                                              deportista.deportistaId
+                                            ).map((historial) => (
+                                              <TableRow key={historial.id}>
+                                                <TableCell>
+                                                  {historial.grupo}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {new Date(
+                                                    historial.fecha_inicio
+                                                  ).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.fecha_fin
+                                                    ? new Date(
+                                                        historial.fecha_fin
+                                                      ).toLocaleDateString()
+                                                    : "Activo"}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.observaciones}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex space-x-2">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                    >
+                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                      Editar
+                                                    </Button>
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          No hay historial de grupos registrado
+                                        </div>
+                                      )}
+                                    </TabsContent>
+                                  </Tabs>
+                                </TabsContent>
+
+                                {/* Evaluaciones, Objetivos y Pagos */}
+                                <TabsContent
+                                  value="evaluaciones"
+                                  className="mt-4"
+                                >
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">
+                                      Evaluaciones
+                                    </h4>
+                                    <Button size="sm" variant="outline">
+                                      <Plus className="h-4 w-4 mr-1" /> Nueva
+                                      Evaluación
+                                    </Button>
+                                  </div>
+                                  {getEvaluacionesDeportista(
+                                    deportista.deportistaId
+                                  ).length > 0 ? (
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Fecha</TableHead>
+                                          <TableHead>Criterio</TableHead>
+                                          <TableHead>Puntaje</TableHead>
+                                          <TableHead>Acciones</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {getEvaluacionesDeportista(
+                                          deportista.deportistaId
+                                        ).map((evaluacion) => (
+                                          <TableRow key={evaluacion.id}>
+                                            <TableCell>
+                                              {new Date(
+                                                evaluacion.fecha
+                                              ).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              {evaluacion.criterio}
+                                            </TableCell>
+                                            <TableCell>
+                                              {evaluacion.puntaje}/10
+                                            </TableCell>
+                                            <TableCell>
+                                              <div className="flex space-x-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
+                                                </Button>
+                                                <Button
+                                                  variant="destructive"
+                                                  size="sm"
+                                                >
+                                                  <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                                  Eliminar
+                                                </Button>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                      No hay evaluaciones registradas
+                                    </div>
+                                  )}
+                                </TabsContent>
+
+                                <TabsContent value="objetivos" className="mt-4">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">Objetivos</h4>
+                                    <Button size="sm" variant="outline">
+                                      <Target className="h-4 w-4 mr-1" /> Nuevo
+                                      Objetivo
+                                    </Button>
+                                  </div>
+                                  {getObjetivosDeportista(
+                                    deportista.deportistaId
+                                  ).length > 0 ? (
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Objetivo</TableHead>
+                                          <TableHead>Descripción</TableHead>
+                                          <TableHead>Fecha Creación</TableHead>
+                                          <TableHead>Fecha Final</TableHead>
+                                          <TableHead>Estado</TableHead>
+                                          <TableHead>Acciones</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {getObjetivosDeportista(
+                                          deportista.deportistaId
+                                        ).map((objetivo) => (
+                                          <TableRow key={objetivo.id}>
+                                            <TableCell>
+                                              {objetivo.nombre}
+                                            </TableCell>
+                                            <TableCell>
+                                              {objetivo.descripcion}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                objetivo.fecha_creacion
+                                              ).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                objetivo.fecha_final
+                                              ).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Badge
+                                                variant={
+                                                  objetivo.estado === "Cumplido"
+                                                    ? "default"
+                                                    : objetivo.estado ===
+                                                      "En proceso"
+                                                    ? "outline"
+                                                    : "secondary"
+                                                }
+                                              >
+                                                {objetivo.estado}
+                                              </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                              <div className="flex space-x-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
+                                                </Button>
+                                                <Button
+                                                  variant="destructive"
+                                                  size="sm"
+                                                >
+                                                  <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                                  Eliminar
+                                                </Button>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                      No hay objetivos registrados
+                                    </div>
+                                  )}
+                                </TabsContent>
+
+                                <TabsContent value="pagos" className="mt-4">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">Pagos</h4>
+                                    <Button size="sm" variant="outline">
+                                      <FileText className="h-4 w-4 mr-1" />{" "}
+                                      Registrar Pago
+                                    </Button>
+                                  </div>
+                                  {getPagosDeportista(deportista.deportistaId)
+                                    .length > 0 ? (
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Concepto</TableHead>
+                                          <TableHead>Monto</TableHead>
+                                          <TableHead>Fecha</TableHead>
+                                          <TableHead>Estado</TableHead>
+                                          <TableHead>Acciones</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {getPagosDeportista(
+                                          deportista.deportistaId
+                                        ).map((pago) => (
+                                          <TableRow key={pago.id}>
+                                            <TableCell>
+                                              {pago.concepto}
+                                            </TableCell>
+                                            <TableCell>
+                                              ${pago.monto.toFixed(2)}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(
+                                                pago.fecha
+                                              ).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Badge
+                                                variant={
+                                                  pago.estado === "Pagado"
+                                                    ? "default"
+                                                    : "secondary"
+                                                }
+                                              >
+                                                {pago.estado}
+                                              </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                              <div className="flex space-x-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
+                                                  Editar
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                >
+                                                  <FileText className="h-4 w-4 mr-1" />{" "}
+                                                  Ver Factura
+                                                </Button>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                      No hay pagos registrados
+                                    </div>
+                                  )}
+                                </TabsContent>
+                              </Tabs>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

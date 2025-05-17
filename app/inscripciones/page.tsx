@@ -144,7 +144,7 @@ export default function InscripcionesPage() {
   };*/
 
   const { permissions } = useUser();
-  
+
   return (
     <ProtectedRoute requiredPermission="gestionar_inscripciones">
       <div className="space-y-6">
@@ -228,122 +228,159 @@ export default function InscripcionesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInscripciones.map((inscripcion) => (
-                  <React.Fragment key={inscripcion.deportista_id}>
-                    <TableRow>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            toggleInscripcionExpand(inscripcion.inscripcion_id)
-                          }
-                        >
-                          {expandedInscripciones.includes(
-                            inscripcion.inscripcion_id
-                          ) ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {inscripcion.deportista}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(
-                          inscripcion.fecha_inscripcion
-                        ).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {inscripcion.grupo_asignado || "Sin grupo"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            inscripcion.nivel === "Avanzado"
-                              ? "default"
-                              : inscripcion.nivel === "Intermedio"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {inscripcion.nivel}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{inscripcion.plan_pago}</TableCell>
-                      <TableCell>
-                        {inscripcion.documentos_completos ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-green-50 text-green-700 border-green-200"
+                {filteredInscripciones.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9}>
+                      <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                        <div className="mb-4">
+                          <svg
+                            className="w-10 h-10 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            viewBox="0 0 24 24"
                           >
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />{" "}
-                            Completos
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="bg-yellow-50 text-yellow-700 border-yellow-200"
-                          >
-                            <XCircle className="h-3.5 w-3.5 mr-1" /> Sin
-                            documentos
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            inscripcion.estado === "Activo"
-                              ? "default"
-                              : inscripcion.estado === "Pendiente"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                        >
-                          {inscripcion.estado}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Pencil className="h-4 w-4 mr-1" /> Editar
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <FileText className="h-4 w-4 mr-1" /> Detalles
-                          </Button>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 9V5.25m0 0A2.25 2.25 0 0013.5 3H6.75A2.25 2.25 0 004.5 5.25v13.5A2.25 2.25 0 006.75 21h10.5a2.25 2.25 0 002.25-2.25V11.25a2.25 2.25 0 00-2.25-2.25H9l-1.5-1.5H6.75"
+                            />
+                          </svg>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                    {expandedInscripciones.includes(
-                      inscripcion.deportista_id
-                    ) && (
-                      <TableRow
-                        key={`${inscripcion.deportista_id}-details`}
-                        className="bg-muted/50"
-                      >
-                        <TableCell colSpan={9} className="p-0">
-                          <div className="p-4">
-                            <Tabs defaultValue="documentos" className="w-full">
-                              <TabsList>
-                                <TabsTrigger value="documentos">
-                                  Documentos
-                                </TabsTrigger>
-                                <TabsTrigger value="pagos">Pagos</TabsTrigger>
-                              </TabsList>
+                        <p className="text-lg font-semibold text-gray-500">
+                          No hay inscriciones aún.
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Puedes agregar uno usando el botón “Nueva Inscripcion.”
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredInscripciones.map((inscripcion) => (
+                    <React.Fragment key={inscripcion.deportista_id}>
+                      <TableRow>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              toggleInscripcionExpand(
+                                inscripcion.inscripcion_id
+                              )
+                            }
+                          >
+                            {expandedInscripciones.includes(
+                              inscripcion.inscripcion_id
+                            ) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {inscripcion.deportista}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(
+                            inscripcion.fecha_inscripcion
+                          ).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {inscripcion.grupo_asignado || "Sin grupo"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              inscripcion.nivel === "Avanzado"
+                                ? "default"
+                                : inscripcion.nivel === "Intermedio"
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {inscripcion.nivel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{inscripcion.plan_pago}</TableCell>
+                        <TableCell>
+                          {inscripcion.documentos_completos ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />{" "}
+                              Completos
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Sin
+                              documentos
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              inscripcion.estado === "Activo"
+                                ? "default"
+                                : inscripcion.estado === "Pendiente"
+                                ? "secondary"
+                                : "destructive"
+                            }
+                          >
+                            {inscripcion.estado}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm">
+                              <Pencil className="h-4 w-4 mr-1" /> Editar
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <FileText className="h-4 w-4 mr-1" /> Detalles
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedInscripciones.includes(
+                        inscripcion.deportista_id
+                      ) && (
+                        <TableRow
+                          key={`${inscripcion.deportista_id}-details`}
+                          className="bg-muted/50"
+                        >
+                          <TableCell colSpan={9} className="p-0">
+                            <div className="p-4">
+                              <Tabs
+                                defaultValue="documentos"
+                                className="w-full"
+                              >
+                                <TabsList>
+                                  <TabsTrigger value="documentos">
+                                    Documentos
+                                  </TabsTrigger>
+                                  <TabsTrigger value="pagos">Pagos</TabsTrigger>
+                                </TabsList>
 
-                              <TabsContent value="documentos" className="mt-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-semibold">
-                                    Documentos Requeridos
-                                  </h4>
-                                  <Button size="sm" variant="outline">
-                                    <Plus className="h-4 w-4 mr-1" /> Agregar
-                                    Documento
-                                  </Button>
-                                </div>
-                                {/*
+                                <TabsContent
+                                  value="documentos"
+                                  className="mt-4"
+                                >
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">
+                                      Documentos Requeridos
+                                    </h4>
+                                    <Button size="sm" variant="outline">
+                                      <Plus className="h-4 w-4 mr-1" /> Agregar
+                                      Documento
+                                    </Button>
+                                  </div>
+                                  {/*
                               {getDocumentos(inscripcion.deportista_id).length >
                               0 ? (
                                 <Table>
@@ -411,19 +448,19 @@ export default function InscripcionesPage() {
                                   inscripción
                                 </div>
                               )}*/}
-                              </TabsContent>
+                                </TabsContent>
 
-                              <TabsContent value="pagos" className="mt-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-semibold">
-                                    Pagos de Inscripción
-                                  </h4>
-                                  <Button size="sm" variant="outline">
-                                    <Plus className="h-4 w-4 mr-1" /> Registrar
-                                    Pago
-                                  </Button>
-                                </div>
-                                {/*
+                                <TabsContent value="pagos" className="mt-4">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">
+                                      Pagos de Inscripción
+                                    </h4>
+                                    <Button size="sm" variant="outline">
+                                      <Plus className="h-4 w-4 mr-1" />{" "}
+                                      Registrar Pago
+                                    </Button>
+                                  </div>
+                                  {/*
                               {getPagos(inscripcion.deportista_id).length >
                               0 ? (
                                 <Table>
@@ -497,14 +534,15 @@ export default function InscripcionesPage() {
                                   No hay pagos registrados para esta inscripción
                                 </div>
                               )}*/}
-                              </TabsContent>
-                            </Tabs>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
+                                </TabsContent>
+                              </Tabs>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
