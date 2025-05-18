@@ -49,6 +49,7 @@ import axios from "axios";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import React from "react";
 import { toast } from "react-toastify";
+import DeportistaElegibleItem from "../components/Forms/DeportistaElegibleItem";
 
 interface Grupo {
   id: number;
@@ -92,12 +93,20 @@ interface CategoriaNivel {
   nombre: string;
 }
 
+interface Deportista {
+  id: number;
+  nombre: string;
+  nivel: string;
+  // otros campos si aplican
+}
+
 interface Props {
   grupos: Grupo[];
   onGrupoUpdated: () => void; // Para refrescar los datos tras editar/borrar
 }
 
 export default function GruposPage() {
+  const [deportistas, setDeportistas] = useState<Deportista[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [tiposGrupo, setTiposGrupo] = useState<TipoGrupo[]>([]);
   const [categoriasNivel, setCategoriasNivel] = useState<CategoriaNivel[]>([]);
@@ -107,6 +116,39 @@ export default function GruposPage() {
   const [deleteGrupoId, setDeleteGrupoId] = useState<number | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [nuevoGrupo, setNuevoGrupo] = useState({
+    nombre: "",
+    tipoGrupoId: 0,
+    categoriaNivelId: 0,
+    estadoCategoriaNivel: 1, // valor por defecto si aplica
+  });
+
+  const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState<Grupo | null>(
+    null
+  );
+  const [modalDeportistasOpen, setModalDeportistasOpen] = useState(false);
+
+  // Efecto para cargar deportistas inscritos cuando se abre el modal
+  useEffect(() => {
+    fetch("http://localhost:8080/api/inscripciones/inscritos")
+      .then((res) => res.json())
+      .then((data: any[][]) => {
+        const adaptados = data.map((arr) => ({
+          id: arr[0],
+          nombre: arr[1],
+          apellido: arr[2],
+          genero: arr[5],
+          nivel: arr[6],
+        }));
+        setDeportistas(
+          adaptados); // 👈 debe ser tipo Deportista[]
+      });
+  }, []);
 
   useEffect(() => {
     fetchGrupos(); // Solo llama a la función
@@ -123,14 +165,6 @@ export default function GruposPage() {
       toast.error("Error al cargar los grupos.");
     }
   };
-
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [nuevoGrupo, setNuevoGrupo] = useState({
-    nombre: "",
-    tipoGrupoId: 0,
-    categoriaNivelId: 0,
-    estadoCategoriaNivel: 1, // valor por defecto si aplica
-  });
 
   //const [tiposGrupo, setTiposGrupo] = useState([]);
   //const [categoriasNivel, setCategoriasNivel] = useState([]);
@@ -193,9 +227,6 @@ export default function GruposPage() {
       toast.error("Error al actualizar el grupo.");
     }
   };
-
-  const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
 
   const toggleGroupExpand = (groupId: number) => {
     setExpandedGroups((prev) =>
@@ -378,7 +409,14 @@ export default function GruposPage() {
                                       <h3 className="font-semibold">
                                         Deportistas en este grupo
                                       </h3>
-                                      <Button size="sm" variant="outline">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setGrupoSeleccionado(grupo);
+                                          setModalDeportistasOpen(true);
+                                        }}
+                                      >
                                         <UserPlus className="h-4 w-4 mr-1" />{" "}
                                         Añadir Deportista
                                       </Button>
@@ -599,7 +637,7 @@ export default function GruposPage() {
                         ...editGrupo,
                         tipoGrupo: {
                           id: parseInt(e.target.value),
-                          nombre: ""
+                          nombre: "",
                         },
                       })
                     }
@@ -635,22 +673,22 @@ export default function GruposPage() {
                           nombre: "",
                           nivel: {
                             id: 0,
-                            nombre: ""
+                            nombre: "",
                           },
                           division: {
                             id: 0,
-                            nombre: ""
+                            nombre: "",
                           },
                           estadoCategoriaNivel: {
                             id: 0,
-                            nombre: ""
+                            nombre: "",
                           },
                           deportistas: {
                             id: 0,
                             nombre: "",
                             edad: 0,
-                            nivel_id: 0
-                          }
+                            nivel_id: 0,
+                          },
                         },
                       })
                     }
@@ -677,6 +715,34 @@ export default function GruposPage() {
                 </div>
               </form>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal para añadir deportista a grupo*/}
+        <Dialog
+          open={modalDeportistasOpen}
+          onOpenChange={setModalDeportistasOpen}
+        >
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                Añadir Deportista al Grupo: {grupoSeleccionado?.nombre}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {grupoSeleccionado &&
+                deportistas.map((deportista) => (
+                  <DeportistaElegibleItem
+                    key={deportista.id}
+                    deportista={deportista}
+                    grupoId={grupoSeleccionado.id}
+                    onSuccess={() => {
+                      toast.success("Deportista añadido con éxito");
+                      setModalDeportistasOpen(false);
+                    }}
+                  />
+                ))}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
