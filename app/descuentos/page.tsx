@@ -1,15 +1,39 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Pencil, Trash2, Search, DollarSign, Building } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  DollarSign,
+  Building,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "react-toastify";
+import CrearDescuentoForm from "../components/Forms/CrearDescuentoForm";
+import ModalEditarDescuento from "../components/Forms/ModalEditarDescuento";
+import ModalEliminarDescuento from "../components/Forms/ModalEliminarDescuento";
 
 // Datos de ejemplo para descuentos
 const descuentos = [
@@ -53,7 +77,7 @@ const descuentos = [
     activo: false,
     aplicaciones: 12,
   },
-]
+];
 
 // Datos de ejemplo para convenios
 const convenios = [
@@ -87,43 +111,68 @@ const convenios = [
     fecha_fin: "2024-12-31",
     deportistas_beneficiados: 3,
   },
-]
+];
+export interface Descuento {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  porcentaje: number;
+  fechaInicio: string; // o Date si haces el parsing
+  fechaFin: string; // igual que arriba
+  activo: boolean;
+  aplicaciones?: number;
+}
 
 export default function DescuentosPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [mostrarInactivos, setMostrarInactivos] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
+
+  const [descuentos, setDescuentos] = useState<Descuento[]>([]);
+
+  const refetchDescuentos = async () => {
+    const res = await fetch("http://localhost:8080/api/descuentos");
+    const data = await res.json();
+    setDescuentos(data);
+  };
+
+  useEffect(() => {
+    refetchDescuentos();
+  }, []);
 
   // Filtrar descuentos por término de búsqueda y estado activo/inactivo
   const filteredDescuentos = descuentos.filter((descuento) => {
     const matchesSearch =
       descuento.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      descuento.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+      descuento.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!mostrarInactivos) {
-      return matchesSearch && descuento.activo
+      return matchesSearch && descuento.activo;
     }
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
   // Filtrar convenios por término de búsqueda
   const filteredConvenios = convenios.filter((convenio) => {
     return (
-      convenio.nombre_empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      convenio.nombre_empresa
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       convenio.descuento_nombre.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })
+    );
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Descuentos</h1>
-          <p className="text-muted-foreground">Gestiona los descuentos para las Inscripciones</p>
+          <p className="text-muted-foreground">
+            Gestiona los descuentos para las Inscripciones
+          </p>
         </div>
       </div>
 
       <Tabs defaultValue="descuentos" className="w-full">
-
         <TabsContent value="descuentos" className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2 w-full max-w-sm">
@@ -139,12 +188,18 @@ export default function DescuentosPage() {
             </div>
             <div className="flex space-x-4 items-center">
               <div className="flex items-center space-x-2">
-                <Switch id="mostrar-inactivos" checked={mostrarInactivos} onCheckedChange={setMostrarInactivos} />
+                <Switch
+                  id="mostrar-inactivos"
+                  checked={mostrarInactivos}
+                  onCheckedChange={setMostrarInactivos}
+                />
                 <Label htmlFor="mostrar-inactivos">Mostrar inactivos</Label>
               </div>
+              <CrearDescuentoForm onCreated={refetchDescuentos} />
+              {/*
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Nuevo Descuento
-              </Button>
+              </Button>*/}
             </div>
           </div>
 
@@ -165,27 +220,41 @@ export default function DescuentosPage() {
                 <TableBody>
                   {filteredDescuentos.map((descuento) => (
                     <TableRow key={descuento.id}>
-                      <TableCell className="font-medium">{descuento.nombre}</TableCell>
+                      <TableCell className="font-medium">
+                        {descuento.nombre}
+                      </TableCell>
                       <TableCell>{descuento.descripcion}</TableCell>
                       <TableCell>{descuento.porcentaje}%</TableCell>
                       <TableCell>
-                        {new Date(descuento.fecha_inicio).toLocaleDateString()} -{" "}
-                        {new Date(descuento.fecha_fin).toLocaleDateString()}
+                        {new Date(descuento.fechaInicio).toLocaleDateString()} -{" "}
+                        {new Date(descuento.fechaFin).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>{descuento.aplicaciones}</TableCell>
+                      <TableCell>-</TableCell>{" "}
+                      {/* Aquí puedes mostrar el conteo si lo tienes */}
                       <TableCell>
-                        <Badge variant={descuento.activo ? "default" : "secondary"}>
+                        <Badge
+                          variant={descuento.activo ? "default" : "secondary"}
+                        >
                           {descuento.activo ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          <ModalEditarDescuento
+                            descuento={descuento}
+                            onUpdated={refetchDescuentos}
+                          />
+                          <ModalEliminarDescuento
+                            descuentoId={descuento.id}
+                            onDeleted={refetchDescuentos}
+                          />
+                          {/*
                           <Button variant="outline" size="sm">
                             <Pencil className="h-4 w-4 mr-1" /> Editar
                           </Button>
                           <Button variant="destructive" size="sm">
                             <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                          </Button>
+                          </Button>*/}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -195,7 +264,6 @@ export default function DescuentosPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -207,20 +275,25 @@ export default function DescuentosPage() {
           <CardContent>
             <div className="text-3xl font-bold">{descuentos.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {descuentos.filter((d) => d.activo).length} activos, {descuentos.filter((d) => !d.activo).length}{" "}
-              inactivos
+              {descuentos.filter((d) => d.activo).length} activos,{" "}
+              {descuentos.filter((d) => !d.activo).length} inactivos
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Aplicaciones de Descuentos</CardTitle>
+            <CardTitle className="text-lg">
+              Aplicaciones de Descuentos
+            </CardTitle>
             <CardDescription>Total de descuentos aplicados</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {descuentos.reduce((total, descuento) => total + descuento.aplicaciones, 0)}
+              {descuentos.reduce(
+                (total, descuento) => total + (descuento.aplicaciones ?? 0),
+                0
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               <DollarSign className="inline h-3 w-3" /> En todos los descuentos
@@ -229,5 +302,5 @@ export default function DescuentosPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

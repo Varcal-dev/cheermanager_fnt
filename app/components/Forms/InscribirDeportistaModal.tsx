@@ -48,6 +48,11 @@ export default function InscribirDeportistaModal({
     return new Date(año, 11, 31).toISOString().slice(0, 10); // 31 diciembre año actual
   });
 
+  const [convenios, setConvenios] = useState<any[]>([]);
+  const [convenioSeleccionado, setConvenioSeleccionado] = useState<
+    number | null
+  >(null);
+
   useEffect(() => {
     if (open) {
       fetch("http://localhost:8080/api/inscripciones/no-inscritos")
@@ -70,6 +75,10 @@ export default function InscribirDeportistaModal({
           }));
           setPlanesPago(planesTransformados);
         });
+
+      fetch("http://localhost:8080/api/convenios")
+        .then((res) => res.json())
+        .then((data) => setConvenios(data));
     }
   }, [open]);
 
@@ -78,8 +87,11 @@ export default function InscribirDeportistaModal({
       toast.error("Selecciona deportista y plan");
       return;
     }
+    if (!convenioSeleccionado) {
+      toast.error("Selecciona un convenio");
+      return;
+    }
 
-    // Fecha inscripción en formato YYYY-MM-DD (hoy)
     const hoy = new Date().toISOString().slice(0, 10);
 
     const body = {
@@ -89,22 +101,48 @@ export default function InscribirDeportistaModal({
       fechaVencimiento,
       estado: "Activa",
     };
-    console.log("Deportista seleccionado:", deportistaSeleccionado);
-    console.log("Plan seleccionado:", planSeleccionado);
 
-    console.log("Datos a enviar:", body); // <--- Aquí imprimes el objeto
-    const res = await fetch("http://localhost:8080/api/inscripciones", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      console.log("Datos a enviar:", body);
+      const res = await fetch("http://localhost:8080/api/inscripciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (res.ok) {
-      toast.success("Inscripción creada");
-      onInscripcionExitosa(); // <-- refresca la tabla
-      setOpen(false);
-    } else {
-      toast.error("Error al inscribir");
+      if (!res.ok) {
+        toast.error("Error al crear inscripcion")
+        throw new Error("Error al crear la inscripción");
+      }
+
+      try {
+        console.log("Datos: ", convenioSeleccionado);
+        const resConvenio = await fetch(
+          `http://localhost:8080/api/deportistas/${deportistaSeleccionado}/convenio`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(convenioSeleccionado),
+          }
+        );
+
+        if (!resConvenio.ok) {
+          toast.error("Error al actualizar el convenio del deportista")
+          throw new Error("Error al actualizar el convenio del deportista");
+        }
+
+        toast.success("Inscripción creada exitosamente");
+        onInscripcionExitosa();
+        setOpen(false);
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          "La inscripción fue creada, pero ocurrió un error al asignar el convenio"
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("No se pudo crear la inscripción");
     }
   };
 
@@ -155,6 +193,24 @@ export default function InscribirDeportistaModal({
               {planesPago.map((plan) => (
                 <option key={plan.id} value={plan.id}>
                   {plan.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>Convenio</Label>
+            <select
+              className="w-full border rounded-md p-2"
+              value={convenioSeleccionado ?? ""}
+              onChange={(e) =>
+                setConvenioSeleccionado(parseInt(e.target.value))
+              }
+            >
+              <option value="">Selecciona un convenio</option>
+              {convenios.map((convenio) => (
+                <option key={convenio.id} value={convenio.id}>
+                  {convenio.nombreEmpresa} —{" "}
+                  {convenio.descuento?.nombre ?? "Sin Descuento"}
                 </option>
               ))}
             </select>
