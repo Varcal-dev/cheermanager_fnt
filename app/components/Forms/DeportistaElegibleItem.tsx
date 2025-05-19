@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2, Loader, CheckCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Loader,
+  CheckCircle,
+} from "lucide-react";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 interface Deportista {
   id: number;
@@ -32,12 +39,13 @@ export default function DeportistaElegibleItem({
     fetch(
       `http://localhost:8080/api/grupos/${grupoId}/verificar-elegibilidad?deportistaId=${deportista.id}`
     )
-      .then((res) => res.text())
-      .then((msg) => {
-        setMensaje(msg);
-        setIsEligible(msg.startsWith("Elegible"));
-        setLoading(false); // ✅ aquí
+      .then((res) => res.json())
+      .then((data) => {
+        setMensaje(data.resultado);
+        setIsEligible(data.resultado.startsWith("Elegible"));
+        setLoading(false);
       })
+
       .catch((err) => {
         console.error("Error verificando elegibilidad", err);
         setMensaje("Error al verificar elegibilidad");
@@ -49,21 +57,48 @@ export default function DeportistaElegibleItem({
   // Manejar agregar deportista al grupo
   const handleAddToGroup = async () => {
     setAdding(true);
+    // Construir el payload
+    const payload = {
+      deportistaId: deportista.id,
+      observaciones: "", // reemplaza si tienes un input de observaciones
+    };
+
+    // Mostrar en consola lo que se va a enviar
+    console.log("Enviando al backend:", payload);
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/grupos/${grupoId}/agregar-deportista`,
+      const response = await axios.post(
+        `http://localhost:8080/api/grupos/${grupoId}/agregar-deportistas`, // Usar la ruta más RESTful si la cambiaste en el backend
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deportistaId: deportista.id }),
+          deportistaId: deportista.id,
+          observaciones: "", // O la cadena de observaciones que el usuario haya ingresado
         }
+        // Agregar las cabeceras si usas autenticación
+        // {
+        //   headers: {
+        //     'Authorization': `Bearer ${tuTokenJWT}`
+        //   }
+        // }
       );
 
-      if (!response.ok) throw new Error("Error al agregar deportista");
+      // Manejar la respuesta del backend (el mensaje del stored procedure)
+      // Si el backend devuelve RespuestaDTO:
+      console.log("Respuesta del backend:", response.data.mensaje);
+      toast.success(response.data.mensaje); // Muestra el mensaje del backend
 
       onSuccess();
     } catch (error) {
-      toast.error("Error");
+      console.error("Error en agregar deportista:", error);
+
+      // Si el error proviene del backend y devuelve RespuestaDTO con el mensaje de error:
+      if (
+        axios.isAxiosError(error) &&
+        error.response &&
+        error.response.data?.mensaje
+      ) {
+        toast.error(error.response.data.mensaje);
+      } else {
+        toast.error("Error al agregar deportista. Intenta de nuevo.");
+      }
     } finally {
       setAdding(false);
     }
@@ -72,7 +107,10 @@ export default function DeportistaElegibleItem({
   return (
     <div className="flex items-center justify-between border p-2 rounded">
       <div>
-        <p className="font-medium">{deportista.nombre}</p>
+        <p className="font-medium">
+          {deportista.nombre} {deportista.apellido} - {deportista.genero} -
+          {deportista.nivel}
+        </p>
         <p className="text-sm text-gray-600">
           {loading ? "Verificando elegibilidad..." : mensaje}
         </p>

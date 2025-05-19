@@ -93,20 +93,20 @@ interface CategoriaNivel {
   nombre: string;
 }
 
-interface Deportista {
-  id: number;
-  nombre: string;
-  nivel: string;
-  // otros campos si aplican
-}
-
 interface Props {
   grupos: Grupo[];
   onGrupoUpdated: () => void; // Para refrescar los datos tras editar/borrar
 }
+interface Deportista {
+  id: number;
+  nombre: string;
+  apellido: string;
+  genero: string;
+  nivel: string;
+}
 
 export default function GruposPage() {
-  const [deportistas, setDeportistas] = useState<Deportista[]>([]);
+  //const [deportistas, setDeportistas] = useState<Deportista[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [tiposGrupo, setTiposGrupo] = useState<TipoGrupo[]>([]);
   const [categoriasNivel, setCategoriasNivel] = useState<CategoriaNivel[]>([]);
@@ -116,7 +116,6 @@ export default function GruposPage() {
   const [deleteGrupoId, setDeleteGrupoId] = useState<number | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [nuevoGrupo, setNuevoGrupo] = useState({
     nombre: "",
@@ -127,27 +126,26 @@ export default function GruposPage() {
 
   const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<Grupo | null>(
     null
   );
   const [modalDeportistasOpen, setModalDeportistasOpen] = useState(false);
+  const [deportistas, setDeportistas] = useState<Deportista[]>([]);
 
-  // Efecto para cargar deportistas inscritos cuando se abre el modal
   useEffect(() => {
     fetch("http://localhost:8080/api/inscripciones/inscritos")
       .then((res) => res.json())
       .then((data: any[][]) => {
-        const adaptados = data.map((arr) => ({
+        const adaptados: Deportista[] = data.map((arr) => ({
           id: arr[0],
           nombre: arr[1],
           apellido: arr[2],
           genero: arr[5],
           nivel: arr[6],
         }));
-        setDeportistas(
-          adaptados); // 👈 debe ser tipo Deportista[]
-      });
+        setDeportistas(adaptados);
+      })
+      .catch((err) => console.error("Error cargando deportistas:", err));
   }, []);
 
   useEffect(() => {
@@ -409,6 +407,10 @@ export default function GruposPage() {
                                       <h3 className="font-semibold">
                                         Deportistas en este grupo
                                       </h3>
+                                      <Button size="sm" variant="outline">
+                                        <UserPlus className="h-4 w-4 mr-1" />{" "}
+                                        Asignar Entrenador
+                                      </Button>
                                       <Button
                                         size="sm"
                                         variant="outline"
