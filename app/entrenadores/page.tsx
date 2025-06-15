@@ -113,6 +113,7 @@ const horariosEntrenadores = [
 interface Entrenador {
   id: number;
   nombre: string;
+  apellido: string | null;
   telefono: string | null;
   email: string | null;
   fecha_contratacion: string | null;
@@ -124,12 +125,12 @@ interface Entrenador {
 
 export interface Genero {
   id: number;
-  nombre: string;
+  genero: string;
 }
 
 export interface Estado {
   id: number;
-  nombre: string;
+  estado: string;
 }
 
 export default function EntrenadoresPage() {
@@ -164,11 +165,13 @@ export default function EntrenadoresPage() {
           withCredentials: true,
         }
       );
-      const rawData = response.data;
 
+      const rawData = response.data;
+      console.log("datos perosna:",   rawData);
       const mappedEntrenadores = rawData.map((entrenador: any) => ({
         id: entrenador.id,
         nombre: entrenador.persona?.nombre ?? "N/A",
+        apellido: entrenador.persona?.apellidos ?? "N/A",
         telefono: entrenador.persona?.telefono ?? "N/A",
         email: entrenador.persona?.email ?? "N/A",
         fecha_contratacion: entrenador.fechaContratacion ?? "Sin Datos",
@@ -184,17 +187,11 @@ export default function EntrenadoresPage() {
     }
   };
 
-  const obtenerGeneros = async () => {
-    const res = await axios.get(
-      "http://localhost:8080/api/usuario/genero/listar"
-    );
-    return res.data;
-  };
-
   const guardarEntrenador = async () => {
     try {
       // Aquí mapea tu objeto según lo que espera tu API
       const payload = {
+        rolIdE: nuevoEntrenador.rolId,
         nombre: nuevoEntrenador.nombre,
         apellidos: nuevoEntrenador.apellidos,
         direccion: nuevoEntrenador.direccion,
@@ -209,7 +206,7 @@ export default function EntrenadoresPage() {
       await axios.post("http://localhost:8080/api/entrenadores", payload, {
         withCredentials: true,
       });
-      
+
       toast.success("Entrenador guardado con éxito");
       // Aquí puedes refrescar la lista de entrenadores
       setModalAbierto(false);
@@ -239,6 +236,7 @@ export default function EntrenadoresPage() {
   //const [generos, setGeneros] = useState<{ id: number; nombre: string }[]>([]);
   //const [estados, setEstados] = useState<{ id: number; nombre: string }[]>([]);
   const [nuevoEntrenador, setNuevoEntrenador] = useState({
+    rolId: 0,
     nombre: "",
     apellidos: "",
     direccion: "",
@@ -254,11 +252,17 @@ export default function EntrenadoresPage() {
     return res.data;
   };
 
+  const obtenerGeneros = async () => {
+    const res = await axios.get(
+      "http://localhost:8080/api/usuario/genero/listar"
+    );
+    return res.data;
+  };
+
   useEffect(() => {
     const cargarDatos = async () => {
       const generosData = await obtenerGeneros();
       const estadosData = await obtenerEstadosPersona();
-
       setGeneros(generosData);
       setEstados(estadosData);
     };
@@ -401,7 +405,7 @@ export default function EntrenadoresPage() {
                       </Button>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {entrenador.nombre}
+                      {entrenador.nombre} {entrenador.apellido}
                     </TableCell>
                     <TableCell>{entrenador.especializacion}</TableCell>
                     <TableCell>{entrenador.experiencia}</TableCell>
@@ -688,6 +692,21 @@ export default function EntrenadoresPage() {
 
           <div className="grid gap-4 py-4 grid-cols-2">
             <div>
+              <Label htmlFor="rolId">Rol</Label>
+              <Select
+                onValueChange={(value) => handleSelectChange("rolId", value)}
+                value={nuevoEntrenador.rolId?.toString() || ""}
+              >
+                <SelectTrigger id="rolId" className="w-full">
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">Entrenador</SelectItem>
+                  <SelectItem value="4">Asistente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="nombre">Nombre</Label>
               <Input
                 id="nombre"
@@ -754,7 +773,7 @@ export default function EntrenadoresPage() {
                 <SelectContent>
                   {generos.map((g) => (
                     <SelectItem key={g.id} value={g.id.toString()}>
-                      {g.nombre}
+                      {g.genero}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -772,7 +791,7 @@ export default function EntrenadoresPage() {
                 <SelectContent>
                   {estados.map((e) => (
                     <SelectItem key={e.id} value={e.id.toString()}>
-                      {e.nombre}
+                      {e.estado}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -786,7 +805,7 @@ export default function EntrenadoresPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Eliminar Deportista */}
+      {/* Eliminar Entrenador */}
       <Dialog
         open={entrenadoAEliminar !== null}
         onOpenChange={() => setEntrenadoAEliminar(null)}

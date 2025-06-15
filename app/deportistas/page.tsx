@@ -275,6 +275,27 @@ export default function DeportistasPage() {
   const [deportistaSeleccionado, setDeportistaSeleccionado] =
     useState<Deportista | null>(null);
 
+  const [niveles, setNiveles] = useState<Nivel[]>([]);
+  const [generos, setGeneros] = useState<Genero[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [nuevoDeportista, setNuevoDeportista] = useState({
+    nombre: "",
+    apellidos: "",
+    direccion: "",
+    telefono: "",
+    fechaNacimiento: "",
+    generoId: 1,
+    estadoId: 1,
+    altura: 0,
+    peso: 0,
+    nivelActualId: 1,
+    fechaRegistro: "",
+    contactoEmergencia: "",
+    convenioId: null,
+  });
+
   useEffect(() => {
     cargarDeportistas(); // Solo llama a la función
   }, []);
@@ -310,10 +331,6 @@ export default function DeportistasPage() {
     const res = await axios.get("http://localhost:8080/api/personas/estados"); // este endpoint lo crearemos abajo
     return res.data;
   };
-
-  const [niveles, setNiveles] = useState<Nivel[]>([]);
-  const [generos, setGeneros] = useState<Genero[]>([]);
-  const [estados, setEstados] = useState<Estado[]>([]);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -468,22 +485,7 @@ export default function DeportistasPage() {
     return edad;
   };
 
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [nuevoDeportista, setNuevoDeportista] = useState({
-    nombre: "",
-    apellidos: "",
-    direccion: "",
-    telefono: "",
-    fechaNacimiento: "",
-    generoId: 1,
-    estadoId: 1,
-    altura: 0,
-    peso: 0,
-    nivelActualId: 1,
-    fechaRegistro: "",
-    contactoEmergencia: "",
-    convenioId: null,
-  });
+  
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -653,7 +655,7 @@ export default function DeportistasPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {deportista.nombre}
+                          {deportista.nombre} { deportista.apellidos}
                         </TableCell>
                         <TableCell>
                           {calcularEdad(deportista.fechaNacimiento)} años
@@ -1292,7 +1294,8 @@ export default function DeportistasPage() {
             </Table>
           </CardContent>
         </Card>
-
+                
+        {/* Agregar Deportista */}
         <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
           <DialogContent>
             <DialogTitle>Registrar Nuevo Deportista</DialogTitle>
@@ -1346,6 +1349,7 @@ export default function DeportistasPage() {
                     onChange={handleInputChange}
                   />
                 </div>
+                {/*
                 <div>
                   <Label>Fecha Inscripción</Label>
                   <Input
@@ -1354,7 +1358,7 @@ export default function DeportistasPage() {
                     value={nuevoDeportista.fechaRegistro}
                     onChange={handleInputChange}
                   />
-                </div>
+                </div>*/}
                 <div>
                   <Label>Altura (cm)</Label>
                   <Input
@@ -1561,7 +1565,6 @@ export default function DeportistasPage() {
               </div>
               <div>
                 <Label>Fecha de Registro</Label>
-                jsx
                 <Input
                   type="date"
                   value={formData.fechaRegistro}

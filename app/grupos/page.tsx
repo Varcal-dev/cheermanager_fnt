@@ -50,6 +50,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import React from "react";
 import { toast } from "react-toastify";
 import DeportistaElegibleItem from "../components/Forms/DeportistaElegibleItem";
+import { ModalAsignarEntrenador } from "../components/Forms/AsignarEntrenadorModal";
 
 interface Grupo {
   id: number;
@@ -406,11 +407,12 @@ export default function GruposPage() {
                                     <div className="flex justify-between items-center mb-2">
                                       <h3 className="font-semibold">
                                         Deportistas en este grupo
-                                      </h3>
+                                      </h3>{/*
                                       <Button size="sm" variant="outline">
                                         <UserPlus className="h-4 w-4 mr-1" />{" "}
                                         Asignar Entrenador
-                                      </Button>
+                                      </Button>*/}
+                                     <ModalAsignarEntrenador />
                                       <Button
                                         size="sm"
                                         variant="outline"

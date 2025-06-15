@@ -35,6 +35,7 @@ import { ModeToggle } from "./mode-toggle";
 import { useUser } from "@/context/UserContext";
 
 const Sidebar = () => {
+  
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<string[]>([]);
 
@@ -97,7 +98,7 @@ const Sidebar = () => {
                     <Users className="mr-2 h-4 w-4" />
                     Entrenadores
                   </Button>
-                </Link>
+                </Link>{/*
                 <Link href="/historial-medico" passHref>
                   <Button
                     variant={
@@ -108,7 +109,7 @@ const Sidebar = () => {
                     <ClipboardList className="mr-2 h-4 w-4" />
                     Historial Médico
                   </Button>
-                </Link>
+                </Link>*/}
               </CollapsibleContent>
             </Collapsible>
           )}

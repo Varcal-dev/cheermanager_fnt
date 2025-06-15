@@ -23,6 +23,16 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
+import { CrearRolForm } from "@/app/components/Forms/CrearRolForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 interface Permiso {
   id: number;
   nombre: string;
@@ -34,7 +44,7 @@ interface Rol {
   id: number;
   nombre: string;
   descripcion?: string;
-  usuarios?: any[]; // cámbialo si tienes una estructura para usuarios
+  usuarios?: any[]; 
   permisos: Permiso[];
 }
 
@@ -44,17 +54,65 @@ type ConteoRol = {
 };
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Rol[]>([]);
+const [roles, setRoles] = useState<Rol[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<Rol[]>([]);
-  const [selectedRol, setSelectedRol] = useState<number | null>(null);
+const [selectedRol, setSelectedRol] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [rolToDelete, setRolToDelete] = useState<Rol | null>(null);
+
+  const deleteRol = async (id: number) => {
+    try {
+      await axios.delete(`http://localhost:8080/api/roles/${id}`);
+      fetchRoles();
+    } catch (error) {
+      console.error("Error al eliminar rol", error);
+      alert("Error al eliminar rol");
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (rolToDelete) {
+      deleteRol(rolToDelete.id);
+      setIsDeleteModalOpen(false);
+      setRolToDelete(null);
+    }
+  };
+
   const [searchPermiso, setSearchPermiso] = useState("");
   const [conteos, setConteos] = useState<ConteoRol[]>([]);
   const [permisos, setPermisos] = useState<Permiso[]>([]);
-  
+  const [openCrearRol, setOpenCrearRol] = useState(false);
+
+  const fetchRoles = async () => {
+    try {
+      console.log("Obteniendo roles...");
+      const res = await axios.get(
+        "http://localhost:8080/api/usuario/rol/listar"
+      );
+      setRoles(res.data);
+    } catch (error) {
+      console.error("Error al cargar roles", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchRoles = async () => {
+    fetchRoles();
+  }, []);
+
+  const handleRolCreated = () => {
+    fetchRoles();
+  };
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/api/usuario/rol/listar-con-usuarios")
+      .then((res) => setConteos(res.data)) // debe venir con { id, usuariosCount }
+      .catch((err) => console.error("Error cargando conteos:", err));
+  }, []);
+
+  useEffect(() => {
+    const fetchPermisos = async () => {
       try {
         console.log("Obteniendo roles...");
         const res = await axios.get(
@@ -157,9 +215,22 @@ export default function RolesPage() {
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Nuevo Rol
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Nuevo Rol
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Crear Nuevo Rol</DialogTitle>
+                    <DialogDescription>
+                      Ingrese el nombre del nuevo rol.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CrearRolForm onRolCreated={handleRolCreated} onClose={() => setOpenCrearRol(false)} />
+                </DialogContent>
+              </Dialog>
             </div>
 
             <Card>
@@ -188,7 +259,7 @@ export default function RolesPage() {
                           {conteoMap.get(rol.id) ?? "Desconocido"}
                         </TableCell>
                         <TableCell>{rol.permisos?.length || 0}</TableCell>
-
+                        <TableCell></TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button variant="outline" size="sm">
@@ -205,9 +276,36 @@ export default function RolesPage() {
                             >
                               <Shield className="h-4 w-4 mr-1" /> Permisos
                             </Button>
-                            <Button variant="destructive" size="sm">
-                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                            </Button>
+<Button
+  variant="destructive"
+  size="sm"
+  onClick={() => {
+    setIsDeleteModalOpen(true);
+    setRolToDelete(rol);
+  }}
+>
+  <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+</Button>
+
+<Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogHeader>
+      <DialogTitle>Confirmar Eliminación</DialogTitle>
+      <DialogDescription>
+        ¿Estás seguro de que quieres eliminar el rol "
+        {rolToDelete?.nombre}"?
+      </DialogDescription>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <Button variant="destructive" onClick={handleConfirmDelete}>
+        Eliminar
+      </Button>
+      <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>
+        Cancelar
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
                           </div>
                         </TableCell>
                       </TableRow>
