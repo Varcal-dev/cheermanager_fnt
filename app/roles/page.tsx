@@ -44,7 +44,7 @@ interface Rol {
   id: number;
   nombre: string;
   descripcion?: string;
-  usuarios?: any[]; 
+  usuarios?: any[];
   permisos: Permiso[];
 }
 
@@ -54,9 +54,9 @@ type ConteoRol = {
 };
 
 export default function RolesPage() {
-const [roles, setRoles] = useState<Rol[]>([]);
+  const [roles, setRoles] = useState<Rol[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<Rol[]>([]);
-const [selectedRol, setSelectedRol] = useState<number | null>(null);
+  const [selectedRol, setSelectedRol] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [rolToDelete, setRolToDelete] = useState<Rol | null>(null);
@@ -171,9 +171,8 @@ const [selectedRol, setSelectedRol] = useState<number | null>(null);
 
   const rolPermisos: Record<number, number[]> = roles.reduce((acc, rol) => {
   acc[rol.id] = rol.permisos.map(p => p.id);
-  return acc;
-}, {} as Record<number, number[]>);
-
+    return acc;
+  }, {} as Record<number, number[]>);
 
   const conteoMap = new Map(conteos.map((rol) => [rol.id, rol.usuariosCount]));
 
@@ -276,16 +275,16 @@ const [selectedRol, setSelectedRol] = useState<number | null>(null);
                             >
                               <Shield className="h-4 w-4 mr-1" /> Permisos
                             </Button>
-<Button
-  variant="destructive"
-  size="sm"
-  onClick={() => {
-    setIsDeleteModalOpen(true);
-    setRolToDelete(rol);
-  }}
->
-  <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-</Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setIsDeleteModalOpen(true);
+                                setRolToDelete(rol);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                            </Button>
 
 <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
   <DialogContent className="sm:max-w-[425px]">
@@ -459,6 +458,44 @@ const [selectedRol, setSelectedRol] = useState<number | null>(null);
           </TabsContent>
         </ProtectedRoute>
       </Tabs>
+
+      <Dialog>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Rol</DialogTitle>
+            <DialogDescription>
+              Ingrese el nombre del nuevo rol.
+            </DialogDescription>
+          </DialogHeader>
+          <CrearRolForm
+            onRolCreated={handleRolCreated}
+            onClose={() => setOpenCrearRol(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que quieres eliminar el rol "
+              {rolToDelete?.nombre}"?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Eliminar
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

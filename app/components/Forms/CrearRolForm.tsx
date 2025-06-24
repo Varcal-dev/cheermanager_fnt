@@ -22,6 +22,7 @@ const formSchema = z.object({
   nombre: z.string().min(2, {
     message: "El nombre del rol debe tener al menos 2 caracteres.",
   }),
+  descripcion: z.string().optional(),
 });
 
 interface CrearRolFormProps {
@@ -37,6 +38,7 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: "",
+      descripcion: "",
     },
   });
 
@@ -85,6 +87,22 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
               </FormControl>
               <FormDescription>
                 Este es el nombre que se mostrará para el rol.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="descripcion"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descripción</FormLabel>
+              <FormControl>
+                <Input placeholder="Descripción del rol" {...field} />
+              </FormControl>
+              <FormDescription>
+                Breve descripción de las funciones o propósito del rol.
               </FormDescription>
               <FormMessage />
             </FormItem>

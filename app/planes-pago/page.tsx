@@ -124,9 +124,9 @@ export default function PlanesPagoPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Planes de Pago</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Planes de Mensualidades</h1>
           <p className="text-muted-foreground">
-            Gestiona los planes de pago disponibles para los deportistas
+            Gestiona los planes de mensualidades disponibles para los deportistas
           </p>
         </div>
         <ModalCrearPlan fetchPlanes={fetchPlanes} />
@@ -236,7 +236,7 @@ export default function PlanesPagoPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Total de Planes</CardTitle>
-            <CardDescription>Planes de pago registrados</CardDescription>
+            <CardDescription>Planes de mensualidades registrados</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{planes.length}</div>
