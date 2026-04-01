@@ -51,7 +51,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
+import { set } from "date-fns";
 
 // Datos de ejemplo para entrenadores
 const entrenadores = [
@@ -110,30 +112,38 @@ const horariosEntrenadores = [
   },
 ];
 
-interface Entrenador {
+interface Persona {
   id: number;
   nombre: string;
-  apellido: string | null;
-  telefono: string | null;
-  email: string | null;
-  fecha_contratacion: string | null;
-  especializacion: string | null;
-  experiencia: string | null;
-  certificaciones: string | null;
+  apellidos: string;
+  direccion?: string;
+  telefono?: string;
+  fechaNacimiento?: string;
+  generoId?: number;
+}
+
+interface EstadoPersona {
+  id: number;
   estado: string;
 }
 
+interface Entrenador {
+  id: number;
+  persona: Persona;
+  especializacion?: string;
+  experiencia?: string;
+  certificaciones?: string;
+  fechaContratacion?: string;
+  estado?: EstadoPersona;
+}
 export interface Genero {
   id: number;
   genero: string;
 }
 
-export interface Estado {
-  id: number;
-  estado: string;
-}
-
 export default function EntrenadoresPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const [expandedEntrenadores, setExpandedEntrenadores] = useState<number[]>(
     []
   );
@@ -143,6 +153,7 @@ export default function EntrenadoresPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("todos");
 
+  // Alternar expansión de detalles del entrenador
   const toggleEntrenadorExpand = (entrenadorId: number) => {
     setExpandedEntrenadores((prev) =>
       prev.includes(entrenadorId)
@@ -151,6 +162,7 @@ export default function EntrenadoresPage() {
     );
   };
 
+  // Estado para la lista de entrenadores
   const [entrenadores, setEntrenadores] = useState<Entrenador[]>([]);
 
   useEffect(() => {
@@ -159,29 +171,12 @@ export default function EntrenadoresPage() {
 
   const fetchEntrenadores = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8080/api/entrenadores",
-        {
-          withCredentials: true,
-        }
+      const response = await axios.get<Entrenador[]>(
+        `${API_URL}/api/entrenadores`,
+        { withCredentials: true }
       );
 
-      const rawData = response.data;
-      console.log("datos perosna:",   rawData);
-      const mappedEntrenadores = rawData.map((entrenador: any) => ({
-        id: entrenador.id,
-        nombre: entrenador.persona?.nombre ?? "N/A",
-        apellido: entrenador.persona?.apellidos ?? "N/A",
-        telefono: entrenador.persona?.telefono ?? "N/A",
-        email: entrenador.persona?.email ?? "N/A",
-        fecha_contratacion: entrenador.fechaContratacion ?? "Sin Datos",
-        especializacion: entrenador.especializacion ?? "N/A",
-        experiencia: entrenador.experiencia ?? "N/A",
-        certificaciones: entrenador.certificaciones ?? "N/A",
-        estado: entrenador.estado?.estado ?? "N/A",
-      }));
-
-      setEntrenadores(mappedEntrenadores);
+      setEntrenadores(response.data);
     } catch (error) {
       console.error("Error al cargar entrenadores:", error);
     }
@@ -203,7 +198,7 @@ export default function EntrenadoresPage() {
         estadoId: nuevoEntrenador.estadoId,
       };
       console.log("Entrenador guardado:", payload);
-      await axios.post("http://localhost:8080/api/entrenadores", payload, {
+      await axios.post(`${API_URL}/api/entrenadores`, payload, {
         withCredentials: true,
       });
 
@@ -218,13 +213,63 @@ export default function EntrenadoresPage() {
     }
   };
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [entrenadorSeleccionado, setEntrenadorSeleccionado] =
+    useState<Entrenador | null>(null);
+
+  const [formData, setFormData] = useState({
+    id: entrenadorSeleccionado?.id || "",
+    nombre: "",
+    apellido: "",
+    fechaNacimiento: "",
+    generoId: 1,
+    direccion: "",
+    telefono: "",
+    fecha_contratacion: "",
+    especializacion: "",
+    experiencia: "",
+    certificaciones: "",
+    estado: "",
+  });
+
+  useEffect(() => {
+    if (entrenadorSeleccionado) {
+      setFormData({
+        id: entrenadorSeleccionado.id,
+        nombre: entrenadorSeleccionado.persona?.nombre || "",
+        apellido: entrenadorSeleccionado.persona?.apellidos || "",
+        direccion: entrenadorSeleccionado.persona?.direccion || "",
+        telefono: entrenadorSeleccionado.persona?.telefono || "",
+        fechaNacimiento: entrenadorSeleccionado.persona?.fechaNacimiento || "",
+        generoId: entrenadorSeleccionado.persona?.generoId || 1,
+        fecha_contratacion: entrenadorSeleccionado.fechaContratacion || "",
+        especializacion: entrenadorSeleccionado.especializacion || "",
+        experiencia: "",
+        certificaciones: "",
+        estado: entrenadorSeleccionado.estado?.estado || "",
+      });
+    }
+  }, [entrenadorSeleccionado, isEditModalOpen]);
+
+  const actualizarEntrenador = () => {
+    axios
+      .put(`${API_URL}/api/entrenadores/${formData.id}`, formData, {
+        withCredentials: true,
+      })
+      .then(() => {
+        setIsEditModalOpen(false);
+        fetchEntrenadores();
+        toast.success("Entrenador actualizado correctamente");
+      });
+  };
+
   const eliminarEntrenador = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8080/api/entrenadores/${id}`, {
+      await axios.patch(`${API_URL}/api/entrenadores/${id}`, {
         withCredentials: true,
       });
-      toast.success("Entrenado eliminado correctamente");
-      // Aquí puedes llamar a una función para recargar la lista de deportistas o actualizar el estado
+      toast.success("Entrenador eliminado correctamente");
+      // Aquí puedes llamar a una función para recargar la lista de entrenadores o actualizar el estado
       fetchEntrenadores(); // asumiendo que tienes esta función para refrescar la lista
     } catch (error) {
       console.error("Error al eliminar Entrenador", error);
@@ -244,18 +289,19 @@ export default function EntrenadoresPage() {
     fechaNacimiento: "",
     generoId: 0,
     especializacion: "",
+    experiencia: "",
+    certificaciones: "",
     estadoId: 0,
   });
+  
 
   const obtenerEstadosPersona = async () => {
-    const res = await axios.get("http://localhost:8080/api/personas/estados"); // este endpoint lo crearemos abajo
+    const res = await axios.get(`${API_URL}/api/personas/estados`); // este endpoint lo crearemos abajo
     return res.data;
   };
 
   const obtenerGeneros = async () => {
-    const res = await axios.get(
-      "http://localhost:8080/api/usuario/genero/listar"
-    );
+    const res = await axios.get(`${API_URL}/api/usuario/genero/listar`);
     return res.data;
   };
 
@@ -270,40 +316,66 @@ export default function EntrenadoresPage() {
   }, []);
 
   const [generos, setGeneros] = useState<Genero[]>([]);
-  const [estados, setEstados] = useState<Estado[]>([]);
+  const [estados, setEstados] = useState<EstadoPersona[]>([]);
 
+  // Manejar cambios en inputs de texto para nuevo entrenador
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setNuevoEntrenador((prev) => ({
-      ...prev,
-      [name]:
-        name === "generoId" || name === "estadoId" ? Number(value) : value,
-    }));
+    
+    // Si el modal de edición está abierto, actualizar formData
+    if (isEditModalOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    } else {
+      // Si no, actualizar nuevoEntrenador
+      setNuevoEntrenador((prev) => ({
+        ...prev,
+        [name]:
+          name === "generoId" || name === "estadoId" ? Number(value) : value,
+      }));
+    }
   };
 
+  // Manejar cambios en selects
   const handleSelectChange = (name: string, value: string) => {
-    setNuevoEntrenador((prev) => ({
-      ...prev,
-      [name]: Number(value),
-    }));
+    if (isEditModalOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: name === "generoId" ? Number(value) : value,
+      }));
+    } else {
+      setNuevoEntrenador((prev) => ({
+        ...prev,
+        [name]: Number(value),
+      }));
+    }
   };
 
   // Filtrar entrenadores por término de búsqueda y estado activo/inactivo
   const filteredEntrenadores = entrenadores.filter((entrenador) => {
-    const nombre = entrenador.nombre?.toLowerCase() ?? "";
+    const nombre = entrenador.persona?.nombre?.toLowerCase() ?? "";
+    const apellidos = entrenador.persona?.apellidos?.toLowerCase() ?? "";
     const especializacion = entrenador.especializacion?.toLowerCase() ?? "";
 
     const matchesSearch =
       nombre.includes(searchTerm.toLowerCase()) ||
+      apellidos.includes(searchTerm.toLowerCase()) ||
       especializacion.includes(searchTerm.toLowerCase());
+
+    const estadoNombre =
+      typeof entrenador.estado === "string"
+        ? entrenador.estado
+        : entrenador.estado?.estado ?? "";
 
     if (activeTab === "todos") return matchesSearch;
     if (activeTab === "activos")
-      return matchesSearch && entrenador.estado === "Activo";
+      return matchesSearch && estadoNombre === "Activo";
     if (activeTab === "inactivos")
-      return matchesSearch && entrenador.estado === "Inactivo";
+      return matchesSearch && estadoNombre === "Inactivo";
     return matchesSearch;
   });
 
@@ -405,7 +477,8 @@ export default function EntrenadoresPage() {
                       </Button>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {entrenador.nombre} {entrenador.apellido}
+                      {entrenador.persona?.nombre}{" "}
+                      {entrenador.persona?.apellidos}
                     </TableCell>
                     <TableCell>{entrenador.especializacion}</TableCell>
                     <TableCell>{entrenador.experiencia}</TableCell>
@@ -413,19 +486,28 @@ export default function EntrenadoresPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          entrenador.estado === "Activo"
+                          entrenador.estado?.estado === "Activo"
                             ? "default"
                             : "secondary"
                         }
                       >
-                        {entrenador.estado}
+                        {entrenador.estado?.estado}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Pencil className="h-4 w-4 mr-1" /> Editar
-                        </Button>
+                        {permissions.includes("modificar_entrenador") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEntrenadorSeleccionado(entrenador);
+                              setIsEditModalOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" /> Editar
+                          </Button>
+                        )}
                         {permissions.includes("eliminar_deportista") && (
                           <Button
                             variant="destructive"
@@ -470,13 +552,28 @@ export default function EntrenadoresPage() {
                                       <span className="text-muted-foreground">
                                         Teléfono:
                                       </span>
-                                      <span>{entrenador.telefono}</span>
+                                      <span>
+                                        {entrenador.persona?.telefono}
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2">
                                       <span className="text-muted-foreground">
-                                        Email:
+                                        Direccion:
                                       </span>
-                                      <span>{entrenador.email}</span>
+                                      <span>
+                                        {entrenador.persona?.direccion}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-2">
+                                      <span className="text-muted-foreground">
+                                        Fecha de Nacimiento:
+                                      </span>
+                                      <span>
+                                        {new Date(
+                                          entrenador.persona?.fechaNacimiento ??
+                                            "Sin Datos"
+                                        ).toLocaleDateString()}
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2">
                                       <span className="text-muted-foreground">
@@ -484,7 +581,7 @@ export default function EntrenadoresPage() {
                                       </span>
                                       <span>
                                         {new Date(
-                                          entrenador.fecha_contratacion ??
+                                          entrenador.fechaContratacion ??
                                             "Sin Datos"
                                         ).toLocaleDateString()}
                                       </span>
@@ -805,6 +902,112 @@ export default function EntrenadoresPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Entrenador</DialogTitle>
+            <DialogDescription>
+              Completa el formulario para editar un entrenador existente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4 grid-cols-2">
+            <div>
+              <Label htmlFor="rolId">Rol</Label>
+              <Select
+                onValueChange={(value) => handleSelectChange("id", value)}
+                value={formData.id?.toString() || ""}
+              >
+                <SelectTrigger id="id" className="w-full">
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">Entrenador</SelectItem>
+                  <SelectItem value="4">Asistente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                name="nombre"
+                value={formData.nombre || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="apellidos">Apellidos</Label>
+              <Input
+                id="apellidos"
+                name="apellidos"
+                value={formData.apellido || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="direccion">Dirección</Label>
+              <Input
+                id="direccion"
+                name="direccion"
+                value={formData.direccion || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                name="telefono"
+                value={formData.telefono || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="fechaNacimiento">Fecha Nacimiento</Label>
+              <Input
+                type="date"
+                id="fechaNacimiento"
+                name="fechaNacimiento"
+                value={formData.fechaNacimiento || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="especializacion">Especialización</Label>
+              <Input
+                id="especializacion"
+                name="especializacion"
+                value={formData.especializacion || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="generoId">Género</Label>
+              <Select
+                onValueChange={(value) => handleSelectChange("generoId", value)}
+                value={formData.generoId?.toString() || ""}
+              >
+                <SelectTrigger id="generoId" className="w-full">
+                  <SelectValue placeholder="Seleccionar género" />
+                </SelectTrigger>
+                <SelectContent>
+                  {generos.map((g) => (
+                    <SelectItem key={g.id} value={g.id.toString()}>
+                      {g.genero}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={actualizarEntrenador}>Actualizar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Eliminar Entrenador */}
       <Dialog
         open={entrenadoAEliminar !== null}
@@ -814,7 +1017,7 @@ export default function EntrenadoresPage() {
           <DialogHeader>
             <DialogTitle>Confirmar eliminación</DialogTitle>
           </DialogHeader>
-          <p>¿Estás seguro que deseas eliminar este deportista?</p>
+          <p>¿Estás seguro que deseas eliminar este Entrenador?</p>
           <DialogFooter className="mt-4">
             <Button
               variant="secondary"

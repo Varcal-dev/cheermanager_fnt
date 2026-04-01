@@ -107,6 +107,7 @@ interface Deportista {
 }
 
 export default function GruposPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   //const [deportistas, setDeportistas] = useState<Deportista[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [tiposGrupo, setTiposGrupo] = useState<TipoGrupo[]>([]);
@@ -134,7 +135,7 @@ export default function GruposPage() {
   const [deportistas, setDeportistas] = useState<Deportista[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/inscripciones/inscritos")
+    fetch(`${API_URL}/api/inscripciones/inscritos`)
       .then((res) => res.json())
       .then((data: any[][]) => {
         const adaptados: Deportista[] = data.map((arr) => ({
@@ -156,7 +157,7 @@ export default function GruposPage() {
   const fetchGrupos = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8080/api/grupos/con-deportistas"
+        `${API_URL}/api/grupos/con-deportistas`
       );
       setGrupos(response.data); // Guarda los datos en el estado
     } catch (error) {
@@ -172,8 +173,8 @@ export default function GruposPage() {
     const fetchAuxData = async () => {
       try {
         const [tipos, categorias] = await Promise.all([
-          axios.get("http://localhost:8080/api/tipo-grupos"),
-          axios.get("http://localhost:8080/api/categorias-nivel"),
+          axios.get(`${API_URL}/api/tipo-grupos`),
+          axios.get(`${API_URL}/api/categorias-nivel`),
         ]);
         setTiposGrupo(tipos.data);
         setCategoriasNivel(categorias.data);
@@ -189,7 +190,7 @@ export default function GruposPage() {
 
     try {
       const res = await axios.delete(
-        `http://localhost:8080/api/grupos/${deleteGrupoId}`
+        `${API_URL}/api/grupos/${deleteGrupoId}`
       );
       toast.success("Grupo eliminado correctamente.");
       setConfirmDeleteOpen(false);
@@ -209,7 +210,7 @@ export default function GruposPage() {
 
     try {
       const response = await axios.put(
-        `http://localhost:8080/api/grupos/${editGrupo.id}`,
+        `${API_URL}/api/grupos/${editGrupo.id}`,
         {
           id: editGrupo.id,
           nombre: editGrupo.nombre,
@@ -503,7 +504,7 @@ export default function GruposPage() {
                 e.preventDefault();
                 try {
                   await axios.post(
-                    "http://localhost:8080/api/grupos",
+                    `${API_URL}/api/grupos`,
                     nuevoGrupo
                   );
                   console.log("Grupo creado:", nuevoGrupo);

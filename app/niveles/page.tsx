@@ -89,10 +89,11 @@ export interface Nivel {
 export default function NivelesPage() {
   const [niveles, setNiveles] = useState<Nivel[]>([]);
   const [expandedNiveles, setExpandedNiveles] = useState<number[]>([]);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/niveles/detallado")
+      .get(`${API_URL}/api/niveles/detallado`)
       .then((res) => {
         setNiveles(res.data);
       })
@@ -112,7 +113,7 @@ export default function NivelesPage() {
 
   const onCreated = () => {
     axios
-      .get("http://localhost:8080/api/niveles/detallado")
+      .get(`${API_URL}/api/niveles/detallado`)
       .then((res) => {
         setNiveles(res.data);
       })
@@ -123,7 +124,7 @@ export default function NivelesPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/categorias-nivel")
+      .get(`${API_URL}/api/categorias-nivel`)
       .then((res) => setCategorias(res.data))
       .catch((err) => console.error("Error cargando categorías:", err));
   }, []);
@@ -143,7 +144,7 @@ export default function NivelesPage() {
     };
 
     axios
-      .post("http://localhost:8080/api/niveles", payload)
+      .post(`${API_URL}/api/niveles`, payload)
       .then(() => {
         toast(`El nivel ${nombre} fue creado correctamente.`);
 
@@ -173,9 +174,9 @@ export default function NivelesPage() {
     if (nivelAEliminar === null) return;
 
     axios
-      .delete(`http://localhost:8080/api/niveles/${nivelAEliminar}`)
+      .delete(`${API_URL}/api/niveles/${nivelAEliminar}`)
       .then(() => {
-        toast.error(`El nivel fue eliminado correctamente.`);
+        toast.success(`El nivel fue eliminado correctamente.`);
 
         setDialogAbierto(false);
         setNivelAEliminar(null);

@@ -34,6 +34,7 @@ export default function InscribirDeportistaModal({
 }: {
   onInscripcionExitosa: () => void;
 }) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [open, setOpen] = useState(false);
   const [deportistas, setDeportistas] = useState<DeportistaDisponible[]>([]);
   const [planesPago, setPlanesPago] = useState<PlanPago[]>([]);
@@ -55,7 +56,7 @@ export default function InscribirDeportistaModal({
 
   useEffect(() => {
     if (open) {
-      fetch("http://localhost:8080/api/inscripciones/no-inscritos")
+      fetch("http://localhost:8081/api/inscripciones/no-inscritos")
         .then((res) => res.json())
         .then((data: any[][]) => {
           const deportistasTransformados = data.map((d) => ({
@@ -66,7 +67,7 @@ export default function InscribirDeportistaModal({
           setDeportistas(deportistasTransformados);
         });
 
-      fetch("http://localhost:8080/api/planes-pago")
+      fetch("http://localhost:8081/api/planes-mensualidad")
         .then((res) => res.json())
         .then((data: any[]) => {
           const planesTransformados = data.map((p) => ({
@@ -76,7 +77,7 @@ export default function InscribirDeportistaModal({
           setPlanesPago(planesTransformados);
         });
 
-      fetch("http://localhost:8080/api/convenios")
+      fetch("http://localhost:8081/api/convenios")
         .then((res) => res.json())
         .then((data) => setConvenios(data));
     }
@@ -104,7 +105,7 @@ export default function InscribirDeportistaModal({
 
     try {
       console.log("Datos a enviar:", body);
-      const res = await fetch("http://localhost:8080/api/inscripciones", {
+      const res = await fetch("http://localhost:8081/api/inscripciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -118,11 +119,11 @@ export default function InscribirDeportistaModal({
       try {
         console.log("Datos: ", convenioSeleccionado);
         const resConvenio = await fetch(
-          `http://localhost:8080/api/deportistas/${deportistaSeleccionado}/convenio`,
+          `http://localhost:8081/api/deportistas/${deportistaSeleccionado}/convenio`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(convenioSeleccionado),
+            body: JSON.stringify({ convenioId: convenioSeleccionado }),
           }
         );
 

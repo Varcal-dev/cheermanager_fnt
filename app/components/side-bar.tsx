@@ -370,13 +370,22 @@ const Sidebar = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-6 space-y-1">
-                <Link href="/planes-pago" passHref>
+                <Link href="/planes-inscripcion" passHref>
                   <Button
-                    variant={isActive("/planes-pago") ? "secondary" : "ghost"}
+                    variant={isActive("/planes-inscripcion") ? "secondary" : "ghost"}
                     className="w-full justify-start"
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    Planes de Pago
+                    Planes de Inscripción
+                  </Button>
+                </Link>
+                <Link href="/planes-mensualidad" passHref>
+                  <Button
+                    variant={isActive("/planes-mensualidad") ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Planes de Mensualidad
                   </Button>
                 </Link>
                 <Link href="/descuentos" passHref>

@@ -37,11 +37,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchUserData = async () => {
       try {
         const userResponse = await axios.get(
-          "http://localhost:8080/api/usuario/me",
+          "http://localhost:8081/api/usuario/me",
           { withCredentials: true }
         );
         const permissionsResponse = await axios.get(
-          "http://localhost:8080/api/usuario/permisos",
+          "http://localhost:8081/api/usuario/permisos",
           { withCredentials: true }
         );
 

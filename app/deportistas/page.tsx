@@ -248,17 +248,19 @@ export interface Nivel {
 
 export interface Genero {
   id: number;
-  genero: string; // Cambiado de 'nombre' a 'genero'
+  genero: string;
 }
 
 export interface Estado {
   id: number;
-  estado: string; // Cambiado de 'nombre' a 'estado'
+  estado: string;
 }
 
 export default function DeportistasPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const [deportistaAEliminar, setDeportistaAEliminar] = useState<number | null>(
-    null
+    null,
   );
 
   const [deportistas, setDeportistas] = useState<Deportista[]>([]);
@@ -266,6 +268,7 @@ export default function DeportistasPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("todos");
+  const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
 
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -286,7 +289,7 @@ export default function DeportistasPage() {
     direccion: "",
     telefono: "",
     fechaNacimiento: "",
-    generoId: 1,
+    generoId: 0,
     estadoId: 1,
     altura: 0,
     peso: 0,
@@ -302,12 +305,9 @@ export default function DeportistasPage() {
 
   const cargarDeportistas = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8080/api/deportistas",
-        {
-          withCredentials: true, // el backend requiere autenticación para esta acción
-        }
-      );
+      const response = await axios.get(`${API_URL}/api/deportistas`, {
+        withCredentials: true, // el backend requiere autenticación para esta acción
+      });
       setDeportistas(response.data); // Guarda los datos en el estado
     } catch (error) {
       console.error("Error al obtener los grupos:", error);
@@ -316,19 +316,17 @@ export default function DeportistasPage() {
   };
 
   const obtenerNiveles = async () => {
-    const res = await axios.get("http://localhost:8080/api/niveles");
+    const res = await axios.get(`${API_URL}/api/niveles`);
     return res.data;
   };
 
   const obtenerGeneros = async () => {
-    const res = await axios.get(
-      "http://localhost:8080/api/usuario/genero/listar"
-    );
+    const res = await axios.get(`${API_URL}/api/usuario/genero/listar`);
     return res.data;
   };
 
   const obtenerEstadosPersona = async () => {
-    const res = await axios.get("http://localhost:8080/api/personas/estados"); // este endpoint lo crearemos abajo
+    const res = await axios.get(`${API_URL}/api/personas/estados`); // este endpoint lo crearemos abajo
     return res.data;
   };
 
@@ -345,6 +343,7 @@ export default function DeportistasPage() {
     cargarDatos();
   }, []);
 
+  // Estado para el formulario de edición
   const [formData, setFormData] = useState({
     id: deportistaSeleccionado?.deportistaId || "",
     nombre: "",
@@ -362,6 +361,7 @@ export default function DeportistasPage() {
     convenioId: deportistaSeleccionado?.convenioId || "",
   });
 
+  // Llenar el formulario cuando se abre el modal de edición
   useEffect(() => {
     if (deportistaSeleccionado) {
       setFormData({
@@ -383,9 +383,10 @@ export default function DeportistasPage() {
     }
   }, [deportistaSeleccionado, isEditModalOpen]);
 
+  // Manejar el envío del formulario de edición
   const handleSubmit = () => {
     axios
-      .put(`http://localhost:8080/api/deportistas/${formData.id}`, formData, {
+      .put(`${API_URL}/api/deportistas/${formData.id}`, formData, {
         withCredentials: true,
       })
       .then(() => {
@@ -397,10 +398,10 @@ export default function DeportistasPage() {
 
   const eliminarDeportista = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8080/api/deportistas/${id}`);
+      await axios.patch(`${API_URL}/api/deportistas/${id}`);
       toast.success("Deportista eliminado correctamente");
-      // Aquí puedes llamar a una función para recargar la lista de deportistas o actualizar el estado
-      cargarDeportistas(); // asumiendo que tienes esta función para refrescar la lista
+      //llamar a una función para recargar la lista de deportistas o actualizar el estado
+      cargarDeportistas();
     } catch (error) {
       console.error("Error al eliminar deportista", error);
       toast.error("No se pudo eliminar el deportista");
@@ -409,7 +410,7 @@ export default function DeportistasPage() {
 
   const toggleDeportistaExpand = (id: number) => {
     setExpandedDeportistas((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -424,22 +425,37 @@ export default function DeportistasPage() {
   }; */
   }
 
-  // Filtrar deportistas por término de búsqueda y estado activo/inactivo
+  // Filtrar deportistas por término de búsqueda y estado seleccionado
   const filteredDeportistas = deportistas.filter((deportista) => {
     const matchesSearch =
       deportista.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deportista.nivelNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deportista.grupos.some((g) =>
-        g.toLowerCase().includes(searchTerm.toLowerCase())
+        g.toLowerCase().includes(searchTerm.toLowerCase()),
       );
 
-    if (activeTab === "todos") return matchesSearch;
-    if (activeTab === "activos")
-      return matchesSearch && deportista.estadoNombre === "Activo";
-    if (activeTab === "inactivos")
-      return matchesSearch && deportista.estadoNombre === "Inactivo";
+    // Si hay estados seleccionados, filtrar por ellos
+    if (selectedEstados.length > 0) {
+      return matchesSearch && selectedEstados.includes(deportista.estadoId);
+    }
+
+    // Si no hay filtros de estado, mostrar todos los que coincidan con búsqueda
     return matchesSearch;
   });
+
+  // Manejar selección de estados
+  const toggleEstadoFilter = (estadoId: number) => {
+    setSelectedEstados((prev) =>
+      prev.includes(estadoId)
+        ? prev.filter((id) => id !== estadoId)
+        : [...prev, estadoId],
+    );
+  };
+
+  // Limpiar filtros de estado
+  const limpiarFiltrosEstado = () => {
+    setSelectedEstados([]);
+  };
 
   // Obtener evaluaciones de un deportista
   const getEvaluacionesDeportista = (deportistaId: number) => {
@@ -485,10 +501,8 @@ export default function DeportistasPage() {
     return edad;
   };
 
-  
-
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setNuevoDeportista((prev) => ({
@@ -501,7 +515,7 @@ export default function DeportistasPage() {
     try {
       //console.log("datos deportista:", nuevoDeportista);
       await axios.post(
-        "http://localhost:8080/api/deportistas",
+        `${API_URL}/api/deportistas`,
         {
           ...nuevoDeportista,
           altura: Number(nuevoDeportista.altura),
@@ -516,7 +530,7 @@ export default function DeportistasPage() {
         },
         {
           withCredentials: true, // el backend requiere autenticación para esta acción
-        }
+        },
       );
       //const dataActualizada = await obtenerDeportistas();
       //setDeportistas(dataActualizada);
@@ -558,25 +572,53 @@ export default function DeportistasPage() {
               <Search className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                {/*
                 <Button variant="outline" size="sm">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filtrar
-                </Button>*/}
+                  Estados{" "}
+                  {selectedEstados.length > 0 && `(${selectedEstados.length})`}
+                </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setActiveTab("todos")}>
-                  Todos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("activos")}>
-                  Activos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("inactivos")}>
-                  Inactivos
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="p-3 space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm">
+                      Filtrar por Estado
+                    </span>
+                    {selectedEstados.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={limpiarFiltrosEstado}
+                      >
+                        Limpiar
+                      </Button>
+                    )}
+                  </div>
+                  {estados.map((estado) => (
+                    <div
+                      key={estado.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <input
+                        type="checkbox"
+                        id={`estado-${estado.id}`}
+                        checked={selectedEstados.includes(estado.id)}
+                        onChange={() => toggleEstadoFilter(estado.id)}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <label
+                        htmlFor={`estado-${estado.id}`}
+                        className="text-sm cursor-pointer flex-1"
+                      >
+                        {estado.estado}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             {/*
@@ -646,7 +688,7 @@ export default function DeportistasPage() {
                             }
                           >
                             {expandedDeportistas.includes(
-                              deportista.deportistaId
+                              deportista.deportistaId,
                             ) ? (
                               <ChevronDown className="h-4 w-4" />
                             ) : (
@@ -655,7 +697,7 @@ export default function DeportistasPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {deportista.nombre} { deportista.apellidos}
+                          {deportista.nombre} {deportista.apellidos}
                         </TableCell>
                         <TableCell>
                           {calcularEdad(deportista.fechaNacimiento)} años
@@ -698,7 +740,7 @@ export default function DeportistasPage() {
                                 <Pencil className="h-4 w-4 mr-1" /> Editar
                               </Button>
                             )}
-                            {permissions.includes("eliminar_deportista") && (
+                            {/*permissions.includes("eliminar_deportista") && (
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -708,16 +750,16 @@ export default function DeportistasPage() {
                                   )
                                 }
                               >
-                                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                                <Trash2 className="h-4 w-4 mr-1" /> Cambiar Estado
                               </Button>
-                            )}
+                            )*/}
                           </div>
                         </TableCell>
                       </TableRow>
 
                       {/* Detalles del deportista */}
                       {expandedDeportistas.includes(
-                        deportista.deportistaId
+                        deportista.deportistaId,
                       ) && (
                         <TableRow
                           key={`${deportista.deportistaId}-details`}
@@ -755,7 +797,7 @@ export default function DeportistasPage() {
                                           </span>
                                           <span>
                                             {new Date(
-                                              deportista.fechaNacimiento
+                                              deportista.fechaNacimiento,
                                             ).toLocaleDateString()}
                                           </span>
                                         </div>
@@ -771,7 +813,7 @@ export default function DeportistasPage() {
                                           </span>
                                           <span>
                                             {new Date(
-                                              deportista.fechaRegistro
+                                              deportista.fechaRegistro,
                                             ).toLocaleDateString()}
                                           </span>
                                         </div>
@@ -845,7 +887,7 @@ export default function DeportistasPage() {
                                         </Button>
                                       </div>
                                       {getHistorialNivelesDeportista(
-                                        deportista.deportistaId
+                                        deportista.deportistaId,
                                       ).length > 0 ? (
                                         <Table>
                                           <TableHeader>
@@ -860,7 +902,7 @@ export default function DeportistasPage() {
                                           </TableHeader>
                                           <TableBody>
                                             {getHistorialNivelesDeportista(
-                                              deportista.deportistaId
+                                              deportista.deportistaId,
                                             ).map((historial) => (
                                               <TableRow key={historial.id}>
                                                 <TableCell>
@@ -868,7 +910,7 @@ export default function DeportistasPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                   {new Date(
-                                                    historial.fecha_cambio
+                                                    historial.fecha_cambio,
                                                   ).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
@@ -911,7 +953,7 @@ export default function DeportistasPage() {
                                         </Button>
                                       </div>
                                       {getHistorialPlanesDeportista(
-                                        deportista.deportistaId
+                                        deportista.deportistaId,
                                       ).length > 0 ? (
                                         <Table>
                                           <TableHeader>
@@ -929,7 +971,7 @@ export default function DeportistasPage() {
                                           </TableHeader>
                                           <TableBody>
                                             {getHistorialPlanesDeportista(
-                                              deportista.deportistaId
+                                              deportista.deportistaId,
                                             ).map((historial) => (
                                               <TableRow key={historial.id}>
                                                 <TableCell>
@@ -937,13 +979,13 @@ export default function DeportistasPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                   {new Date(
-                                                    historial.fecha_inicio
+                                                    historial.fecha_inicio,
                                                   ).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
                                                   {historial.fecha_fin
                                                     ? new Date(
-                                                        historial.fecha_fin
+                                                        historial.fecha_fin,
                                                       ).toLocaleDateString()
                                                     : "Activo"}
                                                 </TableCell>
@@ -987,7 +1029,7 @@ export default function DeportistasPage() {
                                         </Button>
                                       </div>
                                       {getHistorialGruposDeportista(
-                                        deportista.deportistaId
+                                        deportista.deportistaId,
                                       ).length > 0 ? (
                                         <Table>
                                           <TableHeader>
@@ -1005,7 +1047,7 @@ export default function DeportistasPage() {
                                           </TableHeader>
                                           <TableBody>
                                             {getHistorialGruposDeportista(
-                                              deportista.deportistaId
+                                              deportista.deportistaId,
                                             ).map((historial) => (
                                               <TableRow key={historial.id}>
                                                 <TableCell>
@@ -1013,13 +1055,13 @@ export default function DeportistasPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                   {new Date(
-                                                    historial.fecha_inicio
+                                                    historial.fecha_inicio,
                                                   ).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
                                                   {historial.fecha_fin
                                                     ? new Date(
-                                                        historial.fecha_fin
+                                                        historial.fecha_fin,
                                                       ).toLocaleDateString()
                                                     : "Activo"}
                                                 </TableCell>
@@ -1065,7 +1107,7 @@ export default function DeportistasPage() {
                                     </Button>
                                   </div>
                                   {getEvaluacionesDeportista(
-                                    deportista.deportistaId
+                                    deportista.deportistaId,
                                   ).length > 0 ? (
                                     <Table>
                                       <TableHeader>
@@ -1078,12 +1120,12 @@ export default function DeportistasPage() {
                                       </TableHeader>
                                       <TableBody>
                                         {getEvaluacionesDeportista(
-                                          deportista.deportistaId
+                                          deportista.deportistaId,
                                         ).map((evaluacion) => (
                                           <TableRow key={evaluacion.id}>
                                             <TableCell>
                                               {new Date(
-                                                evaluacion.fecha
+                                                evaluacion.fecha,
                                               ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
@@ -1130,7 +1172,7 @@ export default function DeportistasPage() {
                                     </Button>
                                   </div>
                                   {getObjetivosDeportista(
-                                    deportista.deportistaId
+                                    deportista.deportistaId,
                                   ).length > 0 ? (
                                     <Table>
                                       <TableHeader>
@@ -1145,7 +1187,7 @@ export default function DeportistasPage() {
                                       </TableHeader>
                                       <TableBody>
                                         {getObjetivosDeportista(
-                                          deportista.deportistaId
+                                          deportista.deportistaId,
                                         ).map((objetivo) => (
                                           <TableRow key={objetivo.id}>
                                             <TableCell>
@@ -1156,12 +1198,12 @@ export default function DeportistasPage() {
                                             </TableCell>
                                             <TableCell>
                                               {new Date(
-                                                objetivo.fecha_creacion
+                                                objetivo.fecha_creacion,
                                               ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
                                               {new Date(
-                                                objetivo.fecha_final
+                                                objetivo.fecha_final,
                                               ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
@@ -1170,9 +1212,9 @@ export default function DeportistasPage() {
                                                   objetivo.estado === "Cumplido"
                                                     ? "default"
                                                     : objetivo.estado ===
-                                                      "En proceso"
-                                                    ? "outline"
-                                                    : "secondary"
+                                                        "En proceso"
+                                                      ? "outline"
+                                                      : "secondary"
                                                 }
                                               >
                                                 {objetivo.estado}
@@ -1229,7 +1271,7 @@ export default function DeportistasPage() {
                                       </TableHeader>
                                       <TableBody>
                                         {getPagosDeportista(
-                                          deportista.deportistaId
+                                          deportista.deportistaId,
                                         ).map((pago) => (
                                           <TableRow key={pago.id}>
                                             <TableCell>
@@ -1240,7 +1282,7 @@ export default function DeportistasPage() {
                                             </TableCell>
                                             <TableCell>
                                               {new Date(
-                                                pago.fecha
+                                                pago.fecha,
                                               ).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
@@ -1294,7 +1336,7 @@ export default function DeportistasPage() {
             </Table>
           </CardContent>
         </Card>
-                
+
         {/* Agregar Deportista */}
         <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
           <DialogContent>
@@ -1395,12 +1437,12 @@ export default function DeportistasPage() {
                     <SelectContent>
                       {generos.map(
                         (
-                          g // Cambiado 'genero' a 'g' para claridad, opcional
+                          g, // Cambiado 'genero' a 'g' para claridad, opcional
                         ) => (
                           <SelectItem key={g.id} value={g.id.toString()}>
                             {g.genero} {/* Accede a g.genero */}
                           </SelectItem>
-                        )
+                        ),
                       )}
                     </SelectContent>
                   </Select>
@@ -1432,8 +1474,8 @@ export default function DeportistasPage() {
                 </div>
 
                 {/* componente Estado */}
-                <div>
-                  <Label htmlFor="nivel-select">Nivel</Label>
+                <div hidden>
+                  <Label htmlFor="estado-select">Estado</Label>
 
                   <Select
                     name="estadoId"
@@ -1451,18 +1493,18 @@ export default function DeportistasPage() {
                     <SelectContent>
                       {estados.map(
                         (
-                          e // Cambiado 'estado' a 'e' para claridad, opcional
+                          e, // Cambiado 'estado' a 'e' para claridad, opcional
                         ) => (
                           <SelectItem key={e.id} value={e.id.toString()}>
                             {e.estado} {/* Accede a e.estado */}
                           </SelectItem>
-                        )
+                        ),
                       )}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="col-span-2">
+                <div>
                   <Label>Contacto Emergencia</Label>
                   <Input
                     name="contactoEmergencia"
@@ -1480,151 +1522,246 @@ export default function DeportistasPage() {
 
         {/* Editar Deportista */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Editar Deportista</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div>
-                <Label>Nombre</Label>
-                <Input
-                  value={formData.nombre}
-                  onChange={(e) => handleChange("nombre", e.target.value)}
-                />
+            <div className="space-y-6 py-4">
+              {/* Sección: Estado Destacado */}
+              <div className="flex items-center gap-2 mb-3">
+                <Label className="text-base font-semibold text-blue-900">
+                  Estado del Deportista
+                </Label>
               </div>
+              <Select
+                value={formData.estadoId?.toString()}
+                onValueChange={(value) =>
+                  handleChange("estadoId", parseInt(value))
+                }
+              >
+                <SelectTrigger className="bg-black border-blue-300 hover:border-blue-400">
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map((estado) => (
+                    <SelectItem key={estado.id} value={estado.id.toString()}>
+                      {estado.estado}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Sección: Datos Personales */}
               <div>
-                <Label>Apellidos</Label>
-                <Input
-                  value={formData.apellidos}
-                  onChange={(e) => handleChange("apellidos", e.target.value)}
-                />
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                  Información Personal
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Nombre
+                    </Label>
+                    <Input
+                      value={formData.nombre}
+                      onChange={(e) => handleChange("nombre", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Apellidos
+                    </Label>
+                    <Input
+                      value={formData.apellidos}
+                      onChange={(e) =>
+                        handleChange("apellidos", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Fecha de nacimiento
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.fechaNacimiento}
+                      onChange={(e) =>
+                        handleChange("fechaNacimiento", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Género
+                    </Label>
+                    <Select
+                      value={formData.generoId?.toString()}
+                      onValueChange={(value) =>
+                        handleChange("generoId", parseInt(value))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Seleccionar género" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generos.map((genero) => (
+                          <SelectItem
+                            key={genero.id}
+                            value={genero.id.toString()}
+                          >
+                            {genero.genero}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
+
+              {/* Sección: Datos de Contacto */}
               <div>
-                <Label>Dirección</Label>
-                <Input
-                  value={formData.direccion}
-                  onChange={(e) => handleChange("direccion", e.target.value)}
-                />
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                  Datos de Contacto
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Teléfono
+                    </Label>
+                    <Input
+                      value={formData.telefono}
+                      onChange={(e) => handleChange("telefono", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Dirección
+                    </Label>
+                    <Input
+                      value={formData.direccion}
+                      onChange={(e) =>
+                        handleChange("direccion", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-xs font-medium text-gray-600">
+                      Contacto de emergencia
+                    </Label>
+                    <Input
+                      value={formData.contactoEmergencia}
+                      onChange={(e) =>
+                        handleChange("contactoEmergencia", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* Sección: Datos Físicos */}
               <div>
-                <Label>Teléfono</Label>
-                <Input
-                  value={formData.telefono}
-                  onChange={(e) => handleChange("telefono", e.target.value)}
-                />
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                  Medidas Físicas
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Altura (cm)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={formData.altura}
+                      onChange={(e) =>
+                        handleChange("altura", parseInt(e.target.value))
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Peso (kg)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={formData.peso}
+                      onChange={(e) =>
+                        handleChange("peso", parseInt(e.target.value))
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Nivel
+                    </Label>
+                    <Select
+                      value={formData.nivelActualId?.toString()}
+                      onValueChange={(value) =>
+                        handleChange("nivelActualId", parseInt(value))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Seleccionar nivel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {niveles.map((nivel) => (
+                          <SelectItem
+                            key={nivel.id}
+                            value={nivel.id.toString()}
+                          >
+                            {nivel.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
+
+              {/* Sección: Fechas */}
               <div>
-                <Label>Fecha de nacimiento</Label>
-                <Input
-                  type="date"
-                  value={formData.fechaNacimiento}
-                  onChange={(e) =>
-                    handleChange("fechaNacimiento", e.target.value)
-                  }
-                />
-              </div>
-              <div>
-                <Label>Género</Label>
-                <Select
-                  value={formData.generoId?.toString()}
-                  onValueChange={(value) =>
-                    handleChange("generoId", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar género" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {generos.map((genero) => (
-                      <SelectItem key={genero.id} value={genero.id.toString()}>
-                        {genero.genero}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Altura (cm)</Label>
-                <Input
-                  type="number"
-                  value={formData.altura}
-                  onChange={(e) =>
-                    handleChange("altura", parseInt(e.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label>Peso (kg)</Label>
-                <Input
-                  type="number"
-                  value={formData.peso}
-                  onChange={(e) =>
-                    handleChange("peso", parseInt(e.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label>Fecha de Registro</Label>
-                <Input
-                  type="date"
-                  value={formData.fechaRegistro}
-                  onChange={
-                    (e) => handleChange("fechaRegistro", e.target.value) // Asegúrate de que sea "fechaRegistro" aquí
-                  }
-                />
-              </div>
-              <div>
-                <Label>Contacto de emergencia</Label>
-                <Input
-                  value={formData.contactoEmergencia}
-                  onChange={(e) =>
-                    handleChange("contactoEmergencia", e.target.value)
-                  }
-                />
-              </div>
-              <div>
-                <Label>Nivel</Label>
-                <Select
-                  value={formData.nivelActualId?.toString()}
-                  onValueChange={(value) =>
-                    handleChange("nivelActualId", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar nivel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {niveles.map((nivel) => (
-                      <SelectItem key={nivel.id} value={nivel.id.toString()}>
-                        {nivel.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <Select
-                  value={formData.estadoId?.toString()}
-                  onValueChange={(value) =>
-                    handleChange("estadoId", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {estados.map((estado) => (
-                      <SelectItem key={estado.id} value={estado.id.toString()}>
-                        {estado.estado}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                  Fechas Importantes
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Fecha de Registro
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.fechaRegistro}
+                      onChange={(e) =>
+                        handleChange("fechaRegistro", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button onClick={handleSubmit}>Guardar cambios</Button>
+            <DialogFooter className="gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Guardar cambios
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1636,9 +1773,29 @@ export default function DeportistasPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirmar eliminación</DialogTitle>
+              <DialogTitle>Confirmar Cambio</DialogTitle>
             </DialogHeader>
-            <p>¿Estás seguro que deseas eliminar este deportista?</p>
+            <p>¿Estás seguro que deseas Cambiar el estado del deportista?</p>
+            <div>
+              <Label>Estado</Label>
+              <Select
+                value={formData.estadoId?.toString()}
+                onValueChange={(value) =>
+                  handleChange("estadoId", parseInt(value))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map((estado) => (
+                    <SelectItem key={estado.id} value={estado.id.toString()}>
+                      {estado.estado}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <DialogFooter className="mt-4">
               <Button
                 variant="secondary"

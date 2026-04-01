@@ -19,6 +19,7 @@ import { toast } from "react-toastify";
 
 
 export function TopBar() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -28,7 +29,7 @@ export function TopBar() {
     try {
       // Realiza la petición POST al endpoint de logout de tu backend
       const response = await axios.post(
-        "http://localhost:8080/api/logout",
+        `${API_URL}/api/logout`,
         {},
         {
           withCredentials: true, // Importante si usas cookies de sesión

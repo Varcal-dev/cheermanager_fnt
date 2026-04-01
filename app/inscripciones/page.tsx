@@ -59,6 +59,7 @@ interface InscripcionDetalle {
 }
 
 export default function InscripcionesPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [expandedInscripciones, setExpandedInscripciones] = useState<number[]>(
     []
   );
@@ -81,7 +82,7 @@ export default function InscripcionesPage() {
   const [inscripciones, setInscripciones] = useState<InscripcionDetalle[]>([]);
 
   const fetchInscripciones = () => {
-    fetch("http://localhost:8080/api/inscripciones/detalle")
+    fetch(`${API_URL}/api/inscripciones/detalle`)
       .then((res) => res.json())
       .then((data) => {
         const transformado = data.map((fila: any[]) => ({

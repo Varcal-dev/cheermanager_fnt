@@ -55,7 +55,7 @@ export function ModalCrearPlan({ fetchPlanes }: { fetchPlanes: () => void }) {
   useEffect(() => {
     // Traer tipos plan desde backend
     axios
-      .get("http://localhost:8080/api/planes-pago/tipos", {
+      .get("http://localhost:8081/api/planes-mensualidad/tipos", {
         withCredentials: true,
       })
       .then((res) => {
@@ -70,7 +70,7 @@ export function ModalCrearPlan({ fetchPlanes }: { fetchPlanes: () => void }) {
   const onSubmit = async (data: any) => {
     try {
       console.log("Datos del formulario:", data);
-      await axios.post("http://localhost:8080/api/planes-pago", data, {
+      await axios.post("http://localhost:8081/api/planes-mensualidad", data, {
         withCredentials: true,
       });
       fetchPlanes();

@@ -64,7 +64,7 @@ export default function PlanesPagoPage() {
     const fetchPlanes = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8080/api/planes-pago",
+          "http://localhost:8081/api/planes-mensualidad",
           {
             withCredentials: true,
           }
@@ -93,7 +93,7 @@ export default function PlanesPagoPage() {
   const fetchPlanes = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8080/api/planes-pago",
+        "http://localhost:8081/api/planes-mensualidad",
         {
           withCredentials: true,
         }

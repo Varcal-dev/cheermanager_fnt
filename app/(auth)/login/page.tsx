@@ -21,6 +21,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
   //const [email, setEmail] = useState("")
   //const [password, setPassword] = useState("")
@@ -50,7 +51,7 @@ export default function LoginPage() {
     setServerMessage("");
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/login",
+         `${API_URL}/api/login`,
         {
           email: formData.email,
           password: formData.password,

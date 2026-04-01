@@ -53,6 +53,7 @@ interface PlanInscripcionFront {
 }
 
 export default function PlanesInscripcionPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
@@ -62,7 +63,7 @@ export default function PlanesInscripcionPage() {
     const fetchPlanes = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8080/api/planes-inscripcion",
+          `${API_URL}/api/planes-inscripcion/listar`,
           {
             withCredentials: true,
           }
@@ -91,7 +92,7 @@ export default function PlanesInscripcionPage() {
   const fetchPlanes = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8080/api/planes-inscripcion",
+        `${API_URL}/api/planes-inscripcion`,
         {
           withCredentials: true,
         }

@@ -80,7 +80,7 @@ export function ModalCrearPlanInscripcion({
 
       // Enviar datos al servidor
       await axios.post(
-        "http://localhost:8080/api/planes-inscripcion",
+        "http://localhost:8081/api/planes-inscripcion",
         {
           nombre: formData.nombre,
           descripcion: formData.descripcion,

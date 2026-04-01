@@ -420,6 +420,7 @@ export interface Division {
 }
 
 export default function NivelesPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("divisiones");
   const [expandedNiveles, setExpandedNiveles] = useState<number[]>([]);
@@ -429,7 +430,7 @@ export default function NivelesPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/divisiones") // ajusta si usas un proxy o ruta absoluta
+      .get(`${API_URL}/api/divisiones`) // ajusta si usas un proxy o ruta absoluta
       .then((res) => {
         setDivisiones(res.data);
       })
