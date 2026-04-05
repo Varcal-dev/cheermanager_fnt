@@ -109,7 +109,7 @@ export default function DescuentosPage() {
   //const [convenios, setConvenios] = React.useState<Convenio[]>([]);
 
   const cargarConvenios = () => {
-    fetch("http://localhost:8080/api/convenios")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/convenios`)
       .then((res) => res.json())
       .then((data) => setConvenios(data));
   };

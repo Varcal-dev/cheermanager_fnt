@@ -63,7 +63,7 @@ export default function RolesPage() {
 
   const deleteRol = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8080/api/roles/${id}`);
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/roles/${id}`);
       fetchRoles();
     } catch (error) {
       console.error("Error al eliminar rol", error);
@@ -88,7 +88,7 @@ export default function RolesPage() {
     try {
       console.log("Obteniendo roles...");
       const res = await axios.get(
-        "http://localhost:8080/api/usuario/rol/listar"
+        `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/rol/listar`
       );
       setRoles(res.data);
     } catch (error) {
@@ -106,7 +106,7 @@ export default function RolesPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/usuario/rol/listar-con-usuarios")
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/api/usuario/rol/listar-con-usuarios`)
       .then((res) => setConteos(res.data)) // debe venir con { id, usuariosCount }
       .catch((err) => console.error("Error cargando conteos:", err));
   }, []);
@@ -116,7 +116,7 @@ export default function RolesPage() {
       try {
         console.log("Obteniendo roles...");
         const res = await axios.get(
-          "http://localhost:8080/api/usuario/rol/listar"
+          `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/rol/listar`
         );
         setRoles(res.data);
       } catch (error) {
@@ -129,7 +129,7 @@ export default function RolesPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/usuario/rol/listar-con-usuarios")
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/api/usuario/rol/listar-con-usuarios`)
       .then((res) => setConteos(res.data)) // debe venir con { id, usuariosCount }
       .catch((err) => console.error("Error cargando conteos:", err));
   }, []);
@@ -137,7 +137,7 @@ export default function RolesPage() {
   useEffect(() => {
     const fetchPermisos = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/permisos/listar");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/permisos/listar`);
         const data = await res.json();
         setPermisos(data);
       } catch (error) {

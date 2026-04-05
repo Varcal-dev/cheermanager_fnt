@@ -41,7 +41,7 @@ export default function ModalEditarDescuento({
   };
 
   const handleSubmit = async () => {
-    await fetch(`http://localhost:8080/api/descuentos/${descuento.id}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos/${descuento.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

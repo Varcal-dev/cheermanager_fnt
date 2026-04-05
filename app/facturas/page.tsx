@@ -76,7 +76,7 @@ export default function FacturasPage() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/facturas")
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/api/facturas`)
       .then((res) => {
         setFacturas(res.data);
       })

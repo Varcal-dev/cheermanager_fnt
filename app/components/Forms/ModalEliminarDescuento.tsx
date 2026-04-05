@@ -22,7 +22,7 @@ export default function ModalEliminarDescuento({
   const [open, setOpen] = useState(false);
 
   const handleDelete = async () => {
-    await fetch(`http://localhost:8080/api/descuentos/${descuentoId}`, { method: "DELETE" });
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos/${descuentoId}`, { method: "DELETE" });
     onDeleted();
     setOpen(false);
   };

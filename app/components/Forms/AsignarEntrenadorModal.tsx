@@ -38,7 +38,7 @@ export function ModalAsignarEntrenador() {
   useEffect(() => {
     if (modalAbierto) {
       axios
-        .get("http://localhost:8080/api/entrenadores", {
+        .get(`${process.env.NEXT_PUBLIC_API_URL}/api/entrenadores`, {
           withCredentials: true,
         })
         .then((res) => setEntrenadores(res.data))

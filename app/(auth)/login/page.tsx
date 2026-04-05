@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { api, setAuthToken } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
   //const [email, setEmail] = useState("")
   //const [password, setPassword] = useState("")
@@ -50,26 +49,18 @@ export default function LoginPage() {
     setError("");
     setServerMessage("");
     try {
-      const response = await axios.post(
-         `${API_URL}/api/login`,
-        {
-          email: formData.email,
-          password: formData.password,
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      // Mostrar siempre el mensaje del servidor
-      setServerMessage(response.data.message || "");
-      if (response.data.success) {
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
-      }
+      const response = await api.post("/api/login", {
+      email: formData.email,
+      password: formData.password,
+    });
+
+    setServerMessage(response.data.message || "");
+    if (response.data.success) {
+      setAuthToken(response.data.token);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    }
     } catch (err: any) {
       // Si el backend responde con error, mostrar el mensaje del backend si existe
       if (err.response && err.response.data && err.response.data.message) {

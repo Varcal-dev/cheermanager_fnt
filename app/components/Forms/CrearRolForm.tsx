@@ -45,7 +45,7 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/roles",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/roles`,
         values
       );
       if (response.status === 200) {

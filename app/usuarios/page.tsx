@@ -154,7 +154,7 @@ export default function UsuariosPage() {
       console.log("Datos a enviar al Backend:", dataToSend);
       // Aquí haces la llamada a tu endpoint de backend para crear un usuario
       const response = await axios.post(
-        "http://localhost:8080/api/usuario/registrar",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/registrar`,
         dataToSend,
         {
           withCredentials: true, // el backend requiere autenticación para esta acción
@@ -213,7 +213,7 @@ export default function UsuariosPage() {
   const fetchRoles = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8080/api/usuario/rol/listar",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/rol/listar`,
         {
           withCredentials: true,
         }
@@ -232,7 +232,7 @@ export default function UsuariosPage() {
     try {
       // Replace with your actual gender list API endpoint
       const response = await axios.get(
-        "http://localhost:8080/api/usuario/genero/listar",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/genero/listar`,
         { withCredentials: true }
       );
       if (response.data) {
@@ -249,7 +249,7 @@ export default function UsuariosPage() {
     setLoading(true); // Opcional: mostrar un indicador de carga mientras se refresca
     try {
       const response = await axios.get(
-        "http://localhost:8080/api/usuario/listar",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/usuario/listar`,
         {
           withCredentials: true,
         }
@@ -293,7 +293,7 @@ export default function UsuariosPage() {
     fetchRoles(); // <-- Carga inicial de roles
 
     axios
-      .get("http://localhost:8080/api/usuario/listar", {
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/api/usuario/listar`, {
         withCredentials: true,
       })
       .then((response) => {
@@ -330,7 +330,7 @@ export default function UsuariosPage() {
       });
     // Obtener lista de personas
     axios
-      .get("http://localhost:8080/api/personas/listar", {
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/api/personas/listar`, {
         withCredentials: true,
       })
       .then((response) => {

@@ -37,7 +37,7 @@ export default function DeportistaElegibleItem({
   useEffect(() => {
     console.log("Deportista recibido:", deportista);
     fetch(
-      `http://localhost:8080/api/grupos/${grupoId}/verificar-elegibilidad?deportistaId=${deportista.id}`
+      `${process.env.NEXT_PUBLIC_API_URL}/api/grupos/${grupoId}/verificar-elegibilidad?deportistaId=${deportista.id}`
     )
       .then((res) => res.json())
       .then((data) => {
@@ -67,7 +67,7 @@ export default function DeportistaElegibleItem({
     console.log("Enviando al backend:", payload);
     try {
       const response = await axios.post(
-        `http://localhost:8080/api/grupos/${grupoId}/agregar-deportistas`, // Usar la ruta más RESTful si la cambiaste en el backend
+        `${process.env.NEXT_PUBLIC_API_URL}/api/grupos/${grupoId}/agregar-deportistas`, // Usar la ruta más RESTful si la cambiaste en el backend
         {
           deportistaId: deportista.id,
           observaciones: "", // O la cadena de observaciones que el usuario haya ingresado

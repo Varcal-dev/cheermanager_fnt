@@ -29,7 +29,7 @@ export function ModalEliminarConvenio({
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8080/api/convenios/${convenioId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/convenios/${convenioId}`,
         {
           method: "DELETE",
         }

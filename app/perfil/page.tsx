@@ -78,7 +78,7 @@ export default function PerfilPage() {
     const fetchUser = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:8080/api/user/me", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/user/me`, {
           withCredentials: true,
         });
         setUsuario(res.data);

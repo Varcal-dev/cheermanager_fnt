@@ -65,7 +65,7 @@ export function ModalEditarPlan({
   const onSubmit = async (data: PlanForm) => {
     try {
       await axios.put(
-        `http://localhost:8080/api/planes-pago/${plan.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/planes-pago/${plan.id}`,
         data,
         { withCredentials: true }
       );
@@ -163,7 +163,7 @@ export function ModalEliminarPlan({
 }) {
   const handleEliminar = async () => {
     try {
-      await axios.delete(`http://localhost:8080/api/planes-pago/${planId}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/planes-pago/${planId}`, {
         withCredentials: true,
       });
       fetchPlanes();

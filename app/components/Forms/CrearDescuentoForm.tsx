@@ -27,7 +27,7 @@ export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalPr
 
   const handleSubmit = async () => {
     console.log("Datos: ", form)
-    await fetch("http://localhost:8080/api/descuentos", {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

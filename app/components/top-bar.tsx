@@ -14,12 +14,11 @@ import { useUser } from "@/context/UserContext" // Asegúrate de importar correc
 // Importar los componentes necesarios
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { api, clearAuthToken } from "@/lib/api";
 import { toast } from "react-toastify";
 
 
 export function TopBar() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -27,30 +26,20 @@ export function TopBar() {
 
   const handleLogout = async () => {
     try {
-      // Realiza la petición POST al endpoint de logout de tu backend
-      const response = await axios.post(
-        `${API_URL}/api/logout`,
-        {},
-        {
-          withCredentials: true, // Importante si usas cookies de sesión
-        }
-      );
+      const response = await api.post("/api/logout", {});
 
       if (response.status === 200) {
-        // Si el backend responde exitosamente, la sesión se cerró
         console.log("Sesión cerrada exitosamente");
-        setUser(null) // Aquí puedes limpiar el estado del usuario si lo tienes en un contexto o estado global
-        router.push('/login'); // Reemplaza '/login' con la ruta de tu página de inicio de sesión
+        clearAuthToken();
+        setUser(null);
+        router.push('/login');
       } else {
-        // Manejar si el backend devuelve un código de estado diferente (aunque 200 es lo esperado para éxito)
         console.error("Error al cerrar sesión:", response.statusText);
         toast.error("Error al cerrar sesión. Por favor, inténtalo de nuevo.");
       }
     } catch (error: any) {
-      // Manejar errores de la petición (ej. error de red, servidor caído)
       console.error("Error en la petición de cierre de sesión:", error);
       toast.error("Error al cerrar sesión. Por favor, inténtalo de nuevo.");
-      //router.push('/login');
     }
   };
 

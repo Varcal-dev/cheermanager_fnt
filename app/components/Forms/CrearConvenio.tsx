@@ -50,7 +50,7 @@ export function ModalCrearConvenio({
   const [descuentos, setDescuentos] = useState<Descuento[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/descuentos")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos`)
       .then((res) => res.json())
       .then((data: Descuento[]) => {
         const activos = data.filter((d) => d.activo);
@@ -69,7 +69,7 @@ export function ModalCrearConvenio({
     try {
         console.log("Data: ", payload);
       const res = await axios.post(
-        "http://localhost:8080/api/convenios",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/convenios`,
         payload
       );
 

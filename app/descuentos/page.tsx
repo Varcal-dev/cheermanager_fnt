@@ -130,7 +130,7 @@ export default function DescuentosPage() {
   const [descuentos, setDescuentos] = useState<Descuento[]>([]);
 
   const refetchDescuentos = async () => {
-    const res = await fetch("http://localhost:8080/api/descuentos");
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos`);
     const data = await res.json();
     setDescuentos(data);
   };
