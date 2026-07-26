@@ -34,6 +34,7 @@ import React from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ModalCrearConvenio } from "../components/Forms/CrearConvenio";
 import { ModalEliminarConvenio } from "../components/Forms/EliminarConvenio";
+import { api } from "@/lib/api";
 
 // Datos de ejemplo para convenios
 const convenios = [
@@ -109,9 +110,8 @@ export default function DescuentosPage() {
   //const [convenios, setConvenios] = React.useState<Convenio[]>([]);
 
   const cargarConvenios = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/convenios`)
-      .then((res) => res.json())
-      .then((data) => setConvenios(data));
+    api.get(`/api/convenios`)
+      .then((response) => setConvenios(response.data));
   };
 
   useEffect(() => {

@@ -8,6 +8,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 import axios from "axios";
 
 interface Deportista {
@@ -35,70 +36,41 @@ export default function DeportistaElegibleItem({
 
   // Verificar elegibilidad al montar el componente
   useEffect(() => {
-    console.log("Deportista recibido:", deportista);
-    fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/grupos/${grupoId}/verificar-elegibilidad?deportistaId=${deportista.id}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setMensaje(data.resultado);
-        setIsEligible(data.resultado.startsWith("Elegible"));
+    api
+      .get(`/api/grupos/${grupoId}/verificar-elegibilidad`, {
+        params: { deportistaId: deportista.id },
+      })
+      .then((res) => {
+        setMensaje(res.data.resultado);
+        setIsEligible(res.data.resultado.startsWith("Elegible"));
         setLoading(false);
       })
-
       .catch((err) => {
         console.error("Error verificando elegibilidad", err);
         setMensaje("Error al verificar elegibilidad");
         setIsEligible(false);
-        setLoading(false); // ✅ también aquí por si falla
+        setLoading(false);
       });
   }, [grupoId, deportista.id]);
 
   // Manejar agregar deportista al grupo
   const handleAddToGroup = async () => {
     setAdding(true);
-    // Construir el payload
-    const payload = {
-      deportistaId: deportista.id,
-      observaciones: "", // reemplaza si tienes un input de observaciones
-    };
+    const payload = { deportistaId: deportista.id, observaciones: "" };
 
-    // Mostrar en consola lo que se va a enviar
-    console.log("Enviando al backend:", payload);
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/grupos/${grupoId}/agregar-deportistas`, // Usar la ruta más RESTful si la cambiaste en el backend
-        {
-          deportistaId: deportista.id,
-          observaciones: "", // O la cadena de observaciones que el usuario haya ingresado
-        }
-        // Agregar las cabeceras si usas autenticación
-        // {
-        //   headers: {
-        //     'Authorization': `Bearer ${tuTokenJWT}`
-        //   }
-        // }
+      const response = await api.post(
+        `/api/grupos/${grupoId}/agregar-deportistas`,
+        payload,
       );
-
-      // Manejar la respuesta del backend (el mensaje del stored procedure)
-      // Si el backend devuelve RespuestaDTO:
-      console.log("Respuesta del backend:", response.data.mensaje);
-      toast.success(response.data.mensaje); // Muestra el mensaje del backend
-
+      toast.success(response.data.mensaje);
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error en agregar deportista:", error);
-
-      // Si el error proviene del backend y devuelve RespuestaDTO con el mensaje de error:
-      if (
-        axios.isAxiosError(error) &&
-        error.response &&
-        error.response.data?.mensaje
-      ) {
-        toast.error(error.response.data.mensaje);
-      } else {
-        toast.error("Error al agregar deportista. Intenta de nuevo.");
-      }
+      toast.error(
+        error.response?.data?.mensaje ??
+          "Error al agregar deportista. Intenta de nuevo.",
+      );
     } finally {
       setAdding(false);
     }

@@ -46,6 +46,28 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+// Si el backend responde 401 (token inválido/expirado/en blacklist tras logout),
+// limpiamos el token local y mandamos al usuario a login. Evita que la app quede
+// en un estado "colgado" mostrando spinners infinitos por un token muerto.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== "undefined" && error?.response?.status === 401) {
+      const isAuthEndpoint =
+        typeof error.config?.url === "string" && error.config.url.includes("/api/login");
+
+      if (!isAuthEndpoint) {
+        window.localStorage.removeItem(TOKEN_KEY);
+        setAuthorizationHeader(null);
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const setAuthToken = (token: string | null) => {
   if (typeof window === "undefined") {
     return;

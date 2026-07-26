@@ -1,465 +1,788 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
-  ChevronDown,
-  ChevronRight,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Plus,
   Pencil,
   Trash2,
-  Filter,
-  Download,
   Search,
   Calendar,
   Users,
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Link2,
+  X,
+  CheckCheck,
+  Loader2,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "react-toastify";
+import { api } from "@/lib/api";
+import NuevoHorarioModal from "../components/Forms/NuevoHorarioModal";
+import AsignarHorarioAGrupoModal from "../components/Forms/AsignarHorarioAGrupoModal";
 
-// Datos de ejemplo para horarios
-const horarios = [
-  {
-    id: 1,
-    grupo: "Mini Estrellas",
-    dia: "Lunes",
-    hora_inicio: "16:00",
-    hora_fin: "17:30",
-    entrenador_principal: "Ana García",
-    entrenadores_asistentes: ["Carlos Rodríguez"],
-  },
-  {
-    id: 2,
-    grupo: "Mini Estrellas",
-    dia: "Miércoles",
-    hora_inicio: "16:00",
-    hora_fin: "17:30",
-    entrenador_principal: "Ana García",
-    entrenadores_asistentes: [],
-  },
-  {
-    id: 3,
-    grupo: "Youth Rockets",
-    dia: "Martes",
-    hora_inicio: "17:00",
-    hora_fin: "19:00",
-    entrenador_principal: "Carlos Rodríguez",
-    entrenadores_asistentes: ["Ana García"],
-  },
-  {
-    id: 4,
-    grupo: "Youth Rockets",
-    dia: "Jueves",
-    hora_inicio: "17:00",
-    hora_fin: "19:00",
-    entrenador_principal: "Carlos Rodríguez",
-    entrenadores_asistentes: [],
-  },
-  {
-    id: 5,
-    grupo: "Junior Elite",
-    dia: "Lunes",
-    hora_inicio: "18:00",
-    hora_fin: "20:00",
-    entrenador_principal: "Laura Martínez",
-    entrenadores_asistentes: [],
-  },
-  {
-    id: 6,
-    grupo: "Junior Elite",
-    dia: "Miércoles",
-    hora_inicio: "18:00",
-    hora_fin: "20:00",
-    entrenador_principal: "Laura Martínez",
-    entrenadores_asistentes: [],
-  },
-  {
-    id: 7,
-    grupo: "Junior Elite",
-    dia: "Viernes",
-    hora_inicio: "18:00",
-    hora_fin: "20:00",
-    entrenador_principal: "Laura Martínez",
-    entrenadores_asistentes: [],
-  },
-]
-
-// Datos de ejemplo para asistencias
-const asistencias = [
-  {
-    id: 1,
-    horario_id: 1,
-    fecha: "2024-04-15",
-    deportistas: [
-      { id: 1, nombre: "Sofía Pérez", estado: "Presente" },
-      { id: 2, nombre: "Lucas Martínez", estado: "Presente" },
-      { id: 3, nombre: "Emma Rodríguez", estado: "Ausente" },
-    ],
-  },
-  {
-    id: 2,
-    horario_id: 1,
-    fecha: "2024-04-22",
-    deportistas: [
-      { id: 1, nombre: "Sofía Pérez", estado: "Presente" },
-      { id: 2, nombre: "Lucas Martínez", estado: "Presente" },
-      { id: 3, nombre: "Emma Rodríguez", estado: "Presente" },
-    ],
-  },
-  {
-    id: 3,
-    horario_id: 3,
-    fecha: "2024-04-16",
-    deportistas: [
-      { id: 4, nombre: "Mateo González", estado: "Presente" },
-      { id: 5, nombre: "Valentina López", estado: "Ausente" },
-      { id: 6, nombre: "Santiago Torres", estado: "Presente" },
-    ],
-  },
-]
-
-// Mapeo de días de la semana para ordenar
-const ordenDias = {
-  Lunes: 1,
-  Martes: 2,
-  Miércoles: 3,
-  Jueves: 4,
-  Viernes: 5,
-  Sábado: 6,
-  Domingo: 7,
+interface GrupoAsociado {
+  horarioEntrenamientoId: number;
+  grupoId: number;
+  nombreGrupo: string;
 }
 
+interface HorarioResponseDTO {
+  id: number;
+  diaId: number;
+  dia: string;
+  horaInicio: string; // "HH:mm:ss"
+  horaFin: string;
+  grupos: GrupoAsociado[];
+}
+
+interface GrupoSimple {
+  id: number;
+  nombre: string;
+}
+
+interface EstadoAsistencia {
+  id: number;
+  estado: string;
+}
+
+interface DeportistaActivo {
+  deportistaId: number;
+  nombre: string;
+}
+
+interface AsistenciaResponseDTO {
+  id: number;
+  deportistaId: number;
+  nombreDeportista: string;
+  horarioId: number;
+  fecha: string;
+  estadoAsistenciaId: number;
+  estadoAsistencia: string;
+}
+
+// Solo para ordenar la tabla por día real de la semana en vez de
+// alfabéticamente (Jueves no debería ir antes que Lunes).
+const ORDEN_DIAS: Record<string, number> = {
+  lunes: 1,
+  martes: 2,
+  miércoles: 3,
+  miercoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sábado: 6,
+  sabado: 6,
+  domingo: 7,
+};
+
+const formatHora = (hora: string) => hora?.slice(0, 5) ?? "";
+
 export default function HorariosPage() {
-  const [expandedHorarios, setExpandedHorarios] = useState<number[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("horarios")
-  const [grupoFiltrado, setGrupoFiltrado] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("horarios");
 
-  const toggleHorarioExpand = (horarioId: number) => {
-    setExpandedHorarios((prev) =>
-      prev.includes(horarioId) ? prev.filter((id) => id !== horarioId) : [...prev, horarioId],
-    )
-  }
+  // ---- Horarios ----
+  const [horarios, setHorarios] = useState<HorarioResponseDTO[]>([]);
+  const [grupos, setGrupos] = useState<GrupoSimple[]>([]);
+  const [loadingHorarios, setLoadingHorarios] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Obtener lista única de grupos
-  const grupos = Array.from(new Set(horarios.map((h) => h.grupo)))
+  const [modalHorarioOpen, setModalHorarioOpen] = useState(false);
+  const [horarioEditar, setHorarioEditar] = useState<HorarioResponseDTO | null>(
+    null,
+  );
 
-  // Filtrar horarios por término de búsqueda y grupo
-  const filteredHorarios = horarios
-    .filter((horario) => {
-      const matchesSearch =
-        horario.grupo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        horario.entrenador_principal.toLowerCase().includes(searchTerm.toLowerCase())
+  const [modalAsignarOpen, setModalAsignarOpen] = useState(false);
+  const [horarioParaAsignar, setHorarioParaAsignar] =
+    useState<HorarioResponseDTO | null>(null);
 
-      if (grupoFiltrado) {
-        return matchesSearch && horario.grupo === grupoFiltrado
+  const [confirmEliminarHorarioId, setConfirmEliminarHorarioId] = useState<
+    number | null
+  >(null);
+  const [confirmDesasignar, setConfirmDesasignar] = useState<{
+    horarioEntrenamientoId: number;
+    nombreGrupo: string;
+  } | null>(null);
+
+  const fetchHorarios = async () => {
+    setLoadingHorarios(true);
+    try {
+      const res = await api.get(`/api/horarios`);
+      setHorarios(res.data);
+    } catch (error) {
+      console.error("Error al obtener horarios:", error);
+      toast.error("Error al cargar los horarios.");
+    } finally {
+      setLoadingHorarios(false);
+    }
+  };
+
+  const fetchGrupos = async () => {
+    try {
+      // /api/grupos (crudo) serializa la entidad JPA con la relación
+      // bidireccional grupo <-> deportistas y entra en loop infinito al
+      // convertir a JSON (Document nesting depth exceeded). /con-deportistas
+      // ya arma un DTO plano sin ese ciclo — mismo endpoint que usa
+      // grupos/page.tsx.
+      const res = await api.get(`/api/grupos/con-deportistas`);
+      setGrupos(res.data.map((g: any) => ({ id: g.id, nombre: g.nombre })));
+    } catch (error) {
+      console.error("Error al obtener grupos:", error);
+      toast.error("Error al cargar los grupos.");
+    }
+  };
+
+  useEffect(() => {
+    fetchHorarios();
+    fetchGrupos();
+  }, []);
+
+  const handleEliminarHorario = async () => {
+    if (!confirmEliminarHorarioId) return;
+    try {
+      await api.delete(`/api/horarios/${confirmEliminarHorarioId}`);
+      toast.success("Horario eliminado correctamente");
+      setConfirmEliminarHorarioId(null);
+      fetchHorarios();
+    } catch (error: any) {
+      console.error("Error al eliminar horario:", error);
+      toast.error(
+        error.response?.data?.message ||
+          error.response?.data ||
+          "Error al eliminar el horario.",
+      );
+    }
+  };
+
+  const handleDesasignar = async () => {
+    if (!confirmDesasignar) return;
+    try {
+      await api.delete(
+        `/api/horarios/asignacion/${confirmDesasignar.horarioEntrenamientoId}`,
+      );
+      toast.success("Horario desvinculado del grupo");
+      setConfirmDesasignar(null);
+      fetchHorarios();
+    } catch (error: any) {
+      console.error("Error al desasignar horario:", error);
+      toast.error(
+        error.response?.data?.message ||
+          error.response?.data ||
+          "Error al desvincular el horario.",
+      );
+    }
+  };
+
+  const filteredHorarios = useMemo(
+    () =>
+      horarios
+        .filter(
+          (h) =>
+            h.dia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            h.grupos.some((g) =>
+              g.nombreGrupo.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+        )
+        .sort((a, b) => {
+          const diaA = ORDEN_DIAS[a.dia.toLowerCase()] ?? 99;
+          const diaB = ORDEN_DIAS[b.dia.toLowerCase()] ?? 99;
+          if (diaA !== diaB) return diaA - diaB;
+          return a.horaInicio.localeCompare(b.horaInicio);
+        }),
+    [horarios, searchTerm],
+  );
+
+  // ---- Asistencias ----
+  const [estadosCatalogo, setEstadosCatalogo] = useState<EstadoAsistencia[]>(
+    [],
+  );
+  const [grupoAsistenciaId, setGrupoAsistenciaId] = useState("");
+  const [horarioAsistenciaId, setHorarioAsistenciaId] = useState("");
+  const [fechaAsistencia, setFechaAsistencia] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
+  const [roster, setRoster] = useState<
+    { deportistaId: number; nombre: string; estadoAsistenciaId: string }[]
+  >([]);
+  const [loadingRoster, setLoadingRoster] = useState(false);
+  const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
+  const [listaCargada, setListaCargada] = useState(false);
+
+  useEffect(() => {
+    api
+      .get(`/api/estados-asistencia`)
+      .then((res) => setEstadosCatalogo(res.data))
+      .catch((err) => {
+        console.error("Error al cargar estados de asistencia", err);
+        toast.error("No se pudo cargar el catálogo de estados de asistencia");
+      });
+  }, []);
+
+  // Horarios que pertenecen al grupo seleccionado, para no dejar elegir
+  // combinaciones que no existen.
+  const horariosDelGrupo = useMemo(
+    () =>
+      grupoAsistenciaId
+        ? horarios.filter((h) =>
+            h.grupos.some((g) => g.grupoId === Number(grupoAsistenciaId)),
+          )
+        : [],
+    [horarios, grupoAsistenciaId],
+  );
+
+  useEffect(() => {
+    setHorarioAsistenciaId("");
+    setListaCargada(false);
+    setRoster([]);
+  }, [grupoAsistenciaId]);
+
+  const estadoPorDefecto = () => {
+    const presente = estadosCatalogo.find(
+      (e) => e.estado.toLowerCase() === "presente",
+    );
+    return (presente ?? estadosCatalogo[0])?.id.toString() ?? "";
+  };
+
+  const handleCargarLista = async () => {
+    if (!grupoAsistenciaId || !horarioAsistenciaId || !fechaAsistencia) {
+      toast.error("Selecciona grupo, horario y fecha");
+      return;
+    }
+    setLoadingRoster(true);
+    try {
+      const [activosRes, yaRegistradasRes] = await Promise.all([
+        api.get<DeportistaActivo[]>(
+          `/api/asistencias/grupo/${grupoAsistenciaId}/deportistas-activos`,
+        ),
+        api.get<AsistenciaResponseDTO[]>(
+          `/api/asistencias/grupo/${grupoAsistenciaId}`,
+          { params: { fecha: fechaAsistencia } },
+        ),
+      ]);
+
+      const defecto = estadoPorDefecto();
+      const yaRegistradas = new Map(
+        yaRegistradasRes.data.map((a) => [a.deportistaId, a]),
+      );
+
+      setRoster(
+        activosRes.data.map((d) => ({
+          deportistaId: d.deportistaId,
+          nombre: d.nombre,
+          estadoAsistenciaId:
+            yaRegistradas
+              .get(d.deportistaId)
+              ?.estadoAsistenciaId.toString() ?? defecto,
+        })),
+      );
+      setListaCargada(true);
+    } catch (error) {
+      console.error("Error al cargar la lista:", error);
+      toast.error("No se pudo cargar la lista de deportistas del grupo.");
+    } finally {
+      setLoadingRoster(false);
+    }
+  };
+
+  const marcarTodos = (estadoId: string) => {
+    setRoster((prev) =>
+      prev.map((r) => ({ ...r, estadoAsistenciaId: estadoId })),
+    );
+  };
+
+  const handleGuardarAsistencia = async () => {
+    if (!horarioAsistenciaId || roster.length === 0) return;
+    setGuardandoAsistencia(true);
+    try {
+      const { data, status } = await api.post(`/api/asistencias/masivo`, {
+        horarioId: Number(horarioAsistenciaId),
+        fecha: fechaAsistencia,
+        registros: roster.map((r) => ({
+          deportistaId: r.deportistaId,
+          estadoAsistenciaId: Number(r.estadoAsistenciaId),
+        })),
+      });
+
+      const errores: Record<string, string> = data?.errores ?? {};
+      const numErrores = Object.keys(errores).length;
+
+      if (numErrores === 0) {
+        toast.success(
+          `Asistencia guardada: ${data?.registrados?.length ?? roster.length} deportistas`,
+        );
+      } else {
+        toast.warn(
+          `Se guardaron ${data?.registrados?.length ?? 0} registros, pero ${numErrores} fallaron. Revisa la consola para el detalle.`,
+        );
+        console.error("Errores al registrar asistencia masiva:", errores);
       }
-      return matchesSearch
-    })
-    .sort((a, b) => {
-      // Ordenar por grupo, luego por día de la semana
-      if (a.grupo !== b.grupo) {
-        return a.grupo.localeCompare(b.grupo)
-      }
-      return ordenDias[a.dia as keyof typeof ordenDias] - ordenDias[b.dia as keyof typeof ordenDias]
-    })
+    } catch (error: any) {
+      console.error("Error al guardar asistencia:", error);
+      toast.error(
+        error.response?.data?.message ||
+          error.response?.data ||
+          "Error al guardar la asistencia. Intenta de nuevo.",
+      );
+    } finally {
+      setGuardandoAsistencia(false);
+    }
+  };
 
-  // Obtener asistencias para un horario
-  const getAsistenciasHorario = (horarioId: number) => {
-    return asistencias.filter((a) => a.horario_id === horarioId)
-  }
+  const presentesCount = useMemo(() => {
+    const presenteId = estadosCatalogo.find(
+      (e) => e.estado.toLowerCase() === "presente",
+    )?.id;
+    if (presenteId == null) return null;
+    return roster.filter((r) => Number(r.estadoAsistenciaId) === presenteId)
+      .length;
+  }, [roster, estadosCatalogo]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Horarios y Asistencias</h1>
-          <p className="text-muted-foreground">Gestiona los horarios de entrenamiento y registra asistencias</p>
-        </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Horario
-        </Button>
-      </div>
-
-      <Tabs defaultValue="horarios" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="horarios">Horarios</TabsTrigger>
-          <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="horarios">
-          <div className="flex justify-between mb-4">
-            <div className="flex items-center space-x-2 w-full max-w-sm">
-              <Input
-                placeholder="Buscar horarios..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9"
-              />
-              <Button variant="outline" size="sm">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex space-x-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {grupoFiltrado || "Filtrar por Grupo"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setGrupoFiltrado(null)}>Todos los grupos</DropdownMenuItem>
-                  {grupos.map((grupo) => (
-                    <DropdownMenuItem key={grupo} onClick={() => setGrupoFiltrado(grupo)}>
-                      {grupo}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Exportar
-              </Button>
-            </div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Horarios y Asistencias
+          </h1>
+            <p className="text-muted-foreground">
+              Gestiona los horarios de entrenamiento y registra asistencias
+            </p>
           </div>
+          {activeTab === "horarios" && (
+            <Button
+              onClick={() => {
+                setHorarioEditar(null);
+                setModalHorarioOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Horario
+            </Button>
+          )}
+        </div>
 
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]"></TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead>Día</TableHead>
-                    <TableHead>Horario</TableHead>
-                    <TableHead>Entrenador Principal</TableHead>
-                    <TableHead>Asistentes</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredHorarios.map((horario) => (
-                    <>
-                      <TableRow key={horario.id}>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => toggleHorarioExpand(horario.id)}>
-                            {expandedHorarios.includes(horario.id) ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="font-medium">{horario.grupo}</TableCell>
-                        <TableCell>{horario.dia}</TableCell>
-                        <TableCell>
-                          {horario.hora_inicio} - {horario.hora_fin}
-                        </TableCell>
-                        <TableCell>{horario.entrenador_principal}</TableCell>
-                        <TableCell>
-                          {horario.entrenadores_asistentes.length > 0
-                            ? horario.entrenadores_asistentes.join(", ")
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Pencil className="h-4 w-4 mr-1" /> Editar
-                            </Button>
-                            <Button variant="destructive" size="sm">
-                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      {expandedHorarios.includes(horario.id) && (
-                        <TableRow key={`${horario.id}-details`} className="bg-muted/50">
-                          <TableCell colSpan={7} className="p-0">
-                            <div className="p-4">
-                              <div className="flex justify-between items-center mb-4">
-                                <h4 className="font-semibold">Asistencias Recientes</h4>
-                                <Button size="sm" variant="outline">
-                                  <Calendar className="h-4 w-4 mr-1" /> Registrar Asistencia
-                                </Button>
-                              </div>
-                              {getAsistenciasHorario(horario.id).length > 0 ? (
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Fecha</TableHead>
-                                      <TableHead>Presentes</TableHead>
-                                      <TableHead>Ausentes</TableHead>
-                                      <TableHead>Acciones</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {getAsistenciasHorario(horario.id).map((asistencia) => {
-                                      const presentes = asistencia.deportistas.filter((d) => d.estado === "Presente")
-                                        .length
-                                      const ausentes = asistencia.deportistas.filter((d) => d.estado === "Ausente").length
-                                      const total = asistencia.deportistas.length
+        <Tabs
+          defaultValue="horarios"
+          className="w-full"
+          onValueChange={setActiveTab}
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="horarios">Horarios</TabsTrigger>
+            <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
+          </TabsList>
 
-                                      return (
-                                        <TableRow key={asistencia.id}>
-                                          <TableCell>{new Date(asistencia.fecha).toLocaleDateString()}</TableCell>
-                                          <TableCell>
-                                            {presentes} de {total} ({Math.round((presentes / total) * 100)}%)
-                                          </TableCell>
-                                          <TableCell>
-                                            {ausentes} de {total} ({Math.round((ausentes / total) * 100)}%)
-                                          </TableCell>
-                                          <TableCell>
-                                            <div className="flex space-x-2">
-                                              <Button variant="outline" size="sm">
-                                                <Pencil className="h-4 w-4 mr-1" /> Editar
-                                              </Button>
-                                              <Button variant="outline" size="sm">
-                                                <Users className="h-4 w-4 mr-1" /> Ver Detalle
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      )
-                                    })}
-                                  </TableBody>
-                                </Table>
-                              ) : (
-                                <div className="text-center py-4 text-muted-foreground">
-                                  No hay asistencias registradas para este horario
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="asistencias">
-          <Card>
-            <CardHeader>
-              <CardTitle>Registro de Asistencias</CardTitle>
-              <CardDescription>Registra y consulta las asistencias de los deportistas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <div className="flex items-center space-x-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Seleccionar Fecha
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem>Hoy</DropdownMenuItem>
-                        <DropdownMenuItem>Ayer</DropdownMenuItem>
-                        <DropdownMenuItem>Esta semana</DropdownMenuItem>
-                        <DropdownMenuItem>Semana pasada</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                          <Users className="mr-2 h-4 w-4" />
-                          Seleccionar Grupo
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {grupos.map((grupo) => (
-                          <DropdownMenuItem key={grupo}>{grupo}</DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+          {/* ================= HORARIOS ================= */}
+          <TabsContent value="horarios">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between mb-4">
+                  <div className="flex items-center space-x-2 w-full max-w-sm">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por día o grupo..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-9"
+                    />
                   </div>
-
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Nueva Asistencia
-                  </Button>
                 </div>
 
-                <div className="border rounded-md">
+                {loadingHorarios ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> Cargando
+                    horarios...
+                  </div>
+                ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Grupo</TableHead>
+                        <TableHead>Día</TableHead>
                         <TableHead>Horario</TableHead>
-                        <TableHead>Presentes</TableHead>
-                        <TableHead>Ausentes</TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead>Grupos asignados</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {asistencias.map((asistencia) => {
-                        const horario = horarios.find((h) => h.id === asistencia.horario_id)
-                        const presentes = asistencia.deportistas.filter((d) => d.estado === "Presente").length
-                        const ausentes = asistencia.deportistas.filter((d) => d.estado === "Ausente").length
-                        const total = asistencia.deportistas.length
-
-                        return (
-                          <TableRow key={asistencia.id}>
-                            <TableCell>{new Date(asistencia.fecha).toLocaleDateString()}</TableCell>
-                            <TableCell>{horario?.grupo}</TableCell>
-                            <TableCell>
-                              {horario?.dia} {horario?.hora_inicio} - {horario?.hora_fin}
+                      {filteredHorarios.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No hay horarios registrados todavía.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredHorarios.map((horario) => (
+                          <TableRow key={horario.id}>
+                            <TableCell className="font-medium">
+                              {horario.dia}
                             </TableCell>
                             <TableCell>
-                              {presentes} de {total} ({Math.round((presentes / total) * 100)}%)
+                              {formatHora(horario.horaInicio)} -{" "}
+                              {formatHora(horario.horaFin)}
                             </TableCell>
                             <TableCell>
-                              {ausentes} de {total} ({Math.round((ausentes / total) * 100)}%)
+                              <div className="flex flex-wrap gap-1">
+                                {horario.grupos.length === 0 ? (
+                                  <span className="text-sm text-muted-foreground">
+                                    Sin grupo asignado
+                                  </span>
+                                ) : (
+                                  horario.grupos.map((g) => (
+                                    <Badge
+                                      key={g.horarioEntrenamientoId}
+                                      variant="outline"
+                                      className="flex items-center gap-1"
+                                    >
+                                      {g.nombreGrupo}
+                                      <button
+                                        type="button"
+                                        title="Desvincular de este grupo"
+                                        onClick={() =>
+                                          setConfirmDesasignar({
+                                            horarioEntrenamientoId:
+                                              g.horarioEntrenamientoId,
+                                            nombreGrupo: g.nombreGrupo,
+                                          })
+                                        }
+                                      >
+                                        <X className="h-3 w-3 hover:text-red-600" />
+                                      </button>
+                                    </Badge>
+                                  ))
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex space-x-2">
-                                <Button variant="outline" size="sm">
-                                  <Users className="h-4 w-4 mr-1" /> Ver Detalle
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  title="Asignar a otro grupo"
+                                  onClick={() => {
+                                    setHorarioParaAsignar(horario);
+                                    setModalAsignarOpen(true);
+                                  }}
+                                >
+                                  <Link2 className="h-4 w-4 mr-1" /> Asignar
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setHorarioEditar(horario);
+                                    setModalHorarioOpen(true);
+                                  }}
+                                >
                                   <Pencil className="h-4 w-4 mr-1" /> Editar
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() =>
+                                    setConfirmEliminarHorarioId(horario.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                                 </Button>
                               </div>
                             </TableCell>
                           </TableRow>
-                        )
-                      })}
+                        ))
+                      )}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ================= ASISTENCIAS ================= */}
+          <TabsContent value="asistencias">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registro de Asistencias</CardTitle>
+                <CardDescription>
+                  Selecciona grupo, horario y fecha para pasar lista o revisar
+                  una asistencia ya registrada.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                  <div>
+                    <label className="text-sm font-medium">Grupo</label>
+                    <Select
+                      onValueChange={setGrupoAsistenciaId}
+                      value={grupoAsistenciaId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {grupos.map((g) => (
+                          <SelectItem key={g.id} value={g.id.toString()}>
+                            {g.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Horario</label>
+                    <Select
+                      onValueChange={setHorarioAsistenciaId}
+                      value={horarioAsistenciaId}
+                      disabled={!grupoAsistenciaId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            grupoAsistenciaId
+                              ? "Seleccionar horario"
+                              : "Elige un grupo primero"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {horariosDelGrupo.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            Este grupo no tiene horarios asignados
+                          </div>
+                        ) : (
+                          horariosDelGrupo.map((h) => (
+                            <SelectItem key={h.id} value={h.id.toString()}>
+                              {h.dia} {formatHora(h.horaInicio)}-
+                              {formatHora(h.horaFin)}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Fecha</label>
+                    <Input
+                      type="date"
+                      value={fechaAsistencia}
+                      onChange={(e) => setFechaAsistencia(e.target.value)}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleCargarLista}
+                    disabled={
+                      !grupoAsistenciaId ||
+                      !horarioAsistenciaId ||
+                      loadingRoster
+                    }
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    {loadingRoster ? "Cargando..." : "Cargar lista"}
+                  </Button>
                 </div>
 
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium mb-4">Estadísticas Generales</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-md">
-                      <h4 className="text-sm font-semibold">Total de Asistencias</h4>
-                      <p className="text-xl font-bold">
-                        {asistencias.reduce((acc, asistencia) => acc + asistencia.deportistas.filter(d => d.estado === "Presente").length, 0)}
-                      </p>
+                {listaCargada && (
+                  <div className="border rounded-md">
+                    <div className="flex items-center justify-between p-3 border-b bg-muted/40">
+                      <div className="text-sm text-muted-foreground">
+                        {roster.length} deportista(s) activo(s) en este grupo
+                        {presentesCount != null &&
+                          ` · ${presentesCount} marcados como presentes`}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={estadosCatalogo.length === 0}
+                        onClick={() => marcarTodos(estadoPorDefecto())}
+                      >
+                        <CheckCheck className="h-4 w-4 mr-1" /> Marcar todos
+                        presentes
+                      </Button>
                     </div>
-                    <div className="p-4 border rounded-md">
-                      <h4 className="text-sm font-semibold">Total de Ausencias</h4>
-                      <p className="text-xl font-bold">
-                        {asistencias.reduce((acc, asistencia) => acc + asistencia.deportistas.filter(d => d.estado === "Ausente").length, 0)}
-                      </p>
-                    </div>
+
+                    {roster.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No hay deportistas activos en este grupo.
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Deportista</TableHead>
+                            <TableHead className="w-[220px]">Estado</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roster.map((r, idx) => (
+                            <TableRow key={r.deportistaId}>
+                              <TableCell>{r.nombre}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={r.estadoAsistenciaId}
+                                  onValueChange={(value) =>
+                                    setRoster((prev) =>
+                                      prev.map((item, i) =>
+                                        i === idx
+                                          ? { ...item, estadoAsistenciaId: value }
+                                          : item,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Estado" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {estadosCatalogo.map((e) => (
+                                      <SelectItem
+                                        key={e.id}
+                                        value={e.id.toString()}
+                                      >
+                                        {e.estado}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+
+                    {roster.length > 0 && (
+                      <div className="flex justify-end p-3 border-t">
+                        <Button
+                          onClick={handleGuardarAsistencia}
+                          disabled={guardandoAsistencia}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {guardandoAsistencia
+                            ? "Guardando..."
+                            : "Guardar asistencia"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Modales */}
+        <NuevoHorarioModal
+          open={modalHorarioOpen}
+          onOpenChange={setModalHorarioOpen}
+          horarioEditar={horarioEditar}
+          grupos={grupos}
+          onGuardado={fetchHorarios}
+        />
+
+        <AsignarHorarioAGrupoModal
+          open={modalAsignarOpen}
+          onOpenChange={setModalAsignarOpen}
+          horarioId={horarioParaAsignar?.id ?? null}
+          horarioLabel={
+            horarioParaAsignar
+              ? `${horarioParaAsignar.dia} ${formatHora(horarioParaAsignar.horaInicio)}-${formatHora(horarioParaAsignar.horaFin)}`
+              : undefined
+          }
+          grupos={grupos}
+          gruposYaAsignados={
+            horarioParaAsignar?.grupos.map((g) => g.grupoId) ?? []
+          }
+          onAsignado={fetchHorarios}
+        />
+
+        {/* Confirmar eliminar horario */}
+        <Dialog
+          open={confirmEliminarHorarioId !== null}
+          onOpenChange={(open) => !open && setConfirmEliminarHorarioId(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Eliminar este horario?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Se eliminará el bloque de horario y sus asignaciones a grupos.
+              Los registros de asistencia ya guardados no se ven afectados.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmEliminarHorarioId(null)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleEliminarHorario}>
+                Eliminar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmar desasignar de un grupo */}
+        <Dialog
+          open={confirmDesasignar !== null}
+          onOpenChange={(open) => !open && setConfirmDesasignar(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Desvincular este horario del grupo?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {confirmDesasignar?.nombreGrupo} dejará de entrenar en este
+              bloque de horario. El horario en sí no se elimina.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDesasignar(null)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleDesasignar}>
+                Desvincular
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

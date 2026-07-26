@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Send } from "lucide-react"
 
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { api } from "@/lib/api"
 
 export default function RecuperarPasswordPage() {
   const router = useRouter()
@@ -19,6 +21,10 @@ export default function RecuperarPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [email, setEmail] = useState("")
+  // El backend (AuthController.forgotPassword) todavía no envía correo: devuelve
+  // el resetToken directamente en la respuesta. Lo usamos para armar el enlace
+  // de "restablecer contraseña" mientras no exista un servicio de envío de mail.
+  const [resetToken, setResetToken] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,18 +32,24 @@ export default function RecuperarPasswordPage() {
     setError(null)
 
     try {
-      // Simulación de envío de correo
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Validación básica
       if (!email) {
         throw new Error("Por favor ingrese su correo electrónico")
       }
 
-      // Simulación de envío exitoso
-      setSuccess(true)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ocurrió un error al enviar el correo")
+      const response = await api.post("/api/forgot-password", { email })
+
+      if (response.data.success) {
+        setResetToken(response.data.resetToken ?? null)
+        setSuccess(true)
+      } else {
+        setError(response.data.message || "No se pudo procesar la solicitud")
+      }
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else {
+        setError(err instanceof Error ? err.message : "Ocurrió un error al procesar la solicitud")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -63,13 +75,24 @@ export default function RecuperarPasswordPage() {
           <CardContent className="space-y-4">
             <Alert className="bg-green-50 border-green-200 text-green-800">
               <AlertDescription>
-                Hemos enviado un correo electrónico a <strong>{email}</strong> con instrucciones para restablecer su
+                Si el correo <strong>{email}</strong> está registrado, se generó una solicitud de restablecimiento de
                 contraseña.
               </AlertDescription>
             </Alert>
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Si no recibe el correo en unos minutos, revise su carpeta de spam o solicite un nuevo correo.</p>
-            </div>
+            {resetToken && (
+              <div className="text-center text-sm text-muted-foreground space-y-2">
+                <p>
+                  Aún no hay envío de correo configurado en el servidor, así que por ahora puedes continuar
+                  directamente desde aquí:
+                </p>
+                <Link
+                  href={`/reset-password?token=${encodeURIComponent(resetToken)}`}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Ir a restablecer contraseña
+                </Link>
+              </div>
+            )}
             <Button className="w-full mt-4" onClick={() => router.push("/login")}>
               <ArrowLeft size={16} className="mr-2" />
               Volver al inicio de sesión

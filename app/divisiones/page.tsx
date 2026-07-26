@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 import axios from "axios";
+import { api } from "@/lib/api";
 
 // Datos de ejemplo para niveles
 const niveles = [
@@ -429,8 +430,8 @@ export default function NivelesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    axios
-      .get(`${API_URL}/api/divisiones`) // ajusta si usas un proxy o ruta absoluta
+    api
+      .get(`/api/divisiones`) // ajusta si usas un proxy o ruta absoluta
       .then((res) => {
         setDivisiones(res.data);
       })

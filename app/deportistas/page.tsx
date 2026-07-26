@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Label } from "@/components/ui/label";
 
-import axios from "axios";
+import { api } from "@/lib/api";
 import { toast } from "react-toastify";
 
 import {
@@ -54,6 +54,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  obtenerHistorialNiveles,
+  registrarCambioNivel,
+  obtenerHistorialPlanes,
+  registrarCambioPlan,
+  obtenerPlanesPago,
+  obtenerHistorialMedico,
+  crearHistorialMedico,
+  type HistorialNivel,
+  type HistorialPlan,
+  type HistorialMedico,
+  type PlanPago,
+} from "@/lib/deportistas-historiales";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 
@@ -159,37 +172,6 @@ const pagos = [
   },
 ];
 
-// Datos de ejemplo para historial de niveles
-const historialNiveles = [
-  {
-    id: 1,
-    deportista_id: 1,
-    nivel: "Nivel 1",
-    fecha_cambio: "2023-01-15",
-    motivo: "Inscripción inicial",
-  },
-];
-
-// Datos de ejemplo para historial de planes
-const historialPlanes = [
-  {
-    id: 1,
-    deportista_id: 1,
-    plan: "Plan Básico",
-    fecha_inicio: "2023-01-15",
-    fecha_fin: "2023-06-15",
-    motivo_cambio: "Inscripción inicial",
-  },
-  {
-    id: 2,
-    deportista_id: 1,
-    plan: "Plan Premium",
-    fecha_inicio: "2023-06-16",
-    fecha_fin: null,
-    motivo_cambio: "Upgrade por participación en competencias",
-  },
-];
-
 // Datos de ejemplo para historial de grupos
 const historialGrupos = [
   {
@@ -223,6 +205,8 @@ export interface Deportista {
   personaId: number;
   nombre: string;
   apellidos: string;
+  numeroDocumento: string;
+  tipoDocumento: string;
   direccion: string;
   telefono: string;
   fechaNacimiento: string;
@@ -259,6 +243,49 @@ export interface Estado {
 export default function DeportistasPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const [planesPago, setPlanesPago] = useState<PlanPago[]>([]);
+
+  // historiales por deportista, cargados perezosamente al expandir la fila
+  const [historialNivelesPorDeportista, setHistorialNivelesPorDeportista] =
+    useState<Record<number, HistorialNivel[]>>({});
+  const [historialPlanesPorDeportista, setHistorialPlanesPorDeportista] =
+    useState<Record<number, HistorialPlan[]>>({});
+  const [historialMedicoPorDeportista, setHistorialMedicoPorDeportista] =
+    useState<Record<number, HistorialMedico[]>>({});
+  const [cargandoHistorial, setCargandoHistorial] = useState<
+    Record<number, boolean>
+  >({});
+
+  // modales de "registrar cambio"
+  const [nivelModal, setNivelModal] = useState<{ deportistaId: number } | null>(
+    null,
+  );
+  const [nivelForm, setNivelForm] = useState({
+    nivelId: 0,
+    motivo: "",
+    fechaCambio: "",
+  });
+
+  const [planModal, setPlanModal] = useState<{ deportistaId: number } | null>(
+    null,
+  );
+  const [planForm, setPlanForm] = useState({
+    planPagoId: 0,
+    motivoCambio: "",
+    fechaCambio: "",
+  });
+
+  const [medicoModal, setMedicoModal] = useState<{
+    deportistaId: number;
+  } | null>(null);
+  const [medicoForm, setMedicoForm] = useState({
+    descripcion: "",
+    fechaRegistro: "",
+    tipoRegistro: "",
+    gravedad: "",
+    medicoTratante: "",
+  });
+
   const [deportistaAEliminar, setDeportistaAEliminar] = useState<number | null>(
     null,
   );
@@ -286,6 +313,8 @@ export default function DeportistasPage() {
   const [nuevoDeportista, setNuevoDeportista] = useState({
     nombre: "",
     apellidos: "",
+    numeroDocumento: "",
+    tipoDocumento: "",
     direccion: "",
     telefono: "",
     fechaNacimiento: "",
@@ -299,13 +328,41 @@ export default function DeportistasPage() {
     convenioId: null,
   });
 
+  // Validación de documento único en vivo mientras se registra un deportista nuevo.
+  // El backend ya expone /api/deportistas/validar-documento; solo lo consumimos.
+  const [documentoDisponible, setDocumentoDisponible] = useState<
+    boolean | null
+  >(null);
+  const [validandoDocumento, setValidandoDocumento] = useState(false);
+
+  const validarDocumento = async (numeroDocumento: string) => {
+    if (!numeroDocumento.trim()) {
+      setDocumentoDisponible(null);
+      return;
+    }
+    try {
+      setValidandoDocumento(true);
+      const res = await api.post(
+        `${API_URL}/api/deportistas/validar-documento`,
+        null,
+        { params: { documento: numeroDocumento } },
+      );
+      setDocumentoDisponible(res.data.disponible);
+    } catch (error) {
+      console.error("Error al validar documento", error);
+      setDocumentoDisponible(null);
+    } finally {
+      setValidandoDocumento(false);
+    }
+  };
+
   useEffect(() => {
     cargarDeportistas(); // Solo llama a la función
   }, []);
 
   const cargarDeportistas = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/deportistas`, {
+      const response = await api.get(`${API_URL}/api/deportistas`, {
         withCredentials: true, // el backend requiere autenticación para esta acción
       });
       setDeportistas(response.data); // Guarda los datos en el estado
@@ -316,17 +373,17 @@ export default function DeportistasPage() {
   };
 
   const obtenerNiveles = async () => {
-    const res = await axios.get(`${API_URL}/api/niveles`);
+    const res = await api.get(`${API_URL}/api/niveles`);
     return res.data;
   };
 
   const obtenerGeneros = async () => {
-    const res = await axios.get(`${API_URL}/api/usuario/genero/listar`);
+    const res = await api.get(`${API_URL}/api/usuario/genero/listar`);
     return res.data;
   };
 
   const obtenerEstadosPersona = async () => {
-    const res = await axios.get(`${API_URL}/api/personas/estados`); // este endpoint lo crearemos abajo
+    const res = await api.get(`${API_URL}/api/personas/estados`); // este endpoint lo crearemos abajo
     return res.data;
   };
 
@@ -343,11 +400,28 @@ export default function DeportistasPage() {
     cargarDatos();
   }, []);
 
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const nivelesData = await obtenerNiveles();
+      const generosData = await obtenerGeneros();
+      const estadosData = await obtenerEstadosPersona();
+      const planesData = await obtenerPlanesPago();
+
+      setNiveles(nivelesData);
+      setGeneros(generosData);
+      setEstados(estadosData);
+      setPlanesPago(planesData);
+    };
+    cargarDatos();
+  }, []);
+
   // Estado para el formulario de edición
   const [formData, setFormData] = useState({
     id: deportistaSeleccionado?.deportistaId || "",
     nombre: "",
     apellidos: "",
+    numeroDocumento: "",
+    tipoDocumento: "",
     direccion: "",
     telefono: "",
     fechaNacimiento: "",
@@ -368,6 +442,8 @@ export default function DeportistasPage() {
         id: deportistaSeleccionado.deportistaId || "",
         nombre: deportistaSeleccionado.nombre || "",
         apellidos: deportistaSeleccionado.apellidos || "",
+        numeroDocumento: deportistaSeleccionado.numeroDocumento || "",
+        tipoDocumento: deportistaSeleccionado.tipoDocumento || "",
         direccion: deportistaSeleccionado.direccion || "",
         telefono: deportistaSeleccionado.telefono || "",
         fechaNacimiento: deportistaSeleccionado.fechaNacimiento || "",
@@ -385,7 +461,16 @@ export default function DeportistasPage() {
 
   // Manejar el envío del formulario de edición
   const handleSubmit = () => {
-    axios
+    if (
+      !formData.nombre.trim() ||
+      !formData.apellidos.trim() ||
+      !formData.numeroDocumento.trim() ||
+      !formData.tipoDocumento
+    ) {
+      toast.error("Completa nombre, apellidos, tipo y número de documento.");
+      return;
+    }
+    api
       .put(`${API_URL}/api/deportistas/${formData.id}`, formData, {
         withCredentials: true,
       })
@@ -393,12 +478,21 @@ export default function DeportistasPage() {
         setIsEditModalOpen(false);
         cargarDeportistas();
         toast.success("Deportista actualizado correctamente");
+      })
+      .catch((error) => {
+        console.error("Error al actualizar deportista", error);
+        toast.error(
+          error?.response?.data?.message ||
+            error?.response?.data ||
+            "No se pudo actualizar el deportista.",
+        );
       });
   };
 
+  // Manejar el cierre del modal de edición
   const eliminarDeportista = async (id: number) => {
     try {
-      await axios.patch(`${API_URL}/api/deportistas/${id}`);
+      await api.patch(`${API_URL}/api/deportistas/${id}`);
       toast.success("Deportista eliminado correctamente");
       //llamar a una función para recargar la lista de deportistas o actualizar el estado
       cargarDeportistas();
@@ -407,13 +501,51 @@ export default function DeportistasPage() {
       toast.error("No se pudo eliminar el deportista");
     }
   };
-
+  /*
+  // Función para alternar la expansión de los deportistas
   const toggleDeportistaExpand = (id: number) => {
     setExpandedDeportistas((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
+  };*/
+
+  const cargarHistorialesDeDeportista = async (deportistaId: number) => {
+    setCargandoHistorial((prev) => ({ ...prev, [deportistaId]: true }));
+    try {
+      const [niveles, planes, medico] = await Promise.all([
+        obtenerHistorialNiveles(deportistaId),
+        obtenerHistorialPlanes(deportistaId),
+        obtenerHistorialMedico(deportistaId),
+      ]);
+      setHistorialNivelesPorDeportista((prev) => ({
+        ...prev,
+        [deportistaId]: niveles,
+      }));
+      setHistorialPlanesPorDeportista((prev) => ({
+        ...prev,
+        [deportistaId]: planes,
+      }));
+      setHistorialMedicoPorDeportista((prev) => ({
+        ...prev,
+        [deportistaId]: medico.content,
+      }));
+    } catch (error) {
+      console.error("Error al cargar historiales", error);
+      toast.error("No se pudieron cargar los historiales del deportista");
+    } finally {
+      setCargandoHistorial((prev) => ({ ...prev, [deportistaId]: false }));
+    }
   };
 
+  const toggleDeportistaExpand = (id: number) => {
+    setExpandedDeportistas((prev) => {
+      const yaExpandido = prev.includes(id);
+      if (!yaExpandido && !historialNivelesPorDeportista[id]) {
+        cargarHistorialesDeDeportista(id);
+      }
+      return yaExpandido ? prev.filter((i) => i !== id) : [...prev, id];
+    });
+  };
   {
     /* Función para alternar la expansión de los deportistas
   const toggleDeportistaExpand = (deportistaId: number) => {
@@ -472,16 +604,6 @@ export default function DeportistasPage() {
     return pagos.filter((p) => p.deportista_id === deportistaId);
   };
 
-  // Obtener historial de niveles de un deportista
-  const getHistorialNivelesDeportista = (deportistaId: number) => {
-    return historialNiveles.filter((h) => h.deportista_id === deportistaId);
-  };
-
-  // Obtener historial de planes de un deportista
-  const getHistorialPlanesDeportista = (deportistaId: number) => {
-    return historialPlanes.filter((h) => h.deportista_id === deportistaId);
-  };
-
   // Obtener historial de grupos de un deportista
   const getHistorialGruposDeportista = (deportistaId: number) => {
     return historialGrupos.filter((h) => h.deportista_id === deportistaId);
@@ -505,16 +627,37 @@ export default function DeportistasPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
+    if (name === "numeroDocumento") {
+      setDocumentoDisponible(null);
+    }
     setNuevoDeportista((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
+  // Función para guardar un nuevo deportista
   const guardarDeportista = async () => {
+    if (
+      !nuevoDeportista.nombre.trim() ||
+      !nuevoDeportista.apellidos.trim() ||
+      !nuevoDeportista.numeroDocumento.trim() ||
+      !nuevoDeportista.tipoDocumento ||
+      !nuevoDeportista.fechaNacimiento ||
+      !nuevoDeportista.generoId
+    ) {
+      toast.error(
+        "Completa nombre, apellidos, tipo y número de documento, fecha de nacimiento y género.",
+      );
+      return;
+    }
+    if (documentoDisponible === false) {
+      toast.error("Ese número de documento ya está registrado.");
+      return;
+    }
     try {
       //console.log("datos deportista:", nuevoDeportista);
-      await axios.post(
+      await api.post(
         `${API_URL}/api/deportistas`,
         {
           ...nuevoDeportista,
@@ -537,10 +680,101 @@ export default function DeportistasPage() {
       cargarDeportistas();
       toast.success("Deportista guardado exitosamente");
       setModalAbierto(false);
-    } catch (error) {
+      setNuevoDeportista({
+        nombre: "",
+        apellidos: "",
+        numeroDocumento: "",
+        tipoDocumento: "",
+        direccion: "",
+        telefono: "",
+        fechaNacimiento: "",
+        generoId: 0,
+        estadoId: 1,
+        altura: 0,
+        peso: 0,
+        nivelActualId: 1,
+        fechaRegistro: "",
+        contactoEmergencia: "",
+        convenioId: null,
+      });
+      setDocumentoDisponible(null);
+    } catch (error: any) {
       console.error("Error al guardar deportista", error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.response?.data ||
+          "No se pudo guardar el deportista.",
+      );
     }
   };
+
+  const guardarCambioNivel = async () => {
+    if (!nivelModal) return;
+    try {
+      await registrarCambioNivel({
+        deportistaId: nivelModal.deportistaId,
+        nivelId: Number(nivelForm.nivelId),
+        motivo: nivelForm.motivo || undefined,
+        fechaCambio: nivelForm.fechaCambio || undefined,
+      });
+      toast.success("Cambio de nivel registrado");
+      setNivelModal(null);
+      setNivelForm({ nivelId: 0, motivo: "", fechaCambio: "" });
+      cargarHistorialesDeDeportista(nivelModal.deportistaId);
+      cargarDeportistas(); // el nivel actual del deportista también pudo cambiar
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo registrar el cambio de nivel");
+    }
+  };
+
+  const guardarCambioPlan = async () => {
+    if (!planModal) return;
+    try {
+      await registrarCambioPlan({
+        deportistaId: planModal.deportistaId,
+        planPagoId: Number(planForm.planPagoId),
+        motivoCambio: planForm.motivoCambio || undefined,
+        fechaCambio: planForm.fechaCambio || undefined,
+      });
+      toast.success("Cambio de plan registrado");
+      setPlanModal(null);
+      setPlanForm({ planPagoId: 0, motivoCambio: "", fechaCambio: "" });
+      cargarHistorialesDeDeportista(planModal.deportistaId);
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo registrar el cambio de plan");
+    }
+  };
+
+  // Función para guardar un nuevo registro médico
+  const guardarHistorialMedico = async () => {
+    if (!medicoModal) return;
+    try {
+      await crearHistorialMedico(medicoModal.deportistaId, {
+        descripcion: medicoForm.descripcion,
+        fechaRegistro: medicoForm.fechaRegistro,
+        tipoRegistro: medicoForm.tipoRegistro || undefined,
+        gravedad: medicoForm.gravedad || undefined,
+        medicoTratante: medicoForm.medicoTratante || undefined,
+      });
+      toast.success("Registro médico guardado");
+      setMedicoModal(null);
+      setMedicoForm({
+        descripcion: "",
+        fechaRegistro: "",
+        tipoRegistro: "",
+        gravedad: "",
+        medicoTratante: "",
+      });
+      cargarHistorialesDeDeportista(medicoModal.deportistaId);
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo guardar el registro médico");
+    }
+  };
+
+  // Obtener permisos del usuario desde el contexto
   const { permissions } = useUser();
 
   return (
@@ -867,6 +1101,9 @@ export default function DeportistasPage() {
                                       <TabsTrigger value="planes">
                                         Historial de Planes
                                       </TabsTrigger>
+                                      <TabsTrigger value="medico">
+                                        Historial Médico
+                                      </TabsTrigger>
                                       <TabsTrigger value="grupos">
                                         Historial de Grupos
                                       </TabsTrigger>
@@ -881,14 +1118,33 @@ export default function DeportistasPage() {
                                         <h4 className="font-semibold">
                                           Historial de Niveles
                                         </h4>
-                                        <Button size="sm" variant="outline">
-                                          <Plus className="h-4 w-4 mr-1" />{" "}
-                                          Registrar Cambio de Nivel
-                                        </Button>
+                                        {permissions.includes(
+                                          "modificar_deportista",
+                                        ) && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                              setNivelModal({
+                                                deportistaId:
+                                                  deportista.deportistaId,
+                                              })
+                                            }
+                                          >
+                                            <Plus className="h-4 w-4 mr-1" />{" "}
+                                            Registrar Cambio de Nivel
+                                          </Button>
+                                        )}
                                       </div>
-                                      {getHistorialNivelesDeportista(
-                                        deportista.deportistaId,
-                                      ).length > 0 ? (
+                                      {cargandoHistorial[
+                                        deportista.deportistaId
+                                      ] ? (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          Cargando...
+                                        </div>
+                                      ) : (historialNivelesPorDeportista[
+                                          deportista.deportistaId
+                                        ]?.length ?? 0) > 0 ? (
                                         <Table>
                                           <TableHeader>
                                             <TableRow>
@@ -897,35 +1153,28 @@ export default function DeportistasPage() {
                                                 Fecha de Cambio
                                               </TableHead>
                                               <TableHead>Motivo</TableHead>
-                                              <TableHead>Acciones</TableHead>
                                             </TableRow>
                                           </TableHeader>
                                           <TableBody>
-                                            {getHistorialNivelesDeportista(
-                                              deportista.deportistaId,
-                                            ).map((historial) => (
+                                            {historialNivelesPorDeportista[
+                                              deportista.deportistaId
+                                            ].map((historial) => (
                                               <TableRow key={historial.id}>
                                                 <TableCell>
-                                                  {historial.nivel}
+                                                  {niveles.find(
+                                                    (n) =>
+                                                      n.id ===
+                                                      historial.nivelId,
+                                                  )?.nombre ??
+                                                    historial.nivelId}
                                                 </TableCell>
                                                 <TableCell>
                                                   {new Date(
-                                                    historial.fecha_cambio,
+                                                    historial.fechaCambio,
                                                   ).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
-                                                  {historial.motivo}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex space-x-2">
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                    >
-                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                      Editar
-                                                    </Button>
-                                                  </div>
+                                                  {historial.motivo ?? "—"}
                                                 </TableCell>
                                               </TableRow>
                                             ))}
@@ -947,14 +1196,33 @@ export default function DeportistasPage() {
                                         <h4 className="font-semibold">
                                           Historial de Planes
                                         </h4>
-                                        <Button size="sm" variant="outline">
-                                          <Plus className="h-4 w-4 mr-1" />{" "}
-                                          Registrar Cambio de Plan
-                                        </Button>
+                                        {permissions.includes(
+                                          "modificar_inscripcion",
+                                        ) && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                              setPlanModal({
+                                                deportistaId:
+                                                  deportista.deportistaId,
+                                              })
+                                            }
+                                          >
+                                            <Plus className="h-4 w-4 mr-1" />{" "}
+                                            Registrar Cambio de Plan
+                                          </Button>
+                                        )}
                                       </div>
-                                      {getHistorialPlanesDeportista(
-                                        deportista.deportistaId,
-                                      ).length > 0 ? (
+                                      {cargandoHistorial[
+                                        deportista.deportistaId
+                                      ] ? (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          Cargando...
+                                        </div>
+                                      ) : (historialPlanesPorDeportista[
+                                          deportista.deportistaId
+                                        ]?.length ?? 0) > 0 ? (
                                         <Table>
                                           <TableHeader>
                                             <TableRow>
@@ -966,42 +1234,31 @@ export default function DeportistasPage() {
                                               <TableHead>
                                                 Motivo de Cambio
                                               </TableHead>
-                                              <TableHead>Acciones</TableHead>
                                             </TableRow>
                                           </TableHeader>
                                           <TableBody>
-                                            {getHistorialPlanesDeportista(
-                                              deportista.deportistaId,
-                                            ).map((historial) => (
+                                            {historialPlanesPorDeportista[
+                                              deportista.deportistaId
+                                            ].map((historial) => (
                                               <TableRow key={historial.id}>
                                                 <TableCell>
-                                                  {historial.plan}
+                                                  {historial.nombrePlan}
                                                 </TableCell>
                                                 <TableCell>
                                                   {new Date(
-                                                    historial.fecha_inicio,
+                                                    historial.fechaInicio,
                                                   ).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
-                                                  {historial.fecha_fin
+                                                  {historial.fechaFin
                                                     ? new Date(
-                                                        historial.fecha_fin,
+                                                        historial.fechaFin,
                                                       ).toLocaleDateString()
                                                     : "Activo"}
                                                 </TableCell>
                                                 <TableCell>
-                                                  {historial.motivo_cambio}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex space-x-2">
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                    >
-                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                      Editar
-                                                    </Button>
-                                                  </div>
+                                                  {historial.motivoCambio ??
+                                                    "—"}
                                                 </TableCell>
                                               </TableRow>
                                             ))}
@@ -1014,7 +1271,96 @@ export default function DeportistasPage() {
                                       )}
                                     </TabsContent>
 
-                                    {/* Historial de Grupos */}
+                                    {/* Historial Médico */}
+                                    <TabsContent
+                                      value="medico"
+                                      className="mt-4"
+                                    >
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">
+                                          Historial Médico
+                                        </h4>
+                                        {permissions.includes(
+                                          "crear_historial_medico",
+                                        ) && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                              setMedicoModal({
+                                                deportistaId:
+                                                  deportista.deportistaId,
+                                              })
+                                            }
+                                          >
+                                            <Plus className="h-4 w-4 mr-1" />{" "}
+                                            Nuevo Registro
+                                          </Button>
+                                        )}
+                                      </div>
+                                      {cargandoHistorial[
+                                        deportista.deportistaId
+                                      ] ? (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          Cargando...
+                                        </div>
+                                      ) : (historialMedicoPorDeportista[
+                                          deportista.deportistaId
+                                        ]?.length ?? 0) > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Fecha</TableHead>
+                                              <TableHead>Tipo</TableHead>
+                                              <TableHead>Descripción</TableHead>
+                                              <TableHead>Gravedad</TableHead>
+                                              <TableHead>
+                                                Médico Tratante
+                                              </TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {historialMedicoPorDeportista[
+                                              deportista.deportistaId
+                                            ].map((historial) => (
+                                              <TableRow key={historial.id}>
+                                                <TableCell>
+                                                  {new Date(
+                                                    historial.fechaRegistro,
+                                                  ).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.tipoRegistro ??
+                                                    "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.descripcion}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.gravedad ? (
+                                                    <Badge variant="secondary">
+                                                      {historial.gravedad}
+                                                    </Badge>
+                                                  ) : (
+                                                    "—"
+                                                  )}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {historial.medicoTratante ??
+                                                    "—"}
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <div className="text-center py-4 text-muted-foreground">
+                                          No hay historial médico registrado
+                                        </div>
+                                      )}
+                                    </TabsContent>
+
+                                    {/* Historial de Grupos — pendiente: aún no existe endpoint en el back (fase 2, inscripción) */}
                                     <TabsContent
                                       value="grupos"
                                       className="mt-4"
@@ -1023,71 +1369,11 @@ export default function DeportistasPage() {
                                         <h4 className="font-semibold">
                                           Historial de Grupos
                                         </h4>
-                                        <Button size="sm" variant="outline">
-                                          <Plus className="h-4 w-4 mr-1" />{" "}
-                                          Registrar Cambio de Grupo
-                                        </Button>
                                       </div>
-                                      {getHistorialGruposDeportista(
-                                        deportista.deportistaId,
-                                      ).length > 0 ? (
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead>Grupo</TableHead>
-                                              <TableHead>
-                                                Fecha Inicio
-                                              </TableHead>
-                                              <TableHead>Fecha Fin</TableHead>
-                                              <TableHead>
-                                                Observaciones
-                                              </TableHead>
-                                              <TableHead>Acciones</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {getHistorialGruposDeportista(
-                                              deportista.deportistaId,
-                                            ).map((historial) => (
-                                              <TableRow key={historial.id}>
-                                                <TableCell>
-                                                  {historial.grupo}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {new Date(
-                                                    historial.fecha_inicio,
-                                                  ).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {historial.fecha_fin
-                                                    ? new Date(
-                                                        historial.fecha_fin,
-                                                      ).toLocaleDateString()
-                                                    : "Activo"}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {historial.observaciones}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex space-x-2">
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                    >
-                                                      <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                      Editar
-                                                    </Button>
-                                                  </div>
-                                                </TableCell>
-                                              </TableRow>
-                                            ))}
-                                          </TableBody>
-                                        </Table>
-                                      ) : (
-                                        <div className="text-center py-4 text-muted-foreground">
-                                          No hay historial de grupos registrado
-                                        </div>
-                                      )}
+                                      <div className="text-center py-4 text-muted-foreground">
+                                        Disponible cuando se conecte el módulo
+                                        de inscripción a grupos
+                                      </div>
                                     </TabsContent>
                                   </Tabs>
                                 </TabsContent>
@@ -1338,6 +1624,7 @@ export default function DeportistasPage() {
         </Card>
 
         {/* Agregar Deportista */}
+
         <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
           <DialogContent>
             <DialogTitle>Registrar Nuevo Deportista</DialogTitle>
@@ -1365,6 +1652,65 @@ export default function DeportistasPage() {
                     value={nuevoDeportista.apellidos}
                     onChange={handleInputChange}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="tipo-documento-select">
+                    Tipo de documento
+                  </Label>
+                  <Select
+                    name="tipoDocumento"
+                    value={nuevoDeportista.tipoDocumento}
+                    onValueChange={(value) =>
+                      setNuevoDeportista({
+                        ...nuevoDeportista,
+                        tipoDocumento: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      id="tipo-documento-select"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="RC">Registro Civil (RC)</SelectItem>
+                      <SelectItem value="TI">
+                        Tarjeta de Identidad (TI)
+                      </SelectItem>
+                      <SelectItem value="CC">
+                        Cédula de Ciudadanía (CC)
+                      </SelectItem>
+                      <SelectItem value="CE">
+                        Cédula de Extranjería (CE)
+                      </SelectItem>
+                      <SelectItem value="PA">Pasaporte (PA)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Número de documento</Label>
+                  <Input
+                    name="numeroDocumento"
+                    value={nuevoDeportista.numeroDocumento}
+                    onChange={handleInputChange}
+                    onBlur={(e) => validarDocumento(e.target.value)}
+                  />
+                  {validandoDocumento && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Validando documento...
+                    </p>
+                  )}
+                  {!validandoDocumento && documentoDisponible === false && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Este documento ya está registrado.
+                    </p>
+                  )}
+                  {!validandoDocumento && documentoDisponible === true && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Documento disponible.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label>Dirección</Label>
@@ -1576,6 +1922,46 @@ export default function DeportistasPage() {
                       value={formData.apellidos}
                       onChange={(e) =>
                         handleChange("apellidos", e.target.value)
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Tipo de documento
+                    </Label>
+                    <Select
+                      value={formData.tipoDocumento}
+                      onValueChange={(value) =>
+                        handleChange("tipoDocumento", value)
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RC">Registro Civil (RC)</SelectItem>
+                        <SelectItem value="TI">
+                          Tarjeta de Identidad (TI)
+                        </SelectItem>
+                        <SelectItem value="CC">
+                          Cédula de Ciudadanía (CC)
+                        </SelectItem>
+                        <SelectItem value="CE">
+                          Cédula de Extranjería (CE)
+                        </SelectItem>
+                        <SelectItem value="PA">Pasaporte (PA)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-600">
+                      Número de documento
+                    </Label>
+                    <Input
+                      value={formData.numeroDocumento}
+                      onChange={(e) =>
+                        handleChange("numeroDocumento", e.target.value)
                       }
                       className="mt-1"
                     />
@@ -1813,6 +2199,220 @@ export default function DeportistasPage() {
                 }}
               >
                 Sí, eliminar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* Registrar Cambio de Nivel */}
+        <Dialog
+          open={nivelModal !== null}
+          onOpenChange={() => setNivelModal(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registrar Cambio de Nivel</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Nuevo Nivel</Label>
+                <Select
+                  value={nivelForm.nivelId ? nivelForm.nivelId.toString() : ""}
+                  onValueChange={(value) =>
+                    setNivelForm({ ...nivelForm, nivelId: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar nivel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveles.map((nivel) => (
+                      <SelectItem key={nivel.id} value={nivel.id.toString()}>
+                        {nivel.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fecha de Cambio (opcional)</Label>
+                <Input
+                  type="date"
+                  value={nivelForm.fechaCambio}
+                  onChange={(e) =>
+                    setNivelForm({ ...nivelForm, fechaCambio: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Motivo</Label>
+                <Input
+                  value={nivelForm.motivo}
+                  onChange={(e) =>
+                    setNivelForm({ ...nivelForm, motivo: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNivelModal(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={guardarCambioNivel}
+                disabled={!nivelForm.nivelId}
+              >
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Registrar Cambio de Plan */}
+        <Dialog
+          open={planModal !== null}
+          onOpenChange={() => setPlanModal(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registrar Cambio de Plan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Nuevo Plan</Label>
+                <Select
+                  value={
+                    planForm.planPagoId ? planForm.planPagoId.toString() : ""
+                  }
+                  onValueChange={(value) =>
+                    setPlanForm({ ...planForm, planPagoId: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {planesPago.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id.toString()}>
+                        {plan.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fecha de Cambio (opcional)</Label>
+                <Input
+                  type="date"
+                  value={planForm.fechaCambio}
+                  onChange={(e) =>
+                    setPlanForm({ ...planForm, fechaCambio: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Motivo del Cambio</Label>
+                <Input
+                  value={planForm.motivoCambio}
+                  onChange={(e) =>
+                    setPlanForm({ ...planForm, motivoCambio: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPlanModal(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={guardarCambioPlan}
+                disabled={!planForm.planPagoId}
+              >
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Nuevo Registro Médico */}
+        <Dialog
+          open={medicoModal !== null}
+          onOpenChange={() => setMedicoModal(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nuevo Registro Médico</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Descripción</Label>
+                <Input
+                  value={medicoForm.descripcion}
+                  onChange={(e) =>
+                    setMedicoForm({
+                      ...medicoForm,
+                      descripcion: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Fecha de Registro</Label>
+                <Input
+                  type="date"
+                  value={medicoForm.fechaRegistro}
+                  onChange={(e) =>
+                    setMedicoForm({
+                      ...medicoForm,
+                      fechaRegistro: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Tipo de Registro</Label>
+                <Input
+                  placeholder="Ej: Alergia, Lesión, Condición crónica..."
+                  value={medicoForm.tipoRegistro}
+                  onChange={(e) =>
+                    setMedicoForm({
+                      ...medicoForm,
+                      tipoRegistro: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Gravedad</Label>
+                <Input
+                  placeholder="Ej: Leve, Moderada, Grave"
+                  value={medicoForm.gravedad}
+                  onChange={(e) =>
+                    setMedicoForm({ ...medicoForm, gravedad: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Médico Tratante</Label>
+                <Input
+                  value={medicoForm.medicoTratante}
+                  onChange={(e) =>
+                    setMedicoForm({
+                      ...medicoForm,
+                      medicoTratante: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMedicoModal(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={guardarHistorialMedico}
+                disabled={!medicoForm.descripcion || !medicoForm.fechaRegistro}
+              >
+                Guardar
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -64,6 +64,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
+import { api } from "@/lib/api";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { toast } from "react-toastify";
@@ -92,8 +93,8 @@ export default function NivelesPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    axios
-      .get(`${API_URL}/api/niveles/detallado`)
+    api
+      .get(`/api/niveles/detallado`)
       .then((res) => {
         setNiveles(res.data);
       })
@@ -111,23 +112,23 @@ export default function NivelesPage() {
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
-  const onCreated = () => {
-    axios
-      .get(`${API_URL}/api/niveles/detallado`)
-      .then((res) => {
-        setNiveles(res.data);
-      })
-      .catch((err) => {
-        console.error("Error cargando niveles:", err);
-      });
-  };
+ const onCreated = () => {
+  api
+    .get(`/api/niveles/detallado`)
+    .then((res) => {
+      setNiveles(res.data);
+    })
+    .catch((err) => {
+      console.error("Error cargando niveles:", err);
+    });
+};
 
   useEffect(() => {
-    axios
-      .get(`${API_URL}/api/categorias-nivel`)
-      .then((res) => setCategorias(res.data))
-      .catch((err) => console.error("Error cargando categorías:", err));
-  }, []);
+  api
+    .get(`/api/categorias-nivel`)
+    .then((res) => setCategorias(res.data))
+    .catch((err) => console.error("Error cargando categorías:", err));
+}, []);
 
   const [modalAbierto, setModalAbierto] = useState(false);
 
@@ -143,8 +144,8 @@ export default function NivelesPage() {
       categoriaId: parseInt(categoriaId),
     };
 
-    axios
-      .post(`${API_URL}/api/niveles`, payload)
+    api
+      .post(`/api/niveles`, payload)
       .then(() => {
         toast(`El nivel ${nombre} fue creado correctamente.`);
 
@@ -173,8 +174,8 @@ export default function NivelesPage() {
   const handleDelete = () => {
     if (nivelAEliminar === null) return;
 
-    axios
-      .delete(`${API_URL}/api/niveles/${nivelAEliminar}`)
+    api
+      .delete(`/api/niveles/${nivelAEliminar}`)
       .then(() => {
         toast.success(`El nivel fue eliminado correctamente.`);
 

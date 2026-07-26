@@ -45,12 +45,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import axios from "axios";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import React from "react";
 import { toast } from "react-toastify";
-import DeportistaElegibleItem from "../components/Forms/DeportistaElegibleItem";
+import AsignarDeportistasModal from "../components/Forms/AsignarDeportistasModal";
 import { ModalAsignarEntrenador } from "../components/Forms/AsignarEntrenadorModal";
+import { api } from "@/lib/api";
 
 interface Grupo {
   id: number;
@@ -74,14 +74,15 @@ interface Grupo {
       id: number;
       nombre: string;
     };
-    deportistas: {
-      id: number;
-      nombre: string;
-      edad: number;
-      nivel_id: number;
-    };
+    cantidadMin?: number | null;
+    cantidadMax?: number | null;
   };
-  deportistas?: { id: number; nombre: string }[]; // Si aplica
+  deportistas?: {
+    id: number;
+    nombre: string;
+    apellidos?: string;
+    fechaNacimiento?: string;
+  }[];
 }
 
 interface TipoGrupo {
@@ -94,25 +95,11 @@ interface CategoriaNivel {
   nombre: string;
 }
 
-interface Props {
-  grupos: Grupo[];
-  onGrupoUpdated: () => void; // Para refrescar los datos tras editar/borrar
-}
-interface Deportista {
-  id: number;
-  nombre: string;
-  apellido: string;
-  genero: string;
-  nivel: string;
-}
-
 export default function GruposPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  //const [deportistas, setDeportistas] = useState<Deportista[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [tiposGrupo, setTiposGrupo] = useState<TipoGrupo[]>([]);
   const [categoriasNivel, setCategoriasNivel] = useState<CategoriaNivel[]>([]);
-  //const [editGrupo, setEditGrupo] = useState<any>(null); // Ajustar el tipo de acuerdo a la estructura de editGrupo
 
   const [editGrupo, setEditGrupo] = useState<Grupo | null>(null);
   const [deleteGrupoId, setDeleteGrupoId] = useState<number | null>(null);
@@ -129,26 +116,9 @@ export default function GruposPage() {
   const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<Grupo | null>(
-    null
+    null,
   );
   const [modalDeportistasOpen, setModalDeportistasOpen] = useState(false);
-  const [deportistas, setDeportistas] = useState<Deportista[]>([]);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/inscripciones/inscritos`)
-      .then((res) => res.json())
-      .then((data: any[][]) => {
-        const adaptados: Deportista[] = data.map((arr) => ({
-          id: arr[0],
-          nombre: arr[1],
-          apellido: arr[2],
-          genero: arr[5],
-          nivel: arr[6],
-        }));
-        setDeportistas(adaptados);
-      })
-      .catch((err) => console.error("Error cargando deportistas:", err));
-  }, []);
 
   useEffect(() => {
     fetchGrupos(); // Solo llama a la función
@@ -156,9 +126,7 @@ export default function GruposPage() {
 
   const fetchGrupos = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/api/grupos/con-deportistas`
-      );
+      const response = await api.get(`/api/grupos/con-deportistas`);
       setGrupos(response.data); // Guarda los datos en el estado
     } catch (error) {
       console.error("Error al obtener los grupos:", error);
@@ -166,15 +134,12 @@ export default function GruposPage() {
     }
   };
 
-  //const [tiposGrupo, setTiposGrupo] = useState([]);
-  //const [categoriasNivel, setCategoriasNivel] = useState([]);
-
   useEffect(() => {
     const fetchAuxData = async () => {
       try {
         const [tipos, categorias] = await Promise.all([
-          axios.get(`${API_URL}/api/tipo-grupos`),
-          axios.get(`${API_URL}/api/categorias-nivel`),
+          api.get(`/api/tipo-grupos`),
+          api.get(`/api/categorias-nivel`),
         ]);
         setTiposGrupo(tipos.data);
         setCategoriasNivel(categorias.data);
@@ -189,16 +154,14 @@ export default function GruposPage() {
     if (!deleteGrupoId) return;
 
     try {
-      const res = await axios.delete(
-        `${API_URL}/api/grupos/${deleteGrupoId}`
-      );
+      const res = await api.delete(`/api/grupos/${deleteGrupoId}`);
       toast.success("Grupo eliminado correctamente.");
       setConfirmDeleteOpen(false);
       fetchGrupos(); // 🔄 Refrescar la lista
     } catch (error: any) {
       console.error("Error al eliminar grupo:", error);
       toast.error(
-        error.response?.data?.message || "Error al eliminar el grupo."
+        error.response?.data?.message || "Error al eliminar el grupo.",
       );
     }
   };
@@ -209,16 +172,12 @@ export default function GruposPage() {
     if (!editGrupo || !editGrupo.id) return;
 
     try {
-      const response = await axios.put(
-        `${API_URL}/api/grupos/${editGrupo.id}`,
-        {
-          id: editGrupo.id,
-          nombre: editGrupo.nombre,
-          tipoGrupoId: editGrupo.tipoGrupo?.id, // ID del tipo de grupo
-          categoriaNivelId: editGrupo.categoriaNivel?.id, // ID de la categoría de nivel
-          // Puedes añadir más campos si es necesario
-        }
-      );
+      const response = await api.put(`/api/grupos/${editGrupo.id}`, {
+        id: editGrupo.id,
+        nombre: editGrupo.nombre,
+        tipoGrupoId: editGrupo.tipoGrupo?.id, // ID del tipo de grupo
+        categoriaNivelId: editGrupo.categoriaNivel?.id, // ID de la categoría de nivel
+      });
       toast.success("Grupo actualizado correctamente");
       setEditModalOpen(false);
       fetchGrupos(); // Refrescar la lista de grupos si es necesario
@@ -228,11 +187,43 @@ export default function GruposPage() {
     }
   };
 
+  const handleQuitarDeportista = async (
+    grupoId: number,
+    deportistaId: number,
+  ) => {
+    try {
+      const response = await api.delete(
+        `/api/grupos/${grupoId}/deportistas/${deportistaId}`,
+      );
+      toast.success(response.data || "Deportista removido del grupo");
+      fetchGrupos();
+    } catch (error: any) {
+      console.error("Error al quitar deportista:", error);
+      toast.error(
+        error.response?.data ?? "Error al quitar al deportista del grupo.",
+      );
+    }
+  };
+
+  const calcularEdad = (fechaNacimiento?: string) => {
+    if (!fechaNacimiento) return null;
+    const nacimiento = new Date(fechaNacimiento);
+    if (isNaN(nacimiento.getTime())) return null;
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const cumplioEsteAño =
+      hoy.getMonth() > nacimiento.getMonth() ||
+      (hoy.getMonth() === nacimiento.getMonth() &&
+        hoy.getDate() >= nacimiento.getDate());
+    if (!cumplioEsteAño) edad -= 1;
+    return edad;
+  };
+
   const toggleGroupExpand = (groupId: number) => {
     setExpandedGroups((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        : [...prev, groupId],
     );
   };
 
@@ -243,7 +234,7 @@ export default function GruposPage() {
       grupo.categoriaNivel?.nombre
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      grupo.tipoGrupo?.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      grupo.tipoGrupo?.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -330,6 +321,10 @@ export default function GruposPage() {
                           ? categoria.division.id
                           : 0;
                         const nivelId = categoria ? categoria.nivel.id : 0;
+                        const cantidadActual = grupo.deportistas?.length ?? 0;
+                        const cupoMaximo = categoria?.cantidadMax ?? null;
+                        const grupoLleno =
+                          cupoMaximo != null && cantidadActual >= cupoMaximo;
 
                         return (
                           // Usa el ID del grupo como key para la fila principal
@@ -353,7 +348,6 @@ export default function GruposPage() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline">
-                                  {/* Acceso directo a las propiedades anidadas */}
                                   {grupo.tipoGrupo?.nombre}
                                 </Badge>
                               </TableCell>
@@ -367,8 +361,17 @@ export default function GruposPage() {
                                 {grupo.categoriaNivel?.nivel?.nombre}
                               </TableCell>
                               <TableCell>
-                                {/* Asegúrate de que deportistas sea un array y accede a su length */}
-                                {grupo.deportistas?.length ?? 0}
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    grupoLleno
+                                      ? "bg-red-50 text-red-700 border-red-200"
+                                      : ""
+                                  }
+                                >
+                                  {cantidadActual}
+                                  {cupoMaximo != null ? `/${cupoMaximo}` : ""}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <div className="flex space-x-2">
@@ -408,23 +411,31 @@ export default function GruposPage() {
                                     <div className="flex justify-between items-center mb-2">
                                       <h3 className="font-semibold">
                                         Deportistas en este grupo
-                                      </h3>{/*
-                                      <Button size="sm" variant="outline">
-                                        <UserPlus className="h-4 w-4 mr-1" />{" "}
-                                        Asignar Entrenador
-                                      </Button>*/}
-                                     <ModalAsignarEntrenador />
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setGrupoSeleccionado(grupo);
-                                          setModalDeportistasOpen(true);
-                                        }}
-                                      >
-                                        <UserPlus className="h-4 w-4 mr-1" />{" "}
-                                        Añadir Deportista
-                                      </Button>
+                                      </h3>
+                                      <div className="flex items-center gap-2">
+                                        <ModalAsignarEntrenador
+                                          grupoId={grupo.id}
+                                          grupoNombre={grupo.nombre}
+                                          onEntrenadorAsignado={fetchGrupos}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={grupoLleno}
+                                          title={
+                                            grupoLleno
+                                              ? "El grupo ya alcanzó su cupo máximo"
+                                              : undefined
+                                          }
+                                          onClick={() => {
+                                            setGrupoSeleccionado(grupo);
+                                            setModalDeportistasOpen(true);
+                                          }}
+                                        >
+                                          <UserPlus className="h-4 w-4 mr-1" />{" "}
+                                          Añadir Deportista
+                                        </Button>
+                                      </div>
                                     </div>
 
                                     <Table>
@@ -437,45 +448,46 @@ export default function GruposPage() {
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                        {/* Mapea sobre los deportistas del grupo ACTUAL */}
                                         {grupo.deportistas?.map(
-                                          // Asegúrate de que deportistas sea un array
-                                          (deportista) => (
-                                            // Usa el ID del deportista como key
-                                            <TableRow key={deportista.id}>
-                                              <TableCell>
-                                                {deportista.nombre}
-                                              </TableCell>
-                                              {/* Accede a la edad del deportista directamente */}
-                                              <TableCell> años</TableCell>
-                                              <TableCell>
-                                                {/* Asumiendo que el objeto deportista tiene una propiedad 'nivel' */}
-                                                NA
-                                                {/*deportista.nivel?.nombre || "N/A"*/}
-                                              </TableCell>
-                                              <TableCell>
-                                                <div className="flex space-x-2">
-                                                  {/* Botones para el deportista dentro del grupo */}
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    // onClick={() => handleEditDeportistaInGroup(deportista.id, grupo.id)} // Ejemplo: Si tuvieras lógica para editar deportista en grupo
-                                                  >
-                                                    <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                    Editar
-                                                  </Button>
-                                                  <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    // onClick={() => handleRemoveDeportistaFromGroup(deportista.id, grupo.id)} // Ejemplo: Si tuvieras lógica para quitar deportista
-                                                  >
-                                                    <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                    Quitar
-                                                  </Button>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          )
+                                          (deportista) => {
+                                            const edad = calcularEdad(
+                                              deportista.fechaNacimiento,
+                                            );
+                                            return (
+                                              <TableRow key={deportista.id}>
+                                                <TableCell>
+                                                  {deportista.nombre}{" "}
+                                                  {deportista.apellidos ?? ""}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {edad != null
+                                                    ? `${edad} años`
+                                                    : "N/A"}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {grupo.categoriaNivel
+                                                    ?.nombre ?? "N/A"}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex space-x-2">
+                                                    <Button
+                                                      variant="destructive"
+                                                      size="sm"
+                                                      onClick={() =>
+                                                        handleQuitarDeportista(
+                                                          grupo.id,
+                                                          deportista.id,
+                                                        )
+                                                      }
+                                                    >
+                                                      <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                                      Quitar
+                                                    </Button>
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          },
                                         )}
                                       </TableBody>
                                     </Table>
@@ -503,11 +515,7 @@ export default function GruposPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  await axios.post(
-                    `${API_URL}/api/grupos`,
-                    nuevoGrupo
-                  );
-                  console.log("Grupo creado:", nuevoGrupo);
+                  await api.post(`/api/grupos`, nuevoGrupo);
                   toast.success("Grupo creado exitosamente");
                   setCreateModalOpen(false);
                   setNuevoGrupo({
@@ -625,7 +633,6 @@ export default function GruposPage() {
                     setEditGrupo({ ...editGrupo, nombre: e.target.value })
                   }
                 />
-                {/* Selector para Tipo de Grupo */}
                 <div>
                   <label
                     htmlFor="tipoGrupo"
@@ -658,7 +665,6 @@ export default function GruposPage() {
                   </select>
                 </div>
 
-                {/* Selector para Categoría de Nivel */}
                 <div>
                   <label
                     htmlFor="categoriaNivel"
@@ -674,26 +680,9 @@ export default function GruposPage() {
                       setEditGrupo({
                         ...editGrupo,
                         categoriaNivel: {
+                          ...editGrupo.categoriaNivel,
                           id: parseInt(e.target.value),
                           nombre: "",
-                          nivel: {
-                            id: 0,
-                            nombre: "",
-                          },
-                          division: {
-                            id: 0,
-                            nombre: "",
-                          },
-                          estadoCategoriaNivel: {
-                            id: 0,
-                            nombre: "",
-                          },
-                          deportistas: {
-                            id: 0,
-                            nombre: "",
-                            edad: 0,
-                            nivel_id: 0,
-                          },
                         },
                       })
                     }
@@ -723,33 +712,16 @@ export default function GruposPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Modal para añadir deportista a grupo*/}
-        <Dialog
-          open={modalDeportistasOpen}
-          onOpenChange={setModalDeportistasOpen}
-        >
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>
-                Añadir Deportista al Grupo: {grupoSeleccionado?.nombre}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {grupoSeleccionado &&
-                deportistas.map((deportista) => (
-                  <DeportistaElegibleItem
-                    key={deportista.id}
-                    deportista={deportista}
-                    grupoId={grupoSeleccionado.id}
-                    onSuccess={() => {
-                      toast.success("Deportista añadido con éxito");
-                      setModalDeportistasOpen(false);
-                    }}
-                  />
-                ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Modal para añadir deportista a grupo (1 sola llamada batch, cupo visible) */}
+        {grupoSeleccionado && (
+          <AsignarDeportistasModal
+            grupoId={grupoSeleccionado.id}
+            grupoNombre={grupoSeleccionado.nombre}
+            open={modalDeportistasOpen}
+            onOpenChange={setModalDeportistasOpen}
+            onDeportistaAgregado={fetchGrupos}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );

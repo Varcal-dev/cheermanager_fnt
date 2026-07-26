@@ -53,6 +53,7 @@ import {
 import { toast } from "react-toastify";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
+import { api } from "@/lib/api";
 import { set } from "date-fns";
 
 // Datos de ejemplo para entrenadores
@@ -171,8 +172,8 @@ export default function EntrenadoresPage() {
 
   const fetchEntrenadores = async () => {
     try {
-      const response = await axios.get<Entrenador[]>(
-        `${API_URL}/api/entrenadores`,
+      const response = await api.get<Entrenador[]>(
+        `/api/entrenadores`,
         { withCredentials: true }
       );
 
@@ -198,7 +199,7 @@ export default function EntrenadoresPage() {
         estadoId: nuevoEntrenador.estadoId,
       };
       console.log("Entrenador guardado:", payload);
-      await axios.post(`${API_URL}/api/entrenadores`, payload, {
+      await api.post(`/api/entrenadores`, payload, {
         withCredentials: true,
       });
 
@@ -252,8 +253,8 @@ export default function EntrenadoresPage() {
   }, [entrenadorSeleccionado, isEditModalOpen]);
 
   const actualizarEntrenador = () => {
-    axios
-      .put(`${API_URL}/api/entrenadores/${formData.id}`, formData, {
+    api
+      .put(`/api/entrenadores/${formData.id}`, formData, {
         withCredentials: true,
       })
       .then(() => {
@@ -265,7 +266,7 @@ export default function EntrenadoresPage() {
 
   const eliminarEntrenador = async (id: number) => {
     try {
-      await axios.patch(`${API_URL}/api/entrenadores/${id}`, {
+      await api.patch(`/api/entrenadores/${id}`, {
         withCredentials: true,
       });
       toast.success("Entrenador eliminado correctamente");
@@ -296,12 +297,12 @@ export default function EntrenadoresPage() {
   
 
   const obtenerEstadosPersona = async () => {
-    const res = await axios.get(`${API_URL}/api/personas/estados`); // este endpoint lo crearemos abajo
+    const res = await api.get(`/api/personas/estados`); // este endpoint lo crearemos abajo
     return res.data;
-  };
+  }
 
   const obtenerGeneros = async () => {
-    const res = await axios.get(`${API_URL}/api/usuario/genero/listar`);
+    const res = await api.get(`/api/usuario/genero/listar`);
     return res.data;
   };
 

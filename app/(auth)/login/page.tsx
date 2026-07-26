@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { api, setAuthToken } from "@/lib/api";
+import { useUser } from "@/context/UserContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +23,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
-  //const [email, setEmail] = useState("")
-  //const [password, setPassword] = useState("")
+  const { refreshUser } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [serverMessage, setServerMessage] = useState("");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -47,26 +46,38 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setServerMessage("");
+
     try {
       const response = await api.post("/api/login", {
-      email: formData.email,
-      password: formData.password,
-    });
+        email: formData.email,
+        password: formData.password,
+      });
 
-    setServerMessage(response.data.message || "");
-    if (response.data.success) {
-      setAuthToken(response.data.token);
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1500);
-    }
-    } catch (err: any) {
-      // Si el backend responde con error, mostrar el mensaje del backend si existe
-      if (err.response && err.response.data && err.response.data.message) {
-        setServerMessage(err.response.data.message);
+      if (response.data.success) {
+        setAuthToken(response.data.token);
+        // Refrescamos el UserContext ANTES de navegar para que el resto de la
+        // app (Sidebar, ProtectedRoute, etc.) ya tenga el usuario/permisos
+        // cargados en cuanto llegue a la siguiente pantalla.
+        await refreshUser();
+
+        if (response.data.requiereCambioPassword) {
+          // Usuario con contraseña por defecto (ej. deportistas/entrenadores
+          // creados automáticamente con "0000"): forzamos cambio antes de
+          // dejarlo entrar al resto del sistema.
+          router.push("/cambiar-password");
+        } else {
+          router.push("/");
+        }
       } else {
-        setServerMessage("Error al conectar con el servidor");
+        setError(response.data.message || "No se pudo iniciar sesión");
+      }
+    } catch (err: any) {
+      // El backend devuelve el mensaje de error en response.data.message
+      // tanto para credenciales inválidas (401/404) como cuenta bloqueada (423).
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Error al conectar con el servidor");
       }
     } finally {
       setLoading(false);
@@ -101,7 +112,7 @@ export default function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"

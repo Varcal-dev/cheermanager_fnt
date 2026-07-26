@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogTrigger,
@@ -11,12 +13,25 @@ import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandInput,
-  CommandItem,
   CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
 } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { UserPlus, Loader2, CalendarDays } from "lucide-react";
 import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 
 interface DeportistaDisponible {
   deportista_id: number;
@@ -29,208 +44,385 @@ interface PlanPago {
   nombre: string;
 }
 
+interface Convenio {
+  id: number;
+  nombreEmpresa: string;
+  descuento?: { nombre: string };
+}
+
+function iniciales(nombre: string) {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
 export default function InscribirDeportistaModal({
   onInscripcionExitosa,
 }: {
   onInscripcionExitosa: () => void;
 }) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [open, setOpen] = useState(false);
-  const [deportistas, setDeportistas] = useState<DeportistaDisponible[]>([]);
-  const [planesPago, setPlanesPago] = useState<PlanPago[]>([]);
-  const [deportistaSeleccionado, setDeportistaSeleccionado] = useState<
-    number | null
-  >(null);
-  const [planSeleccionado, setPlanSeleccionado] = useState<number | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
-  // Fecha por defecto: último día del año actual
+  const [deportistas, setDeportistas] = useState<DeportistaDisponible[]>([]);
+  const [planesInscripcion, setPlanesInscripcion] = useState<PlanPago[]>([]);
+  const [planesMensualidad, setPlanesMensualidad] = useState<PlanPago[]>([]);
+  const [convenios, setConvenios] = useState<Convenio[]>([]);
+
+  const [deportistaSeleccionado, setDeportistaSeleccionado] =
+    useState<DeportistaDisponible | null>(null);
+  const [planSeleccionado, setPlanSeleccionado] = useState<string>("");
+  const [planMensualidadSeleccionado, setPlanMensualidadSeleccionado] =
+    useState<string>("");
+  const [convenioSeleccionado, setConvenioSeleccionado] = useState<string>("");
+
   const [fechaVencimiento, setFechaVencimiento] = useState(() => {
     const año = new Date().getFullYear();
-    return new Date(año, 11, 31).toISOString().slice(0, 10); // 31 diciembre año actual
+    return new Date(año, 11, 31).toISOString().slice(0, 10);
   });
 
-  const [convenios, setConvenios] = useState<any[]>([]);
-  const [convenioSeleccionado, setConvenioSeleccionado] = useState<
-    number | null
-  >(null);
-
   useEffect(() => {
-    if (open) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inscripciones/no-inscritos`)
-        .then((res) => res.json())
-        .then((data: any[][]) => {
-          const deportistasTransformados = data.map((d) => ({
-            deportista_id: d[0],
-            nombre_completo: d[1],
-            nivel: d[2],
-          }));
-          setDeportistas(deportistasTransformados);
-        });
+    if (!open) return;
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/planes-mensualidad`)
-        .then((res) => res.json())
-        .then((data: any[]) => {
-          const planesTransformados = data.map((p) => ({
-            id: p.id,
-            nombre: p.tipoPlan, // mapear tipoPlan a nombre
-          }));
-          setPlanesPago(planesTransformados);
-        });
+    setCargando(true);
+    setDeportistaSeleccionado(null);
+    setPlanSeleccionado("");
+    setPlanMensualidadSeleccionado("");
+    setConvenioSeleccionado("");
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/convenios`)
-        .then((res) => res.json())
-        .then((data) => setConvenios(data));
-    }
+    Promise.allSettled([
+      api.get("/api/inscripciones/no-inscritos"),
+      api.get("/api/planes-pago", { params: { categoria: "inscripcion" } }),
+      api.get("/api/planes-pago", { params: { categoria: "mensualidad" } }),
+      api.get("/api/convenios"),
+    ]).then(([resDeportistas, resPlanes, resPlanesMensualidad, resConvenios]) => {
+      if (resDeportistas.status === "fulfilled") {
+        setDeportistas(
+          resDeportistas.value.data.map((d: any) => ({
+            deportista_id: d.deportistaId,
+            nombre_completo: d.nombreCompleto,
+            nivel: d.nivel,
+          })),
+        );
+      } else {
+        toast.error("No se pudo cargar la lista de deportistas disponibles");
+      }
+
+      if (resPlanes.status === "fulfilled") {
+        setPlanesInscripcion(resPlanes.value.data);
+      } else {
+        toast.error("No se pudieron cargar los planes de inscripción");
+      }
+
+      if (resPlanesMensualidad.status === "fulfilled") {
+        setPlanesMensualidad(resPlanesMensualidad.value.data);
+      } else {
+        toast.error("No se pudieron cargar los planes de mensualidad");
+      }
+
+      if (resConvenios.status === "fulfilled") {
+        setConvenios(resConvenios.value.data);
+      }
+
+      setCargando(false);
+    });
   }, [open]);
+
+  const planActual = useMemo(
+    () => planesInscripcion.find((p) => String(p.id) === planSeleccionado),
+    [planesInscripcion, planSeleccionado],
+  );
+
+  const planMensualidadActual = useMemo(
+    () =>
+      planesMensualidad.find(
+        (p) => String(p.id) === planMensualidadSeleccionado,
+      ),
+    [planesMensualidad, planMensualidadSeleccionado],
+  );
 
   const handleSubmit = async () => {
     if (!deportistaSeleccionado || !planSeleccionado) {
-      toast.error("Selecciona deportista y plan");
-      return;
-    }
-    if (!convenioSeleccionado) {
-      toast.error("Selecciona un convenio");
+      toast.error("Selecciona un deportista y un plan de inscripción");
       return;
     }
 
+    setGuardando(true);
     const hoy = new Date().toISOString().slice(0, 10);
 
-    const body = {
-      deportistaId: deportistaSeleccionado,
-      planPagoId: planSeleccionado,
-      fechaInscripcion: hoy,
-      fechaVencimiento,
-      estado: "Activa",
-    };
-
     try {
-      console.log("Datos a enviar:", body);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inscripciones`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      await api.post("/api/inscripciones", {
+        deportistaId: deportistaSeleccionado.deportista_id,
+        planPagoId: Number(planSeleccionado),
+        // Opcional: si se elige, se factura de una vez el primer mes de
+        // mensualidad junto con la inscripción (antes esto quedaba sin
+        // cobrar — el deportista quedaba inscrito pero sin ningún cargo de
+        // mensualidad asociado).
+        planMensualidadId: planMensualidadSeleccionado
+          ? Number(planMensualidadSeleccionado)
+          : null,
+        fechaInscripcion: hoy,
+        fechaVencimiento,
+        estado: "Activa",
       });
 
-      if (!res.ok) {
-        toast.error("Error al crear inscripcion")
-        throw new Error("Error al crear la inscripción");
-      }
-
-      try {
-        console.log("Datos: ", convenioSeleccionado);
-        const resConvenio = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/deportistas/${deportistaSeleccionado}/convenio`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ convenioId: convenioSeleccionado }),
-          }
-        );
-
-        if (!resConvenio.ok) {
-          toast.error("Error al actualizar el convenio del deportista")
-          throw new Error("Error al actualizar el convenio del deportista");
+      if (convenioSeleccionado) {
+        try {
+          await api.put(
+            `/api/deportistas/${deportistaSeleccionado.deportista_id}/convenio`,
+            { convenioId: Number(convenioSeleccionado) },
+          );
+        } catch {
+          toast.error(
+            "La inscripción fue creada, pero ocurrió un error al asignar el convenio",
+          );
+          onInscripcionExitosa();
+          setOpen(false);
+          return;
         }
-
-        toast.success("Inscripción creada exitosamente");
-        onInscripcionExitosa();
-        setOpen(false);
-      } catch (err) {
-        console.error(err);
-        toast.error(
-          "La inscripción fue creada, pero ocurrió un error al asignar el convenio"
-        );
       }
-    } catch (err) {
-      console.error(err);
+
+      toast.success(
+        `${deportistaSeleccionado.nombre_completo} fue inscrito correctamente`,
+      );
+      onInscripcionExitosa();
+      setOpen(false);
+    } catch {
       toast.error("No se pudo crear la inscripción");
+    } finally {
+      setGuardando(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default">+ Nueva inscripción</Button>
+        <Button>
+          <UserPlus className="mr-2 size-4" />
+          Nueva inscripción
+        </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Inscribir deportista</DialogTitle>
+
+      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle>Inscribir deportista al club</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label>Deportista</Label>
-            <Command>
-              <CommandInput placeholder="Buscar deportista..." />
-              <CommandList className="max-h-40 overflow-y-auto">
-                {deportistas.map((dep, index) => (
-                  <CommandItem
-                    key={dep.deportista_id + "-" + index}
-                    value={dep.nombre_completo}
-                    onSelect={() =>
-                      setDeportistaSeleccionado(dep.deportista_id)
-                    }
-                    className={
-                      deportistaSeleccionado === dep.deportista_id
-                        ? "bg-accent"
-                        : ""
-                    }
-                  >
-                    {dep.nombre_completo} — {dep.nivel}
-                  </CommandItem>
-                ))}
+        <div className="grid grid-cols-[260px_1fr] divide-x">
+          {/* Panel izquierdo: buscador de deportistas */}
+          <div className="flex flex-col">
+            <Command className="rounded-none bg-transparent">
+              <CommandInput placeholder="Buscar deportista…" />
+              <CommandList className="h-[360px]">
+                {cargando ? (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Cargando…
+                  </div>
+                ) : (
+                  <>
+                    <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
+                      No hay deportistas registrados
+                      <br />
+                      pendientes de inscripción.
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {deportistas.map((d) => (
+                        <CommandItem
+                          key={d.deportista_id}
+                          value={d.nombre_completo}
+                          onSelect={() => setDeportistaSeleccionado(d)}
+                          className="flex items-center gap-2 py-2"
+                          data-selected={
+                            deportistaSeleccionado?.deportista_id ===
+                            d.deportista_id
+                          }
+                        >
+                          <Avatar className="size-7">
+                            <AvatarFallback className="bg-primary/10 text-[11px] font-medium text-primary">
+                              {iniciales(d.nombre_completo)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium leading-none">
+                              {d.nombre_completo}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {d.nivel}
+                            </p>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </>
+                )}
               </CommandList>
             </Command>
           </div>
 
-          <div>
-            <Label>Plan de pago</Label>
-            <select
-              className="w-full border rounded-md p-2"
-              value={planSeleccionado ?? ""}
-              onChange={(e) => setPlanSeleccionado(parseInt(e.target.value))}
-            >
-              <option value="">Selecciona un plan</option>
-              {planesPago.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label>Convenio</Label>
-            <select
-              className="w-full border rounded-md p-2"
-              value={convenioSeleccionado ?? ""}
-              onChange={(e) =>
-                setConvenioSeleccionado(parseInt(e.target.value))
-              }
-            >
-              <option value="">Selecciona un convenio</option>
-              {convenios.map((convenio) => (
-                <option key={convenio.id} value={convenio.id}>
-                  {convenio.nombreEmpresa} —{" "}
-                  {convenio.descuento?.nombre ?? "Sin Descuento"}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Panel derecho: deportista elegido + formulario */}
+          <div className="flex flex-col gap-5 p-6">
+            {!deportistaSeleccionado ? (
+              <div className="flex h-[360px] flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+                <UserPlus className="size-8 opacity-40" />
+                <p className="text-sm">
+                  Elige un deportista de la lista para
+                  <br />
+                  completar su inscripción.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+                  <Avatar className="size-10">
+                    <AvatarFallback className="bg-primary text-sm font-medium text-primary-foreground">
+                      {iniciales(deportistaSeleccionado.nombre_completo)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium leading-none">
+                      {deportistaSeleccionado.nombre_completo}
+                    </p>
+                    <Badge variant="outline" className="mt-1.5">
+                      {deportistaSeleccionado.nivel}
+                    </Badge>
+                  </div>
+                </div>
 
-          <div>
-            <Label>Fecha de vencimiento</Label>
-            <input
-              type="date"
-              className="w-full border rounded-md p-2"
-              value={fechaVencimiento}
-              onChange={(e) => setFechaVencimiento(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)} // no dejar fechas pasadas
-            />
+                <div className="grid gap-4">
+                  <div className="grid gap-1.5">
+                    <Label>Plan de inscripción</Label>
+                    <Select
+                      value={planSeleccionado}
+                      onValueChange={setPlanSeleccionado}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planesInscripcion.length === 0 ? (
+                          <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No hay planes de inscripción configurados
+                          </p>
+                        ) : (
+                          planesInscripcion.map((plan) => (
+                            <SelectItem key={plan.id} value={String(plan.id)}>
+                              {plan.nombre}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Plan de mensualidad{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opcional)
+                      </span>
+                    </Label>
+                    <Select
+                      value={planMensualidadSeleccionado}
+                      onValueChange={setPlanMensualidadSeleccionado}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin mensualidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planesMensualidad.length === 0 ? (
+                          <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No hay planes de mensualidad configurados
+                          </p>
+                        ) : (
+                          planesMensualidad.map((plan) => (
+                            <SelectItem key={plan.id} value={String(plan.id)}>
+                              {plan.nombre}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {planMensualidadActual && (
+                      <p className="text-xs text-muted-foreground">
+                        Se generará también la factura del primer mes de
+                        mensualidad, junto con la de inscripción.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label>
+                      Convenio{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opcional)
+                      </span>
+                    </Label>
+                    <Select
+                      value={convenioSeleccionado}
+                      onValueChange={setConvenioSeleccionado}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin convenio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {convenios.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.nombreEmpresa}
+                            {c.descuento?.nombre ? ` — ${c.descuento.nombre}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label>Fecha de vencimiento</Label>
+                    <div className="relative">
+                      <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        className="pl-8"
+                        value={fechaVencimiento}
+                        min={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setFechaVencimiento(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {planActual && (
+                  <p className="text-xs text-muted-foreground">
+                    Se inscribirá con el plan <strong>{planActual.nombre}</strong>,
+                    vigente hasta el {fechaVencimiento}.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
 
-        <DialogFooter>
-          <Button onClick={handleSubmit}>Guardar inscripción</Button>
+        <DialogFooter className="border-t px-6 py-4">
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!deportistaSeleccionado || !planSeleccionado || guardando}
+          >
+            {guardando ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Guardando…
+              </>
+            ) : (
+              "Guardar inscripción"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

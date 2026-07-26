@@ -1,16 +1,20 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { api, getAuthToken, clearAuthToken } from "@/lib/api";
 
-// Definir el tipo de usuario y permisos si lo deseas (opcional, recomendado con TypeScript)
+// El backend expone el usuario autenticado vía GET /api/usuario/me, que devuelve
+// un UsuarioDTO (ver com.varcal.cheermanager.DTO.Ath.UsuarioDTO). Ojo: ese DTO NO
+// trae un campo "rol" sino "rolNombre" (string) y "rolId" (número), y trae los
+// datos de la persona asociada aplanados (nombre, apellidos, etc.), no anidados
+// bajo "persona". Mapeamos aquí a la forma que usa el resto del front.
 interface User {
   id: number;
   username: string;
   email: string;
   rol: string;
-  // ...otros campos
+  rolId: number | null;
+  requiereCambioPassword: boolean;
 }
 
 interface UserContextType {
@@ -18,6 +22,7 @@ interface UserContextType {
   permissions: string[];
   loading: boolean;
   setUser: (user: User | null) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType>({
@@ -25,6 +30,16 @@ const UserContext = createContext<UserContextType>({
   permissions: [],
   loading: true,
   setUser: () => {},
+  refreshUser: async () => {},
+});
+
+const mapUsuarioDTO = (data: any): User => ({
+  id: data.id,
+  username: data.username,
+  email: data.email,
+  rol: data.rolNombre ?? "",
+  rolId: data.rolId ?? null,
+  requiereCambioPassword: Boolean(data.requiereCambioPassword),
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
@@ -32,43 +47,46 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const token = getAuthToken();
-      if (!token) {
-        setUser(null);
-        setPermissions([]);
-        setLoading(false);
-        return;
+  const fetchUserData = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setUser(null);
+      setPermissions([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const [userResponse, permissionsResponse] = await Promise.all([
+        api.get("/api/usuario/me"),
+        api.get("/api/usuario/permisos"),
+      ]);
+
+      setUser(mapUsuarioDTO(userResponse.data));
+      setPermissions(permissionsResponse.data ?? []);
+    } catch (error) {
+      // Token inválido/expirado o el backend no respondió: cerramos sesión local.
+      clearAuthToken();
+
+      if (error instanceof Error) {
+        console.error("Error al obtener datos del usuario:", error);
       }
 
-      try {
-        const [userResponse, permissionsResponse] = await Promise.all([
-          api.get("/api/usuario/me"),
-          api.get("/api/usuario/permisos"),
-        ]);
-
-        setUser(userResponse.data);
-        setPermissions(permissionsResponse.data);
-      } catch (error) {
-        clearAuthToken();
-
-        if (error instanceof Error) {
-          console.error("Error al obtener datos del usuario:", error);
-        }
-
-        setUser(null);
-        setPermissions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
+      setUser(null);
+      setPermissions([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
   return (
-    <UserContext.Provider value={{ user, permissions, loading, setUser }}>
+    <UserContext.Provider
+      value={{ user, permissions, loading, setUser, refreshUser: fetchUserData }}
+    >
       {children}
     </UserContext.Provider>
   );

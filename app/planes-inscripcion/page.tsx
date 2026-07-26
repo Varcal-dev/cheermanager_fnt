@@ -17,117 +17,55 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Download,
-  Search,
-  Users,
-} from "lucide-react";
+import { Download, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import axios from "axios";
-
-interface PlanInscripcion {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  valor: number;
-  fechaVigenciaInicio: string;
-  fechaVigenciaFin: string;
-  activo: boolean;
-}
-
-interface PlanInscripcionFront {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  valor: number;
-  fecha_vigencia_inicio: string;
-  fecha_vigencia_fin: string;
-  activo: boolean;
-  deportistas_inscritos: number;
-}
+import { api } from "@/lib/api";
+import { PlanPagoModal, type PlanPago } from "../components/Forms/PlanPagoModal";
+import { EliminarPlanPagoModal } from "../components/Forms/EliminarPlanPagoModal";
 
 export default function PlanesInscripcionPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
-
-  const [planes, setPlanes] = useState<PlanInscripcionFront[]>([]);
-
-  useEffect(() => {
-    const fetchPlanes = async () => {
-      try {
-        const response = await axios.get(
-          `${API_URL}/api/planes-inscripcion/listar`,
-          {
-            withCredentials: true,
-          }
-        );
-
-        const mapped: PlanInscripcionFront[] = response.data.map((plan: any) => ({
-          id: plan.id,
-          nombre: plan.nombre,
-          descripcion: plan.descripcion || "",
-          valor: plan.valor,
-          fecha_vigencia_inicio: plan.fechaVigenciaInicio,
-          fecha_vigencia_fin: plan.fechaVigenciaFin,
-          activo: plan.activo,
-          deportistas_inscritos: 0,
-        }));
-
-        setPlanes(mapped);
-      } catch (error) {
-        console.error("Error al obtener planes de inscripción:", error);
-      }
-    };
-
-    fetchPlanes();
-  }, []);
+  const [planes, setPlanes] = useState<PlanPago[]>([]);
 
   const fetchPlanes = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/api/planes-inscripcion`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      const mapped: PlanInscripcionFront[] = response.data.map((plan: any) => ({
-        id: plan.id,
-        nombre: plan.nombre,
-        descripcion: plan.descripcion || "",
-        valor: plan.valor,
-        fecha_vigencia_inicio: plan.fechaVigenciaInicio,
-        fecha_vigencia_fin: plan.fechaVigenciaFin,
-        activo: plan.activo,
-        deportistas_inscritos: 0,
-      }));
-
-      setPlanes(mapped);
+      const response = await api.get(`/api/planes-pago`, {
+        params: { categoria: "inscripcion" },
+      });
+      setPlanes(response.data);
     } catch (error) {
       console.error("Error al obtener planes de inscripción:", error);
     }
   };
 
-  // Filtrar planes por término de búsqueda y estado activo/inactivo
-  const filteredPlanes = planes.filter((plan: PlanInscripcionFront) => {
+  useEffect(() => {
+    fetchPlanes();
+  }, []);
+
+  const filteredPlanes = planes.filter((plan) => {
     const matchesSearch =
       (plan.nombre?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
-      (plan.descripcion?.toLowerCase() ?? "").includes(
-        searchTerm.toLowerCase()
-      );
+      (plan.descripcion?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
 
     if (!mostrarInactivos) {
       return matchesSearch && plan.activo;
     }
     return matchesSearch;
   });
+
+  const totalInscritos = planes.reduce(
+    (total, plan: any) => total + (plan.deportistasInscritos ?? 0),
+    0,
+  );
+  const ingresoTotal = planes.reduce(
+    (total, plan: any) =>
+      total + plan.valorMensual * (plan.deportistasInscritos ?? 0),
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -138,9 +76,7 @@ export default function PlanesInscripcionPage() {
             Gestiona los planes de inscripción disponibles para los deportistas
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Plan
-        </Button>
+        <PlanPagoModal categoria="inscripcion" onGuardado={fetchPlanes} />
       </div>
 
       <div className="flex justify-between mb-4">
@@ -186,23 +122,24 @@ export default function PlanesInscripcionPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPlanes.map((plan) => (
+              {filteredPlanes.map((plan: any) => (
                 <TableRow key={plan.id}>
                   <TableCell className="font-medium">{plan.nombre}</TableCell>
                   <TableCell>{plan.descripcion}</TableCell>
                   <TableCell>
-                    {" "}
                     {new Intl.NumberFormat("es-CO", {
                       style: "currency",
                       currency: "COP",
                       minimumFractionDigits: 0,
-                    }).format(plan.valor)}
+                    }).format(plan.valorMensual)}
                   </TableCell>
                   <TableCell>
-                    {new Date(plan.fecha_vigencia_inicio).toLocaleDateString()}{" "}
-                    - {new Date(plan.fecha_vigencia_fin).toLocaleDateString()}
+                    {new Date(plan.fechaVigenciaInicio).toLocaleDateString()}
+                    {plan.fechaVigenciaFin
+                      ? ` - ${new Date(plan.fechaVigenciaFin).toLocaleDateString()}`
+                      : " - Indefinida"}
                   </TableCell>
-                  <TableCell>{plan.deportistas_inscritos}</TableCell>
+                  <TableCell>{plan.deportistasInscritos ?? 0}</TableCell>
                   <TableCell>
                     <Badge variant={plan.activo ? "default" : "secondary"}>
                       {plan.activo ? "Activo" : "Inactivo"}
@@ -210,12 +147,15 @@ export default function PlanesInscripcionPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Pencil className="h-4 w-4 mr-1" /> Editar
-                      </Button>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                      </Button>
+                      <PlanPagoModal
+                        categoria="inscripcion"
+                        plan={plan}
+                        onGuardado={fetchPlanes}
+                      />
+                      <EliminarPlanPagoModal
+                        planId={plan.id}
+                        onEliminado={fetchPlanes}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -225,9 +165,7 @@ export default function PlanesInscripcionPage() {
         </CardContent>
       </Card>
 
-      {/* Tarjetas Resumen de Planes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/*Total de Planes */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Total de Planes</CardTitle>
@@ -241,25 +179,18 @@ export default function PlanesInscripcionPage() {
             </p>
           </CardContent>
         </Card>
-        {/*Deportistas inscritos */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Deportistas Inscritos</CardTitle>
             <CardDescription>Total de inscripciones activas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {planes.reduce(
-                (total, plan) => total + (plan.deportistas_inscritos ?? 0),
-                0
-              )}
-            </div>
+            <div className="text-3xl font-bold">{totalInscritos}</div>
             <p className="text-xs text-muted-foreground mt-1">
               En todos los planes activos
             </p>
           </CardContent>
         </Card>
-        {/*Ingresos estimado */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Ingreso Total Estimado</CardTitle>
@@ -271,17 +202,11 @@ export default function PlanesInscripcionPage() {
                 style: "currency",
                 currency: "COP",
                 minimumFractionDigits: 0,
-              }).format(
-                planes.reduce(
-                  (total, plan) =>
-                    total + plan.valor * (plan.deportistas_inscritos ?? 0),
-                  0
-                )
-              )}
+              }).format(ingresoTotal)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              <Users className="inline h-3 w-3" /> Sin considerar
-              descuentos aplicados
+              <Users className="inline h-3 w-3" /> Sin considerar descuentos
+              aplicados
             </p>
           </CardContent>
         </Card>

@@ -1,6 +1,5 @@
 "use client";
 import type React from "react";
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -9,22 +8,13 @@ import { ToastContainer } from "react-toastify";
 import Sidebar from "./components/side-bar";
 import { ThemeProvider } from "./components/theme-provider";
 import { TopBar } from "./components/top-bar";
+import { Breadcrumbs } from "./components/Breadcrumbs";
 
-import { UserProvider } from "@/context/UserContext"; // <--- Importa UserProvider
-import ProtectedRoute from "@/components/ProtectedRoute"; // <--- Importa ProtectedRoute si lo usas aquí
+import { UserProvider } from "@/context/UserContext";
 import { usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
-{
-  /*
-export const metadata: Metadata = {
-  title: "Cheer Manager",
-  description:
-    "Cheer Manager: Sistema avanzado de gestión para gimnasios de cheerleading, organiza clases, horarios y atletas de manera eficiente.",
-};
-*/
-}
 export default function RootLayout({
   children,
 }: {
@@ -32,7 +22,10 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/recuperar-password");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/recuperar-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/cambiar-password");
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -43,7 +36,6 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {/* Envuelve la parte principal con UserProvider */}
           <UserProvider>
             <div className="flex h-screen bg-background flex-col">
               {!isAuthRoute && <TopBar />}
@@ -53,7 +45,10 @@ export default function RootLayout({
                     <Sidebar />
                   </div>
                 )}
-                <main className="flex-1 overflow-y-auto p-8">{children}</main>
+                <main className="flex-1 overflow-y-auto p-8">
+                  {!isAuthRoute && <Breadcrumbs />}
+                  {children}
+                </main>
               </div>
             </div>
           </UserProvider>
