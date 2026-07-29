@@ -54,6 +54,7 @@ import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import NuevoHorarioModal from "../components/Forms/NuevoHorarioModal";
 import AsignarHorarioAGrupoModal from "../components/Forms/AsignarHorarioAGrupoModal";
+import CalendarioSemanal from "../components/Horarios/CalendarioSemanal";
 
 interface GrupoAsociado {
   horarioEntrenamientoId: number;
@@ -381,7 +382,7 @@ export default function HorariosPage() {
               Gestiona los horarios de entrenamiento y registra asistencias
             </p>
           </div>
-          {activeTab === "horarios" && (
+          {(activeTab === "horarios" || activeTab === "calendario") && (
             <Button
               onClick={() => {
                 setHorarioEditar(null);
@@ -398,8 +399,9 @@ export default function HorariosPage() {
           className="w-full"
           onValueChange={setActiveTab}
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="horarios">Horarios</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
           </TabsList>
 
@@ -528,6 +530,20 @@ export default function HorariosPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ================= CALENDARIO ================= */}
+          <TabsContent value="calendario">
+            {loadingHorarios ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Cargando
+                  calendario...
+                </CardContent>
+              </Card>
+            ) : (
+              <CalendarioSemanal horarios={horarios} />
+            )}
           </TabsContent>
 
           {/* ================= ASISTENCIAS ================= */}

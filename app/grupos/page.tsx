@@ -90,6 +90,28 @@ interface TipoGrupo {
   nombre: string;
 }
 
+interface HorarioSimple {
+  id: number;
+  dia: string;
+  horaInicio: string; // "HH:mm:ss"
+  horaFin: string;
+  grupos: { grupoId: number }[];
+}
+
+const ORDEN_DIAS: Record<string, number> = {
+  lunes: 1,
+  martes: 2,
+  miércoles: 3,
+  miercoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sábado: 6,
+  sabado: 6,
+  domingo: 7,
+};
+
+const formatHora = (hora: string) => hora?.slice(0, 5) ?? "";
+
 interface CategoriaNivel {
   id: number;
   nombre: string;
@@ -119,10 +141,32 @@ export default function GruposPage() {
     null,
   );
   const [modalDeportistasOpen, setModalDeportistasOpen] = useState(false);
+  const [horarios, setHorarios] = useState<HorarioSimple[]>([]);
 
   useEffect(() => {
     fetchGrupos(); // Solo llama a la función
   }, []);
+
+  useEffect(() => {
+    // Se reutiliza el mismo endpoint que usa horarios/page.tsx para saber
+    // qué horarios tiene asignados cada grupo, sin duplicar lógica en el back.
+    api
+      .get(`/api/horarios`)
+      .then((res) => setHorarios(res.data))
+      .catch((error) => {
+        console.error("Error al obtener horarios:", error);
+      });
+  }, []);
+
+  const horariosDeGrupo = (grupoId: number) =>
+    horarios
+      .filter((h) => h.grupos.some((g) => g.grupoId === grupoId))
+      .sort((a, b) => {
+        const diaA = ORDEN_DIAS[a.dia.toLowerCase()] ?? 99;
+        const diaB = ORDEN_DIAS[b.dia.toLowerCase()] ?? 99;
+        if (diaA !== diaB) return diaA - diaB;
+        return a.horaInicio.localeCompare(b.horaInicio);
+      });
 
   const fetchGrupos = async () => {
     try {
@@ -311,6 +355,7 @@ export default function GruposPage() {
                         <TableHead>División</TableHead>
                         <TableHead>Nivel</TableHead>
                         <TableHead>Deportistas</TableHead>
+                        <TableHead>Horario</TableHead>
                         <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -374,6 +419,27 @@ export default function GruposPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
+                                <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                  {horariosDeGrupo(grupo.id).length === 0 ? (
+                                    <span className="text-sm text-muted-foreground">
+                                      Sin horario
+                                    </span>
+                                  ) : (
+                                    horariosDeGrupo(grupo.id).map((h) => (
+                                      <Badge
+                                        key={h.id}
+                                        variant="outline"
+                                        className="text-xs whitespace-nowrap"
+                                      >
+                                        {h.dia.slice(0, 3)}{" "}
+                                        {formatHora(h.horaInicio)}-
+                                        {formatHora(h.horaFin)}
+                                      </Badge>
+                                    ))
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
                                 <div className="flex space-x-2">
                                   {/* Botones de Editar y Eliminar */}
                                   <Button
@@ -406,7 +472,7 @@ export default function GruposPage() {
                                 key={`${grupo.id}-deportistas`}
                                 className="bg-muted/50"
                               >
-                                <TableCell colSpan={8} className="p-0">
+                                <TableCell colSpan={9} className="p-0">
                                   <div className="p-4">
                                     <div className="flex justify-between items-center mb-2">
                                       <h3 className="font-semibold">

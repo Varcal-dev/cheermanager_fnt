@@ -22,6 +22,7 @@ import {
   Search,
   FileText,
   Target,
+  UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -69,6 +70,7 @@ import {
 } from "@/lib/deportistas-historiales";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
+import { useRouter } from "next/navigation";
 
 // Datos de ejemplo
 const deportistas = [
@@ -304,6 +306,21 @@ export default function DeportistasPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deportistaSeleccionado, setDeportistaSeleccionado] =
     useState<Deportista | null>(null);
+
+  const router = useRouter();
+  const [noInscritos, setNoInscritos] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    api
+      .get("/api/inscripciones/no-inscritos")
+      .then((res) => {
+        setNoInscritos(new Set(res.data.map((d: any) => d.deportistaId)));
+      })
+      .catch(() => {
+        // silencioso: si falla, el botón "Matricular" simplemente no aparece
+        // (no es crítico para el resto de la página)
+      });
+  }, []);
 
   const [niveles, setNiveles] = useState<Nivel[]>([]);
   const [generos, setGeneros] = useState<Genero[]>([]);
@@ -972,6 +989,22 @@ export default function DeportistasPage() {
                                 }}
                               >
                                 <Pencil className="h-4 w-4 mr-1" /> Editar
+                              </Button>
+                            )}
+                            {noInscritos.has(deportista.deportistaId) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
+                                onClick={() =>
+                                  router.push(
+                                    `/inscripciones?matricular=${deportista.deportistaId}&nombre=${encodeURIComponent(
+                                      `${deportista.nombre} ${deportista.apellidos}`,
+                                    )}&nivel=${encodeURIComponent(deportista.nivelNombre)}`,
+                                  )
+                                }
+                              >
+                                <UserPlus className="h-4 w-4 mr-1" /> Matricular
                               </Button>
                             )}
                             {/*permissions.includes("eliminar_deportista") && (
@@ -1868,11 +1901,11 @@ export default function DeportistasPage() {
 
         {/* Editar Deportista */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-2">
               <DialogTitle>Editar Deportista</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6 py-4">
+            <div className="space-y-6 px-6 py-4 overflow-y-auto flex-1">
               {/* Sección: Estado Destacado */}
               <div className="flex items-center gap-2 mb-3">
                 <Label className="text-base font-semibold text-blue-900">
@@ -2135,7 +2168,7 @@ export default function DeportistasPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter className="gap-3">
+            <DialogFooter className="gap-3 px-6 pb-6 pt-3 border-t">
               <Button
                 variant="outline"
                 onClick={() => setIsEditModalOpen(false)}
