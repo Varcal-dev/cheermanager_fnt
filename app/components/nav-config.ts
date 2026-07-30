@@ -126,7 +126,7 @@ export const NAV_SECTIONS: NavSection[] = [
         status: "soon",
       },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
-      { href: "/objetivos", label: "Objetivos", icon: Target, status: "soon" },
+      { href: "/objetivos", label: "Objetivos", icon: Target},
     ],
   },
   {
@@ -134,13 +134,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Tienda",
     icon: ShoppingBag,
     permission: "ver_dash_tienda",
-    items: [
-      {
-        href: "/productos",
-        label: "Productos",
-        icon: ShoppingBag,
-        status: "soon",
-      },
+    items: [  
       { href: "/inventario", label: "Inventario", icon: ClipboardList },
       { href: "/ventas", label: "Ventas", icon: ShoppingCart },
     ],

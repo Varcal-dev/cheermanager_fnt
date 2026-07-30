@@ -26,3 +26,29 @@ export interface ResumenInicio {
 
 export const obtenerResumenInicio = () =>
   api.get("/api/dashboard/inicio").then((res) => res.data as ResumenInicio);
+
+export interface ProximoEventoDashboard {
+  eventoId: number;
+  nombre: string;
+  fecha: string;
+  gruposInscritos: number;
+}
+
+export interface PremioGanado {
+  eventoId: number;
+  nombreEvento: string;
+  fechaEvento: string;
+  nombreGrupo: string;
+  posicion: number;
+  puntaje: number;
+  descripcionPremio: string;
+}
+
+export interface ResumenEventos {
+  proximosEventos: ProximoEventoDashboard[];
+  podiosTemporada: number;
+  premiosGanados: PremioGanado[];
+}
+
+export const obtenerResumenEventos = () =>
+  api.get("/api/dashboard/eventos").then((res) => res.data as ResumenEventos);

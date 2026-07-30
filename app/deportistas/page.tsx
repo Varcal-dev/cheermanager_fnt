@@ -71,6 +71,8 @@ import {
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
+import ObjetivosPanel from "@/app/components/deportistas/ObjetivosPanel";
+import EvaluacionesPanel from "@/app/components/deportistas/EvaluacionesPanel";
 
 // Datos de ejemplo
 const deportistas = [
@@ -103,46 +105,6 @@ const deportistas = [
     peso: 38,
     altura: 145,
     grupos: ["Youth Rockets"],
-  },
-];
-
-// Datos de ejemplo para evaluaciones
-const evaluaciones = [
-  {
-    id: 1,
-    deportista_id: 1,
-    fecha: "2023-10-15",
-    criterio: "Flexibilidad",
-    puntaje: 8,
-  },
-  {
-    id: 2,
-    deportista_id: 1,
-    fecha: "2023-10-15",
-    criterio: "Saltos",
-    puntaje: 7,
-  },
-];
-
-// Datos de ejemplo para objetivos
-const objetivos = [
-  {
-    id: 1,
-    deportista_id: 1,
-    nombre: "Mejorar flexibilidad",
-    descripcion: "Lograr split completo",
-    fecha_creacion: "2023-09-01",
-    fecha_final: "2023-12-01",
-    estado: "En proceso",
-  },
-  {
-    id: 2,
-    deportista_id: 1,
-    nombre: "Perfeccionar salto toe touch",
-    descripcion: "Alcanzar altura y técnica adecuada",
-    fecha_creacion: "2023-09-15",
-    fecha_final: "2023-11-15",
-    estado: "En proceso",
   },
 ];
 
@@ -604,16 +566,6 @@ export default function DeportistasPage() {
   // Limpiar filtros de estado
   const limpiarFiltrosEstado = () => {
     setSelectedEstados([]);
-  };
-
-  // Obtener evaluaciones de un deportista
-  const getEvaluacionesDeportista = (deportistaId: number) => {
-    return evaluaciones.filter((e) => e.deportista_id === deportistaId);
-  };
-
-  // Obtener objetivos de un deportista
-  const getObjetivosDeportista = (deportistaId: number) => {
-    return objetivos.filter((o) => o.deportista_id === deportistaId);
   };
 
   // Obtener pagos de un deportista
@@ -1416,156 +1368,15 @@ export default function DeportistasPage() {
                                   value="evaluaciones"
                                   className="mt-4"
                                 >
-                                  <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">
-                                      Evaluaciones
-                                    </h4>
-                                    <Button size="sm" variant="outline">
-                                      <Plus className="h-4 w-4 mr-1" /> Nueva
-                                      Evaluación
-                                    </Button>
-                                  </div>
-                                  {getEvaluacionesDeportista(
-                                    deportista.deportistaId,
-                                  ).length > 0 ? (
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Fecha</TableHead>
-                                          <TableHead>Criterio</TableHead>
-                                          <TableHead>Puntaje</TableHead>
-                                          <TableHead>Acciones</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {getEvaluacionesDeportista(
-                                          deportista.deportistaId,
-                                        ).map((evaluacion) => (
-                                          <TableRow key={evaluacion.id}>
-                                            <TableCell>
-                                              {new Date(
-                                                evaluacion.fecha,
-                                              ).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>
-                                              {evaluacion.criterio}
-                                            </TableCell>
-                                            <TableCell>
-                                              {evaluacion.puntaje}/10
-                                            </TableCell>
-                                            <TableCell>
-                                              <div className="flex space-x-2">
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                >
-                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                  Editar
-                                                </Button>
-                                                <Button
-                                                  variant="destructive"
-                                                  size="sm"
-                                                >
-                                                  <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                  Eliminar
-                                                </Button>
-                                              </div>
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  ) : (
-                                    <div className="text-center py-4 text-muted-foreground">
-                                      No hay evaluaciones registradas
-                                    </div>
-                                  )}
+                                  <EvaluacionesPanel
+                                    deportistaId={deportista.deportistaId}
+                                  />
                                 </TabsContent>
 
                                 <TabsContent value="objetivos" className="mt-4">
-                                  <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">Objetivos</h4>
-                                    <Button size="sm" variant="outline">
-                                      <Target className="h-4 w-4 mr-1" /> Nuevo
-                                      Objetivo
-                                    </Button>
-                                  </div>
-                                  {getObjetivosDeportista(
-                                    deportista.deportistaId,
-                                  ).length > 0 ? (
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Objetivo</TableHead>
-                                          <TableHead>Descripción</TableHead>
-                                          <TableHead>Fecha Creación</TableHead>
-                                          <TableHead>Fecha Final</TableHead>
-                                          <TableHead>Estado</TableHead>
-                                          <TableHead>Acciones</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {getObjetivosDeportista(
-                                          deportista.deportistaId,
-                                        ).map((objetivo) => (
-                                          <TableRow key={objetivo.id}>
-                                            <TableCell>
-                                              {objetivo.nombre}
-                                            </TableCell>
-                                            <TableCell>
-                                              {objetivo.descripcion}
-                                            </TableCell>
-                                            <TableCell>
-                                              {new Date(
-                                                objetivo.fecha_creacion,
-                                              ).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>
-                                              {new Date(
-                                                objetivo.fecha_final,
-                                              ).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>
-                                              <Badge
-                                                variant={
-                                                  objetivo.estado === "Cumplido"
-                                                    ? "default"
-                                                    : objetivo.estado ===
-                                                        "En proceso"
-                                                      ? "outline"
-                                                      : "secondary"
-                                                }
-                                              >
-                                                {objetivo.estado}
-                                              </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                              <div className="flex space-x-2">
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                >
-                                                  <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                  Editar
-                                                </Button>
-                                                <Button
-                                                  variant="destructive"
-                                                  size="sm"
-                                                >
-                                                  <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                  Eliminar
-                                                </Button>
-                                              </div>
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  ) : (
-                                    <div className="text-center py-4 text-muted-foreground">
-                                      No hay objetivos registrados
-                                    </div>
-                                  )}
+                                  <ObjetivosPanel
+                                    deportistaId={deportista.deportistaId}
+                                  />
                                 </TabsContent>
 
                                 <TabsContent value="pagos" className="mt-4">

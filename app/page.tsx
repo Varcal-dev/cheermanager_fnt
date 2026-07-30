@@ -22,7 +22,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
 import { toast } from "react-toastify";
-import { obtenerResumenInicio, ResumenInicio } from "@/app/lib/dashboard";
+import {
+  obtenerResumenInicio,
+  ResumenInicio,
+  obtenerResumenEventos,
+  ResumenEventos,
+} from "@/app/lib/dashboard";
 import { formatCOP } from "@/app/lib/facturas-pagos";
 
 // Componente para gráficas (simulado con divs coloreados) — se mantiene
@@ -65,6 +70,20 @@ export default function Home() {
   const [cargandoResumen, setCargandoResumen] = useState(true);
   const [inscripcionesSinGrupo, setInscripcionesSinGrupo] = useState(0);
 
+  const [resumenEventos, setResumenEventos] = useState<ResumenEventos | null>(null);
+  const [cargandoEventos, setCargandoEventos] = useState(true);
+  const [eventosCargados, setEventosCargados] = useState(false);
+
+  const cargarResumenEventos = () => {
+    if (eventosCargados) return;
+    setEventosCargados(true);
+    setCargandoEventos(true);
+    obtenerResumenEventos()
+      .then(setResumenEventos)
+      .catch(() => toast.error("No se pudo cargar el resumen de eventos"))
+      .finally(() => setCargandoEventos(false));
+  };
+
   useEffect(() => {
     setCargandoResumen(true);
     Promise.allSettled([obtenerResumenInicio(), api.get("/api/inscripciones/detalle")])
@@ -85,37 +104,31 @@ export default function Home() {
       .finally(() => setCargandoResumen(false));
   }, []);
 
-  type AlertaDashboard = {
-    title: string;
-    description: string;
-    type: "warning" | "info" | "error";
-  };
-
-  const alertas: AlertaDashboard[] = resumen
+  const alertas = resumen
     ? [
         resumen.facturasConSaldoPendiente > 0 && {
           title: "Cartera pendiente",
           description: `${resumen.facturasConSaldoPendiente} facturas con saldo por ${formatCOP(
             resumen.carteraPendienteTotal,
           )}`,
-          type: "warning",
+          type: "warning" as const,
         },
         inscripcionesSinGrupo > 0 && {
           title: "Inscripciones sin grupo",
           description: `${inscripcionesSinGrupo} deportistas esperando asignación de grupo`,
-          type: "warning",
+          type: "warning" as const,
         },
         resumen.alertasCondicionMedicaActiva > 0 && {
           title: "Condiciones médicas activas",
           description: `${resumen.alertasCondicionMedicaActiva} deportistas con una condición médica activa registrada`,
-          type: "info",
+          type: "info" as const,
         },
         resumen.proximoEvento && {
           title: "Evento próximo",
           description: `${resumen.proximoEvento.nombre} en ${resumen.proximoEvento.diasRestantes} días`,
-          type: "info",
+          type: "info" as const,
         },
-      ].filter((x): x is AlertaDashboard => Boolean(x))
+      ].filter(Boolean as unknown as (x: unknown) => x is NonNullable<typeof x>)
     : [];
 
   return (
@@ -167,7 +180,13 @@ export default function Home() {
         </div>
 
         {/* Tabs para diferentes vistas */}
-        <Tabs defaultValue="general" className="space-y-4">
+        <Tabs
+          defaultValue="general"
+          className="space-y-4"
+          onValueChange={(v) => {
+            if (v === "eventos") cargarResumenEventos();
+          }}
+        >
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="financiero">Financiero</TabsTrigger>
@@ -338,26 +357,80 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          {/* Tab: Eventos */}
+          {/* Tab: Eventos — conectada a /api/dashboard/eventos */}
           <TabsContent value="eventos" className="space-y-4">
-            <AvisoDatosEjemplo permiso="ver_evento" />
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Resultados de Competencias</CardTitle>
-                  <CardDescription>Últimas competencias</CardDescription>
+                  <CardTitle>Próximos Eventos</CardTitle>
+                  <CardDescription>Con grupos ya inscritos</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartPlaceholder height="h-48" />
+                  {cargandoEventos ? (
+                    <div className="flex items-center justify-center py-6 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Cargando…
+                    </div>
+                  ) : resumenEventos && resumenEventos.proximosEventos.length > 0 ? (
+                    <div className="space-y-3">
+                      {resumenEventos.proximosEventos.map((e) => (
+                        <div key={e.eventoId} className="flex items-start space-x-3">
+                          <div className="rounded-full p-2 bg-purple-100 text-purple-600">
+                            <Award className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-none">{e.nombre}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(e.fecha).toLocaleDateString()} · {e.gruposInscritos} grupos inscritos
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      No hay eventos próximos agendados.
+                    </p>
+                  )}
+                  <Link
+                    href="/eventos"
+                    className="text-sm text-purple-600 hover:underline block text-center mt-4"
+                  >
+                    Ver todos los eventos
+                  </Link>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Preparación para Eventos</CardTitle>
-                  <CardDescription>Estado de preparación</CardDescription>
+                  <CardTitle>Podios de la Temporada</CardTitle>
+                  <CardDescription>Premios ganados</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartPlaceholder height="h-48" />
+                  {cargandoEventos ? (
+                    <div className="flex items-center justify-center py-6 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Cargando…
+                    </div>
+                  ) : resumenEventos ? (
+                    <>
+                      <div className="text-2xl font-bold mb-3">
+                        {resumenEventos.podiosTemporada} podios esta temporada
+                      </div>
+                      {resumenEventos.premiosGanados.length > 0 ? (
+                        <div className="space-y-2">
+                          {resumenEventos.premiosGanados.slice(0, 5).map((p, i) => (
+                            <div key={i} className="text-sm border-b pb-2 last:border-0">
+                              <span className="font-medium">#{p.posicion}</span> — {p.nombreGrupo} en{" "}
+                              {p.nombreEvento}
+                              {p.descripcionPremio ? ` (${p.descripcionPremio})` : ""}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Todavía no hay premios registrados esta temporada.
+                        </p>
+                      )}
+                    </>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>
