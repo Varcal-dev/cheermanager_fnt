@@ -117,7 +117,7 @@ export default function FacturasPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-display font-bold tracking-tight">
             Facturas y Pagos
           </h1>
           <p className="text-muted-foreground">
@@ -131,16 +131,14 @@ export default function FacturasPage() {
 
       <div className="space-y-4">
         <div className="flex justify-between mb-4">
-          <div className="flex items-center space-x-2 w-full max-w-sm">
+          <div className="relative flex items-center w-full max-w-sm">
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar facturas…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9"
+              className="h-9 pl-9"
             />
-            <Button variant="outline" size="sm">
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
           <div className="flex space-x-2">
             <DropdownMenu>
@@ -180,15 +178,29 @@ export default function FacturasPage() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableHead className="w-[50px]"></TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Número
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Fecha
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Cliente
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Descripción
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Total
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Estado
+                    </TableHead>
+                    <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,12 +237,12 @@ export default function FacturasPage() {
                             {factura.persona.nombre} {factura.persona.apellidos}
                           </TableCell>
                           <TableCell>{factura.descripcion}</TableCell>
-                          <TableCell>{formatCOP(factura.total)}</TableCell>
+                          <TableCell className="font-figures">{formatCOP(factura.total)}</TableCell>
                           <TableCell>
                             <Badge
                               variant={
                                 factura.estadoCuenta === "Pagado"
-                                  ? "default"
+                                  ? "success"
                                   : factura.estadoCuenta === "Abono parcial"
                                   ? "outline"
                                   : "destructive"
@@ -276,7 +288,7 @@ export default function FacturasPage() {
                               <div className="p-4">
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <h4 className="font-semibold mb-2">
+                                    <h4 className="font-display font-semibold mb-2">
                                       Detalles de la Factura
                                     </h4>
                                     <div className="space-y-2">
@@ -286,7 +298,7 @@ export default function FacturasPage() {
                                             <span className="text-muted-foreground">
                                               Descuento aplicado:
                                             </span>
-                                            <span>
+                                            <span className="font-figures">
                                               {factura.descuento.nombre} (
                                               {factura.descuento.porcentaje}%)
                                             </span>
@@ -308,14 +320,14 @@ export default function FacturasPage() {
                                         <span className="text-muted-foreground">
                                           Total:
                                         </span>
-                                        <span className="font-bold">
+                                        <span className="font-bold font-figures">
                                           {formatCOP(factura.total)}
                                         </span>
                                       </div>
                                     </div>
                                   </div>
                                   <div>
-                                    <h4 className="font-semibold mb-2">
+                                    <h4 className="font-display font-semibold mb-2">
                                       Información de Pago
                                     </h4>
                                     <div className="space-y-2">
@@ -323,7 +335,7 @@ export default function FacturasPage() {
                                         <span className="text-muted-foreground">
                                           Pagado:
                                         </span>
-                                        <span>
+                                        <span className="font-figures text-success">
                                           {formatCOP(factura.totalPagado)}
                                         </span>
                                       </div>
@@ -331,7 +343,13 @@ export default function FacturasPage() {
                                         <span className="text-muted-foreground">
                                           Saldo pendiente:
                                         </span>
-                                        <span className="font-bold">
+                                        <span
+                                          className={`font-bold font-figures ${
+                                            factura.saldoPendiente > 0
+                                              ? "text-destructive"
+                                              : ""
+                                          }`}
+                                        >
                                           {formatCOP(factura.saldoPendiente)}
                                         </span>
                                       </div>
@@ -372,4 +390,4 @@ export default function FacturasPage() {
       />
     </div>
   );
-} 
+}

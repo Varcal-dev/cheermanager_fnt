@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Sidebar from "./side-bar";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext" // Asegúrate de importar correctamente el hook
+import { CommandPaletteTrigger } from "./CommandPalette";
 
 
 // Importar los componentes necesarios
@@ -44,22 +45,33 @@ export function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-6">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
+            <span className="sr-only">Abrir menú</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0">
+        <SheetContent side="left" className="p-0 w-64 border-sidebar-border">
           <Sidebar />
         </SheetContent>
       </Sheet>
-      <div className="flex-1">
-        <h1 className="text-xl font-semibold">Cheer Manager</h1>
+
+      <Link href="/" className="hidden shrink-0 items-center gap-2 md:flex">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-display font-bold text-primary-foreground">
+          R
+        </span>
+        <span className="font-display text-lg font-semibold tracking-tight">
+          Ratels All Stars
+        </span>
+      </Link>
+
+      <div className="flex flex-1 justify-center">
+        <CommandPaletteTrigger />
       </div>
-      <div className="flex items-center gap-2">
+
+      <div className="flex items-center gap-1">
         <Link href="/perfil" passHref>
           <Button
             variant="ghost"
@@ -71,7 +83,7 @@ export function TopBar() {
           </Button>
         </Link>
         <ModeToggle />
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} title="Cerrar sesión">
           <LogOut className="h-5 w-5" />
           <span className="sr-only">Cerrar sesión</span>
         </Button>
@@ -79,5 +91,3 @@ export function TopBar() {
     </header>
   );
 }
-
-

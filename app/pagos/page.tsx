@@ -193,7 +193,7 @@ export default function PagosPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pagos</h1>
+          <h1 className="text-3xl font-display font-bold tracking-tight">Pagos</h1>
           <p className="text-muted-foreground">
             Registra pagos y consulta el saldo pendiente de cada factura
           </p>
@@ -204,31 +204,35 @@ export default function PagosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="lane-accent text-success">
+          <CardHeader className="pb-2 pl-5">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Recaudado (pagos en estado Pagado)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCOP(totalRecaudado)}</p>
+          <CardContent className="pl-5">
+            <p className="text-2xl font-display font-bold font-figures text-foreground">
+              {formatCOP(totalRecaudado)}
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="lane-accent text-destructive">
+          <CardHeader className="pb-2 pl-5">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Cartera pendiente ({facturasPendientes.length} facturas)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCOP(totalPendiente)}</p>
+          <CardContent className="pl-5">
+            <p className="text-2xl font-display font-bold font-figures text-foreground">
+              {formatCOP(totalPendiente)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-base font-display flex items-center gap-2">
             <CalendarClock className="h-4 w-4" />
             Generar cobros de mensualidad
           </CardTitle>
@@ -281,16 +285,14 @@ export default function PagosPage() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center space-x-2 max-w-sm">
+      <div className="relative flex items-center max-w-sm">
+        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por número de factura o deportista…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9"
+          className="h-9 pl-9"
         />
-        <Button variant="outline" size="sm">
-          <Search className="h-4 w-4" />
-        </Button>
       </div>
 
       {cargando ? (
@@ -302,7 +304,7 @@ export default function PagosPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Facturas con saldo pendiente</CardTitle>
+              <CardTitle className="font-display">Facturas con saldo pendiente</CardTitle>
               <CardDescription>
                 Total de la factura menos los pagos ya registrados, calculado
                 en tiempo real
@@ -316,14 +318,28 @@ export default function PagosPage() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Factura</TableHead>
-                      <TableHead>Deportista / Persona</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Pagado</TableHead>
-                      <TableHead>Saldo</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Acciones</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Factura
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Deportista / Persona
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Total
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Pagado
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Saldo
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Estado
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Acciones
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -335,9 +351,11 @@ export default function PagosPage() {
                         <TableCell>
                           {f.persona.nombre} {f.persona.apellidos}
                         </TableCell>
-                        <TableCell>{formatCOP(f.total)}</TableCell>
-                        <TableCell>{formatCOP(f.totalPagado)}</TableCell>
-                        <TableCell className="font-semibold">
+                        <TableCell className="font-figures">{formatCOP(f.total)}</TableCell>
+                        <TableCell className="font-figures text-success">
+                          {formatCOP(f.totalPagado)}
+                        </TableCell>
+                        <TableCell className="font-semibold font-figures text-destructive">
                           {formatCOP(f.saldoPendiente)}
                         </TableCell>
                         <TableCell>
@@ -367,7 +385,7 @@ export default function PagosPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Historial de pagos</CardTitle>
+              <CardTitle className="font-display">Historial de pagos</CardTitle>
               <CardDescription>
                 Todos los pagos registrados en el sistema
               </CardDescription>
@@ -380,15 +398,31 @@ export default function PagosPage() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Factura</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Monto</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Método</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Saldo restante</TableHead>
-                      <TableHead>Acciones</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Factura
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Fecha
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Monto
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Tipo
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Método
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Estado
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Saldo restante
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Acciones
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -400,14 +434,14 @@ export default function PagosPage() {
                         <TableCell>
                           {new Date(p.fecha).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{formatCOP(p.monto)}</TableCell>
+                        <TableCell className="font-figures">{formatCOP(p.monto)}</TableCell>
                         <TableCell>{p.tipoPago}</TableCell>
                         <TableCell>{p.metodoPago}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
                               p.estado === "Pagado"
-                                ? "default"
+                                ? "success"
                                 : p.estado === "Pendiente"
                                 ? "outline"
                                 : "destructive"
@@ -416,7 +450,7 @@ export default function PagosPage() {
                             {p.estado}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="font-figures">
                           {formatCOP(p.saldoPendienteFactura)}
                         </TableCell>
                         <TableCell>

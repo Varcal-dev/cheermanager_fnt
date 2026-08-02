@@ -290,7 +290,9 @@ export default function InscripcionesPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Inscripciones</h1>
+            <h1 className="text-3xl font-display font-bold tracking-tight">
+              Inscripciones
+            </h1>
             <p className="text-muted-foreground">
               Gestiona el proceso de inscripción de deportistas
             </p>
@@ -303,16 +305,14 @@ export default function InscripcionesPage() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
-          <div className="flex items-center space-x-2 w-full max-w-sm">
+          <div className="relative flex items-center w-full max-w-sm">
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por deportista..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9"
+              className="h-9 pl-9"
             />
-            <Button variant="outline" size="sm">
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -350,16 +350,32 @@ export default function InscripcionesPage() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Deportista</TableHead>
-                  <TableHead>Fecha Inscripción</TableHead>
-                  <TableHead>Grupo</TableHead>
-                  <TableHead>Nivel</TableHead>
-                  <TableHead>Plan de Pago</TableHead>
-                  <TableHead>Documentos</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Deportista
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Fecha Inscripción
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Grupo
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Nivel
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Plan de Pago
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Documentos
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Estado
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Acciones
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -367,9 +383,9 @@ export default function InscripcionesPage() {
                   <TableRow>
                     <TableCell colSpan={9}>
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                        <div className="mb-4">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
                           <svg
-                            className="w-10 h-10 text-gray-400"
+                            className="w-8 h-8 text-accent"
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={1.5}
@@ -382,12 +398,12 @@ export default function InscripcionesPage() {
                             />
                           </svg>
                         </div>
-                        <p className="text-lg font-semibold text-gray-500">
+                        <p className="text-lg font-display font-semibold text-foreground">
                           No hay inscriciones aún.
                         </p>
-                        <p className="text-sm text-gray-400">
-                          Puedes agregar uno usando el botón “Nueva
-                          Inscripcion.”
+                        <p className="text-sm text-muted-foreground">
+                          Puedes agregar uno usando el botón "Nueva
+                          Inscripcion."
                         </p>
                       </div>
                     </TableCell>
@@ -421,7 +437,18 @@ export default function InscripcionesPage() {
                             </Button>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {inscripcion.deportista}
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-display text-xs font-semibold text-accent">
+                                {(inscripcion.deportista ?? "")
+                                  .split(" ")
+                                  .filter(Boolean)
+                                  .slice(0, 2)
+                                  .map((p: string) => p[0])
+                                  .join("")
+                                  .toUpperCase()}
+                              </span>
+                              <span>{inscripcion.deportista}</span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {new Date(
@@ -435,7 +462,7 @@ export default function InscripcionesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100"
+                                className="text-primary border-primary/30 bg-primary/10 hover:bg-primary/20"
                                 onClick={() => continuarMatricula(inscripcion)}
                               >
                                 Sin grupo · continuar matrícula
@@ -460,7 +487,7 @@ export default function InscripcionesPage() {
                             {inscripcion.documentos_completos ? (
                               <Badge
                                 variant="outline"
-                                className="bg-green-50 text-green-700 border-green-200"
+                                className="bg-success/10 text-success border-success/30"
                               >
                                 <CheckCircle className="h-3.5 w-3.5 mr-1" />{" "}
                                 Completos
@@ -468,7 +495,7 @@ export default function InscripcionesPage() {
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                                className="bg-destructive/10 text-destructive border-destructive/30"
                               >
                                 <XCircle className="h-3.5 w-3.5 mr-1" /> Sin
                                 documentos
@@ -483,7 +510,7 @@ export default function InscripcionesPage() {
                             <Badge
                               variant={
                                 inscripcion.estado === "Activa"
-                                  ? "default"
+                                  ? "success"
                                   : "secondary"
                               }
                             >
@@ -570,7 +597,7 @@ export default function InscripcionesPage() {
                                                     <span className="text-muted-foreground">
                                                       Total:
                                                     </span>
-                                                    <span className="font-medium">
+                                                    <span className="font-medium font-figures">
                                                       {formatCOP(factura.total)}
                                                     </span>
                                                   </div>
@@ -580,7 +607,7 @@ export default function InscripcionesPage() {
                                                     <span className="text-muted-foreground">
                                                       Pagado:
                                                     </span>
-                                                    <span>
+                                                    <span className="font-figures text-success">
                                                       {formatCOP(
                                                         factura.totalPagado,
                                                       )}
@@ -590,7 +617,7 @@ export default function InscripcionesPage() {
                                                     <span className="text-muted-foreground">
                                                       Saldo:
                                                     </span>
-                                                    <span className="font-medium">
+                                                    <span className="font-medium font-figures">
                                                       {formatCOP(
                                                         factura.saldoPendiente,
                                                       )}
@@ -601,7 +628,7 @@ export default function InscripcionesPage() {
                                                       variant={
                                                         factura.estadoCuenta ===
                                                         "Pagado"
-                                                          ? "default"
+                                                          ? "success"
                                                           : factura.estadoCuenta ===
                                                               "Abono parcial"
                                                             ? "outline"
@@ -641,7 +668,7 @@ export default function InscripcionesPage() {
                                     className="mt-4"
                                   >
                                     <div className="flex justify-between items-center mb-4">
-                                      <h4 className="font-semibold">
+                                      <h4 className="font-display font-semibold">
                                         Documentos Requeridos
                                       </h4>
                                       <Button size="sm" variant="outline">

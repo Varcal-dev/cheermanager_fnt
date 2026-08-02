@@ -29,6 +29,7 @@ import {
   ResumenEventos,
 } from "@/app/lib/dashboard";
 import { formatCOP } from "@/app/lib/facturas-pagos";
+import { cn } from "@/lib/utils";
 
 // Componente para gráficas (simulado con divs coloreados) — se mantiene
 // solo para las pestañas que todavía no están conectadas a datos reales
@@ -42,9 +43,9 @@ function ChartPlaceholder({
 }) {
   return (
     <div
-      className={`${height} w-full rounded-lg bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center ${className}`}
+      className={`${height} w-full rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 flex items-center justify-center ${className}`}
     >
-      <span className="text-purple-400 text-sm font-medium">
+      <span className="text-sm font-medium text-muted-foreground">
         Gráfica (Simulada)
       </span>
     </div>
@@ -104,31 +105,53 @@ export default function Home() {
       .finally(() => setCargandoResumen(false));
   }, []);
 
-  const alertas = resumen
+  type Alerta = {
+    title: string;
+    description: string;
+    type: "warning" | "info";
+  };
+
+  const alertas: Alerta[] = resumen
     ? [
-        resumen.facturasConSaldoPendiente > 0 && {
-          title: "Cartera pendiente",
-          description: `${resumen.facturasConSaldoPendiente} facturas con saldo por ${formatCOP(
-            resumen.carteraPendienteTotal,
-          )}`,
-          type: "warning" as const,
-        },
-        inscripcionesSinGrupo > 0 && {
-          title: "Inscripciones sin grupo",
-          description: `${inscripcionesSinGrupo} deportistas esperando asignación de grupo`,
-          type: "warning" as const,
-        },
-        resumen.alertasCondicionMedicaActiva > 0 && {
-          title: "Condiciones médicas activas",
-          description: `${resumen.alertasCondicionMedicaActiva} deportistas con una condición médica activa registrada`,
-          type: "info" as const,
-        },
-        resumen.proximoEvento && {
-          title: "Evento próximo",
-          description: `${resumen.proximoEvento.nombre} en ${resumen.proximoEvento.diasRestantes} días`,
-          type: "info" as const,
-        },
-      ].filter(Boolean as unknown as (x: unknown) => x is NonNullable<typeof x>)
+        ...(resumen.facturasConSaldoPendiente > 0
+          ? [
+              {
+                title: "Cartera pendiente",
+                description: `${resumen.facturasConSaldoPendiente} facturas con saldo por ${formatCOP(
+                  resumen.carteraPendienteTotal,
+                )}`,
+                type: "warning" as const,
+              },
+            ]
+          : []),
+        ...(inscripcionesSinGrupo > 0
+          ? [
+              {
+                title: "Inscripciones sin grupo",
+                description: `${inscripcionesSinGrupo} deportistas esperando asignación de grupo`,
+                type: "warning" as const,
+              },
+            ]
+          : []),
+        ...(resumen.alertasCondicionMedicaActiva > 0
+          ? [
+              {
+                title: "Condiciones médicas activas",
+                description: `${resumen.alertasCondicionMedicaActiva} deportistas con una condición médica activa registrada`,
+                type: "info" as const,
+              },
+            ]
+          : []),
+        ...(resumen.proximoEvento
+          ? [
+              {
+                title: "Evento próximo",
+                description: `${resumen.proximoEvento.nombre} en ${resumen.proximoEvento.diasRestantes} días`,
+                type: "info" as const,
+              },
+            ]
+          : []),
+      ]
     : [];
 
   return (
@@ -147,14 +170,16 @@ export default function Home() {
             title="Deportistas Activos"
             value={cargandoResumen ? "…" : String(resumen?.deportistasActivos ?? 0)}
             description={`${resumen?.totalGrupos ?? 0} grupos activos`}
-            icon={<UserPlus className="h-5 w-5 text-purple-600" />}
+            icon={<UserPlus className="h-5 w-5" />}
+            tone="primary"
             link="/deportistas"
           />
           <KpiCard
             title="Cartera Pendiente"
             value={cargandoResumen ? "…" : formatCOP(resumen?.carteraPendienteTotal ?? 0)}
             description={`${resumen?.facturasConSaldoPendiente ?? 0} facturas con saldo`}
-            icon={<DollarSign className="h-5 w-5 text-green-600" />}
+            icon={<DollarSign className="h-5 w-5" />}
+            tone="success"
             link="/facturas"
           />
           <KpiCard
@@ -167,14 +192,16 @@ export default function Home() {
                   : "Sin datos"
             }
             description="promedio de todos los grupos"
-            icon={<CheckCircle className="h-5 w-5 text-blue-600" />}
+            icon={<CheckCircle className="h-5 w-5" />}
+            tone="accent"
             link="/asistencias"
           />
           <KpiCard
             title="Sin grupo asignado"
             value={cargandoResumen ? "…" : String(inscripcionesSinGrupo)}
             description="inscripciones esperando grupo"
-            icon={<UserPlus className="h-5 w-5 text-orange-600" />}
+            icon={<UserPlus className="h-5 w-5" />}
+            tone="destructive"
             link="/inscripciones"
           />
         </div>
@@ -203,7 +230,7 @@ export default function Home() {
                   <CardTitle className="text-sm font-medium">
                     Alertas Importantes
                   </CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                   {cargandoResumen ? (
@@ -242,7 +269,7 @@ export default function Home() {
                     </div>
                   ) : resumen?.proximoEvento ? (
                     <div className="flex items-start space-x-4">
-                      <div className="rounded-full p-2 bg-purple-100 text-purple-600">
+                      <div className="rounded-full p-2 bg-primary/10 text-primary">
                         <Award className="h-4 w-4" />
                       </div>
                       <div className="flex-1 space-y-1">
@@ -264,7 +291,7 @@ export default function Home() {
                   )}
                   <Link
                     href="/eventos"
-                    className="text-sm text-purple-600 hover:underline block text-center mt-4"
+                    className="text-sm text-primary hover:underline block text-center mt-4"
                   >
                     Ver todos los eventos
                   </Link>
@@ -294,26 +321,26 @@ export default function Home() {
                   <CardTitle>Indicadores Financieros</CardTitle>
                   <CardDescription>Resumen del mes actual</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 font-figures">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Ingresos Totales</span>
-                    <span className="text-sm font-bold text-green-600">$12,450</span>
+                    <span className="text-sm font-sans font-medium">Ingresos Totales</span>
+                    <span className="text-sm font-bold text-success">$12,450</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Gastos Totales</span>
-                    <span className="text-sm font-bold text-red-600">$8,320</span>
+                    <span className="text-sm font-sans font-medium">Gastos Totales</span>
+                    <span className="text-sm font-bold text-destructive">$8,320</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Beneficio Neto</span>
-                    <span className="text-sm font-bold text-blue-600">$4,130</span>
+                    <span className="text-sm font-sans font-medium">Beneficio Neto</span>
+                    <span className="text-sm font-bold text-accent">$4,130</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Pagos Pendientes</span>
-                    <span className="text-sm font-bold text-amber-600">$2,850</span>
+                    <span className="text-sm font-sans font-medium">Pagos Pendientes</span>
+                    <span className="text-sm font-bold text-primary">$2,850</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Margen de Beneficio</span>
-                    <span className="text-sm font-bold text-purple-600">33.2%</span>
+                    <span className="text-sm font-sans font-medium">Margen de Beneficio</span>
+                    <span className="text-sm font-bold">33.2%</span>
                   </div>
                 </CardContent>
               </Card>
@@ -339,18 +366,18 @@ export default function Home() {
                   <CardTitle>Estadísticas</CardTitle>
                   <CardDescription>Datos generales</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 font-figures">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Total Deportistas</span>
+                    <span className="text-sm font-sans font-medium">Total Deportistas</span>
                     <span className="text-sm font-bold">156</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Nuevos este mes</span>
-                    <span className="text-sm font-bold text-green-600">24</span>
+                    <span className="text-sm font-sans font-medium">Nuevos este mes</span>
+                    <span className="text-sm font-bold text-success">24</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Bajas este mes</span>
-                    <span className="text-sm font-bold text-red-600">5</span>
+                    <span className="text-sm font-sans font-medium">Bajas este mes</span>
+                    <span className="text-sm font-bold text-destructive">5</span>
                   </div>
                 </CardContent>
               </Card>
@@ -374,7 +401,7 @@ export default function Home() {
                     <div className="space-y-3">
                       {resumenEventos.proximosEventos.map((e) => (
                         <div key={e.eventoId} className="flex items-start space-x-3">
-                          <div className="rounded-full p-2 bg-purple-100 text-purple-600">
+                          <div className="rounded-full p-2 bg-primary/10 text-primary">
                             <Award className="h-4 w-4" />
                           </div>
                           <div className="flex-1">
@@ -393,7 +420,7 @@ export default function Home() {
                   )}
                   <Link
                     href="/eventos"
-                    className="text-sm text-purple-600 hover:underline block text-center mt-4"
+                    className="text-sm text-primary hover:underline block text-center mt-4"
                   >
                     Ver todos los eventos
                   </Link>
@@ -411,7 +438,7 @@ export default function Home() {
                     </div>
                   ) : resumenEventos ? (
                     <>
-                      <div className="text-2xl font-bold mb-3">
+                      <div className="text-2xl font-display font-bold mb-3">
                         {resumenEventos.podiosTemporada} podios esta temporada
                       </div>
                       {resumenEventos.premiosGanados.length > 0 ? (
@@ -441,28 +468,50 @@ export default function Home() {
   );
 }
 
+const KPI_TONES = {
+  primary: "text-primary",
+  success: "text-success",
+  accent: "text-accent",
+  destructive: "text-destructive",
+} as const;
+
+const KPI_BG = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  accent: "bg-accent/10 text-accent",
+  destructive: "bg-destructive/10 text-destructive",
+} as const;
+
 function KpiCard({
   title,
   value,
   description,
   icon,
   link,
+  tone = "primary",
 }: {
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
   link: string;
+  tone?: keyof typeof KPI_TONES;
 }) {
   return (
     <Link href={link} className="block">
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          {icon}
+      <Card className={cn("lane-accent hover:shadow-md transition-shadow", KPI_TONES[tone])}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2 pl-5">
+          <CardTitle className="text-sm font-sans font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          <span className={cn("rounded-md p-1.5", KPI_BG[tone])}>
+            {icon}
+          </span>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{value}</div>
+        <CardContent className="pl-5">
+          <div className="text-3xl font-display font-bold text-foreground font-figures">
+            {value}
+          </div>
           <div className="flex items-center mt-1">
             <span className="text-xs text-muted-foreground">{description}</span>
           </div>
@@ -471,6 +520,12 @@ function KpiCard({
     </Link>
   );
 }
+
+const ALERT_TONES = {
+  warning: "bg-primary/10 text-primary",
+  error: "bg-destructive/10 text-destructive",
+  info: "bg-accent/10 text-accent",
+} as const;
 
 function AlertItem({
   title,
@@ -483,15 +538,7 @@ function AlertItem({
 }) {
   return (
     <div className="flex items-start space-x-4">
-      <div
-        className={`rounded-full p-2 ${
-          type === "warning"
-            ? "bg-yellow-100 text-yellow-600"
-            : type === "error"
-              ? "bg-red-100 text-red-600"
-              : "bg-blue-100 text-blue-600"
-        }`}
-      >
+      <div className={cn("rounded-full p-2", ALERT_TONES[type])}>
         <AlertTriangle className="h-4 w-4" />
       </div>
       <div className="flex-1 space-y-1">

@@ -375,7 +375,7 @@ export default function HorariosPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-display font-bold tracking-tight">
             Horarios y Asistencias
           </h1>
             <p className="text-muted-foreground">
@@ -429,11 +429,19 @@ export default function HorariosPage() {
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Día</TableHead>
-                        <TableHead>Horario</TableHead>
-                        <TableHead>Grupos asignados</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Día
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Horario
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Grupos asignados
+                        </TableHead>
+                        <TableHead className="text-right font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Acciones
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -481,7 +489,7 @@ export default function HorariosPage() {
                                           })
                                         }
                                       >
-                                        <X className="h-3 w-3 hover:text-red-600" />
+                                        <X className="h-3 w-3 hover:text-destructive" />
                                       </button>
                                     </Badge>
                                   ))
@@ -658,9 +666,13 @@ export default function HorariosPage() {
                     ) : (
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Deportista</TableHead>
-                            <TableHead className="w-[220px]">Estado</TableHead>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                              Deportista
+                            </TableHead>
+                            <TableHead className="w-[220px] font-display text-xs uppercase tracking-wide text-muted-foreground">
+                              Estado
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

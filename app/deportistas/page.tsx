@@ -73,6 +73,7 @@ import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import ObjetivosPanel from "@/app/components/deportistas/ObjetivosPanel";
 import EvaluacionesPanel from "@/app/components/deportistas/EvaluacionesPanel";
+import { useSearchParams } from "next/navigation";
 
 // Datos de ejemplo
 const deportistas = [
@@ -258,6 +259,12 @@ export default function DeportistasPage() {
   const [expandedDeportistas, setExpandedDeportistas] = useState<number[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q) setSearchTerm(q);
+  }, [searchParams]);
   const [activeTab, setActiveTab] = useState("todos");
   const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
 
@@ -751,7 +758,9 @@ export default function DeportistasPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Deportistas</h1>
+            <h1 className="text-3xl font-display font-bold tracking-tight">
+              Deportistas
+            </h1>
             <p className="text-muted-foreground">
               Gestiona la información de los deportistas registrados
             </p>
@@ -764,16 +773,14 @@ export default function DeportistasPage() {
         </div>
 
         <div className="flex justify-between mb-4">
-          <div className="flex items-center space-x-2 w-full max-w-sm">
+          <div className="relative flex items-center w-full max-w-sm">
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar deportistas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9"
+              className="h-9 pl-9"
             />
-            <Button variant="outline" size="sm">
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
           <div className="flex space-x-2 items-center">
             <DropdownMenu>
@@ -837,15 +844,29 @@ export default function DeportistasPage() {
             {/* tabla info deportista */}
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Edad</TableHead>
-                  <TableHead>Género</TableHead>
-                  <TableHead>Nivel</TableHead>
-                  <TableHead>Grupos</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Nombre
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Edad
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Género
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Nivel
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Grupos
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Estado
+                  </TableHead>
+                  <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                    Acciones
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -854,9 +875,9 @@ export default function DeportistasPage() {
                   <TableRow>
                     <TableCell colSpan={9}>
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                        <div className="mb-4">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
                           <svg
-                            className="w-10 h-10 text-gray-400"
+                            className="w-8 h-8 text-accent"
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={1.5}
@@ -869,11 +890,11 @@ export default function DeportistasPage() {
                             />
                           </svg>
                         </div>
-                        <p className="text-lg font-semibold text-gray-500">
+                        <p className="text-lg font-display font-semibold text-foreground">
                           No hay deportistas inscritos aún.
                         </p>
-                        <p className="text-sm text-gray-400">
-                          Puedes agregar uno usando el botón “Nuevo Deportista.”
+                        <p className="text-sm text-muted-foreground">
+                          Puedes agregar uno usando el botón "Nuevo Deportista".
                         </p>
                       </div>
                     </TableCell>
@@ -900,7 +921,14 @@ export default function DeportistasPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {deportista.nombre} {deportista.apellidos}
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-display text-xs font-semibold text-accent">
+                              {`${deportista.nombre?.[0] ?? ""}${deportista.apellidos?.[0] ?? ""}`.toUpperCase()}
+                            </span>
+                            <span>
+                              {deportista.nombre} {deportista.apellidos}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
                           {calcularEdad(deportista.fechaNacimiento)} años
@@ -922,7 +950,7 @@ export default function DeportistasPage() {
                           <Badge
                             variant={
                               deportista.estadoNombre === "Activo"
-                                ? "default"
+                                ? "success"
                                 : "secondary"
                             }
                           >
@@ -947,7 +975,7 @@ export default function DeportistasPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
+                                className="text-accent border-accent/30 bg-accent/10 hover:bg-accent/20"
                                 onClick={() =>
                                   router.push(
                                     `/inscripciones?matricular=${deportista.deportistaId}&nombre=${encodeURIComponent(
@@ -1546,12 +1574,12 @@ export default function DeportistasPage() {
                     </p>
                   )}
                   {!validandoDocumento && documentoDisponible === false && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       Este documento ya está registrado.
                     </p>
                   )}
                   {!validandoDocumento && documentoDisponible === true && (
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-success mt-1">
                       Documento disponible.
                     </p>
                   )}
@@ -1719,7 +1747,7 @@ export default function DeportistasPage() {
             <div className="space-y-6 px-6 py-4 overflow-y-auto flex-1">
               {/* Sección: Estado Destacado */}
               <div className="flex items-center gap-2 mb-3">
-                <Label className="text-base font-semibold text-blue-900">
+                <Label className="text-base font-display font-semibold text-foreground">
                   Estado del Deportista
                 </Label>
               </div>
@@ -1729,7 +1757,7 @@ export default function DeportistasPage() {
                   handleChange("estadoId", parseInt(value))
                 }
               >
-                <SelectTrigger className="bg-black border-blue-300 hover:border-blue-400">
+                <SelectTrigger className="">
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1743,13 +1771,13 @@ export default function DeportistasPage() {
 
               {/* Sección: Datos Personales */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-primary"></span>
                   Información Personal
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Nombre
                     </Label>
                     <Input
@@ -1759,7 +1787,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Apellidos
                     </Label>
                     <Input
@@ -1771,7 +1799,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Tipo de documento
                     </Label>
                     <Select
@@ -1799,7 +1827,7 @@ export default function DeportistasPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Número de documento
                     </Label>
                     <Input
@@ -1811,7 +1839,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Fecha de nacimiento
                     </Label>
                     <Input
@@ -1824,7 +1852,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Género
                     </Label>
                     <Select
@@ -1853,13 +1881,13 @@ export default function DeportistasPage() {
 
               {/* Sección: Datos de Contacto */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-primary"></span>
                   Datos de Contacto
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Teléfono
                     </Label>
                     <Input
@@ -1869,7 +1897,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Dirección
                     </Label>
                     <Input
@@ -1881,7 +1909,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Contacto de emergencia
                     </Label>
                     <Input
@@ -1897,13 +1925,13 @@ export default function DeportistasPage() {
 
               {/* Sección: Datos Físicos */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-primary"></span>
                   Medidas Físicas
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Altura (cm)
                     </Label>
                     <Input
@@ -1916,7 +1944,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Peso (kg)
                     </Label>
                     <Input
@@ -1929,7 +1957,7 @@ export default function DeportistasPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Nivel
                     </Label>
                     <Select
@@ -1958,13 +1986,13 @@ export default function DeportistasPage() {
 
               {/* Sección: Fechas */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-primary"></span>
                   Fechas Importantes
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs font-medium text-gray-600">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Fecha de Registro
                     </Label>
                     <Input
@@ -1988,7 +2016,7 @@ export default function DeportistasPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Guardar cambios
               </Button>

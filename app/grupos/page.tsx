@@ -38,6 +38,14 @@ import {
   Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -286,7 +294,7 @@ export default function GruposPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-display font-bold tracking-tight">
               Grupos de Deportista
             </h1>
             <p className="text-muted-foreground">
@@ -347,16 +355,32 @@ export default function GruposPage() {
 
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[50px]"></TableHead>
-                        <TableHead>Nombre</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Categoría</TableHead>
-                        <TableHead>División</TableHead>
-                        <TableHead>Nivel</TableHead>
-                        <TableHead>Deportistas</TableHead>
-                        <TableHead>Horario</TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Nombre
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Tipo
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Categoría
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          División
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Nivel
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Deportistas
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Horario
+                        </TableHead>
+                        <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                          Acciones
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -410,7 +434,7 @@ export default function GruposPage() {
                                   variant="outline"
                                   className={
                                     grupoLleno
-                                      ? "bg-red-50 text-red-700 border-red-200"
+                                      ? "bg-destructive/10 text-destructive border-destructive/30"
                                       : ""
                                   }
                                 >
@@ -429,7 +453,7 @@ export default function GruposPage() {
                                       <Badge
                                         key={h.id}
                                         variant="outline"
-                                        className="text-xs whitespace-nowrap"
+                                        className="text-xs whitespace-nowrap border-accent/30 bg-accent/5 text-accent"
                                       >
                                         {h.dia.slice(0, 3)}{" "}
                                         {formatHora(h.horaInicio)}-
@@ -475,7 +499,7 @@ export default function GruposPage() {
                                 <TableCell colSpan={9} className="p-0">
                                   <div className="p-4">
                                     <div className="flex justify-between items-center mb-2">
-                                      <h3 className="font-semibold">
+                                      <h3 className="font-display font-semibold">
                                         Deportistas en este grupo
                                       </h3>
                                       <div className="flex items-center gap-2">
@@ -598,54 +622,66 @@ export default function GruposPage() {
               }}
               className="space-y-4"
             >
-              <input
-                type="text"
-                className="w-full border p-2 rounded"
-                placeholder="Nombre del grupo"
-                value={nuevoGrupo.nombre}
-                onChange={(e) =>
-                  setNuevoGrupo({ ...nuevoGrupo, nombre: e.target.value })
-                }
-                required
-              />
+              <div className="space-y-2">
+                <Label>Nombre del grupo</Label>
+                <Input
+                  placeholder="Nombre del grupo"
+                  value={nuevoGrupo.nombre}
+                  onChange={(e) =>
+                    setNuevoGrupo({ ...nuevoGrupo, nombre: e.target.value })
+                  }
+                  required
+                />
+              </div>
 
-              <select
-                className="w-full border p-2 rounded"
-                value={nuevoGrupo.tipoGrupoId}
-                onChange={(e) =>
-                  setNuevoGrupo({
-                    ...nuevoGrupo,
-                    tipoGrupoId: Number(e.target.value),
-                  })
-                }
-                required
-              >
-                <option value="">Seleccione tipo de grupo</option>
-                {tiposGrupo.map((tipo: any) => (
-                  <option key={tipo.id} value={tipo.id}>
-                    {tipo.nombre}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <Label>Tipo de grupo</Label>
+                <Select
+                  value={nuevoGrupo.tipoGrupoId ? String(nuevoGrupo.tipoGrupoId) : ""}
+                  onValueChange={(value) =>
+                    setNuevoGrupo({ ...nuevoGrupo, tipoGrupoId: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione tipo de grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposGrupo.map((tipo: any) => (
+                      <SelectItem key={tipo.id} value={String(tipo.id)}>
+                        {tipo.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <select
-                className="w-full border p-2 rounded"
-                value={nuevoGrupo.categoriaNivelId}
-                onChange={(e) =>
-                  setNuevoGrupo({
-                    ...nuevoGrupo,
-                    categoriaNivelId: Number(e.target.value),
-                  })
-                }
-                required
-              >
-                <option value="">Seleccione categoría</option>
-                {categoriasNivel.map((cat: any) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nombre}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Select
+                  value={
+                    nuevoGrupo.categoriaNivelId
+                      ? String(nuevoGrupo.categoriaNivelId)
+                      : ""
+                  }
+                  onValueChange={(value) =>
+                    setNuevoGrupo({
+                      ...nuevoGrupo,
+                      categoriaNivelId: Number(value),
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoriasNivel.map((cat: any) => (
+                      <SelectItem key={cat.id} value={String(cat.id)}>
+                        {cat.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="flex justify-end space-x-2">
                 <Button
@@ -691,77 +727,72 @@ export default function GruposPage() {
             </DialogHeader>
             {editGrupo && (
               <form onSubmit={handleEditSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  className="w-full border p-2 rounded"
-                  value={editGrupo.nombre}
-                  onChange={(e) =>
-                    setEditGrupo({ ...editGrupo, nombre: e.target.value })
-                  }
-                />
-                <div>
-                  <label
-                    htmlFor="tipoGrupo"
-                    className="block text-sm font-medium"
-                  >
-                    Tipo de Grupo
-                  </label>
-                  <select
-                    id="tipoGrupo"
-                    className="w-full border p-2 rounded"
-                    value={editGrupo.tipoGrupo?.id || ""}
+                <div className="space-y-2">
+                  <Label>Nombre del grupo</Label>
+                  <Input
+                    value={editGrupo.nombre}
                     onChange={(e) =>
+                      setEditGrupo({ ...editGrupo, nombre: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tipoGrupo">Tipo de Grupo</Label>
+                  <Select
+                    value={editGrupo.tipoGrupo?.id ? String(editGrupo.tipoGrupo.id) : ""}
+                    onValueChange={(value) =>
                       setEditGrupo({
                         ...editGrupo,
                         tipoGrupo: {
-                          id: parseInt(e.target.value),
+                          id: parseInt(value),
                           nombre: "",
                         },
                       })
                     }
                   >
-                    <option value="" disabled>
-                      Selecciona un tipo de grupo
-                    </option>
-                    {tiposGrupo.map((tipo) => (
-                      <option key={tipo.id} value={tipo.id}>
-                        {tipo.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="tipoGrupo">
+                      <SelectValue placeholder="Selecciona un tipo de grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposGrupo.map((tipo) => (
+                        <SelectItem key={tipo.id} value={String(tipo.id)}>
+                          {tipo.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="categoriaNivel"
-                    className="block text-sm font-medium"
-                  >
-                    Categoría de Nivel
-                  </label>
-                  <select
-                    id="categoriaNivel"
-                    className="w-full border p-2 rounded"
-                    value={editGrupo.categoriaNivel?.id || ""}
-                    onChange={(e) =>
+                <div className="space-y-2">
+                  <Label htmlFor="categoriaNivel">Categoría de Nivel</Label>
+                  <Select
+                    value={
+                      editGrupo.categoriaNivel?.id
+                        ? String(editGrupo.categoriaNivel.id)
+                        : ""
+                    }
+                    onValueChange={(value) =>
                       setEditGrupo({
                         ...editGrupo,
                         categoriaNivel: {
                           ...editGrupo.categoriaNivel,
-                          id: parseInt(e.target.value),
+                          id: parseInt(value),
                           nombre: "",
                         },
                       })
                     }
                   >
-                    <option value="" disabled>
-                      Selecciona una categoría
-                    </option>
-                    {categoriasNivel.map((categoria) => (
-                      <option key={categoria.id} value={categoria.id}>
-                        {categoria.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="categoriaNivel">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoriasNivel.map((categoria) => (
+                        <SelectItem key={categoria.id} value={String(categoria.id)}>
+                          {categoria.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex justify-end space-x-2">

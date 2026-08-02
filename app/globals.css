@@ -2,67 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================================
+   CheerManager · Sistema de diseño Ratels
+   -------------------------------------------------------------------------
+   Paleta con propósito, no la de shadcn "de fábrica":
+     - Grafito   : superficie de navegación (sidebar), texto de alto contraste
+     - Lienzo    : fondo de trabajo, gris-azulado frío, no blanco puro
+     - Oro Ratels: color de marca / acciones primarias — inspirado en podios
+                   y medallas de competencia
+     - Tejo      : azul profundo de "tapete" — estructura, enlaces secundarios
+     - Verde     : confirmaciones (pagos al día, asistencia, aprobado)
+     - Coral     : alertas y estados destructivos
+   ========================================================================= */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 18% 97%;
+    --foreground: 224 22% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 22% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 224 22% 12%;
 
-    --primary: 271 81% 56%;
-    --primary-foreground: 210 40% 98%;
+    /* Oro Ratels — acción primaria */
+    --primary: 36 79% 57%;
+    --primary-foreground: 42 100% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Tejo — estructura / secundario */
+    --secondary: 214 40% 94%;
+    --secondary-foreground: 214 52% 22%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 92%;
+    --muted-foreground: 217 11% 40%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 214 52% 25%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 5 71% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 158 67% 37%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    --border: 223 14% 90%;
+    --input: 223 14% 90%;
+    --ring: 36 79% 57%;
+
+    /* Panel de navegación — deliberadamente oscuro, distinto del lienzo */
+    --sidebar-background: 224 22% 10%;
+    --sidebar-foreground: 220 18% 88%;
+    --sidebar-muted: 224 14% 65%;
+    --sidebar-accent: 224 22% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-primary: 36 79% 57%;
+    --sidebar-primary-foreground: 42 100% 8%;
+    --sidebar-border: 224 18% 18%;
+
+    /* Series de datos (gráficas) — derivadas de la paleta, no defaults de chart.js */
+    --chart-1: 36 79% 57%;
+    --chart-2: 214 52% 40%;
+    --chart-3: 158 67% 37%;
+    --chart-4: 5 71% 60%;
+    --chart-5: 262 40% 55%;
+
+    --radius: 0.75rem;
+
+    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 223 19% 7%;
+    --foreground: 220 18% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 19% 11%;
+    --card-foreground: 220 18% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 19% 11%;
+    --popover-foreground: 220 18% 92%;
 
-    --primary: 271 81% 56%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 36 79% 57%;
+    --primary-foreground: 42 100% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 17% 16%;
+    --secondary-foreground: 220 18% 88%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 17% 14%;
+    --muted-foreground: 218 12% 59%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 214 45% 60%;
+    --accent-foreground: 224 22% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 5 65% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --success: 158 55% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 221 17% 18%;
+    --input: 221 17% 18%;
+    --ring: 36 79% 57%;
+
+    --sidebar-background: 223 24% 5%;
+    --sidebar-foreground: 220 18% 88%;
+    --sidebar-muted: 224 12% 55%;
+    --sidebar-accent: 223 19% 11%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-primary: 36 79% 57%;
+    --sidebar-primary-foreground: 42 100% 8%;
+    --sidebar-border: 223 17% 14%;
+
+    --chart-1: 36 79% 57%;
+    --chart-2: 214 60% 62%;
+    --chart-3: 158 55% 45%;
+    --chart-4: 5 65% 60%;
+    --chart-5: 262 45% 65%;
   }
 }
 
@@ -71,6 +128,31 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  /* Cifras (KPIs, dinero, ids) en mono para dar precisión de "planilla" */
+  .font-figures {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+@layer utilities {
+  /* Barra de acento tipo "carril de tapete" — usada en tarjetas KPI */
+  .lane-accent {
+    position: relative;
+  }
+  .lane-accent::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 3px;
+    border-radius: 999px;
+    background: currentColor;
   }
 }
