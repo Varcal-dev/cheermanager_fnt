@@ -1,110 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 
-interface CrearDescuentoModalProps {
-  onCreated: () => void;
+interface EliminarDescuentoModalProps {
+  descuentoId: number;
+  nombreDescuento: string;
+  onDeleted: () => void;
 }
 
-const FORM_VACIO = {
-  nombre: "",
-  descripcion: "",
-  porcentaje: 0,
-  fechaInicio: "",
-  fechaFin: "",
-};
-
-export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalProps) {
+export default function ModalEliminarDescuento({
+  descuentoId,
+  nombreDescuento,
+  onDeleted,
+}: EliminarDescuentoModalProps) {
   const [open, setOpen] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [form, setForm] = useState(FORM_VACIO);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async () => {
-    if (!form.nombre || !form.fechaInicio) {
-      toast.error("Nombre y fecha de inicio son obligatorios");
-      return;
-    }
-
-    setGuardando(true);
+  const handleEliminar = async () => {
+    setLoading(true);
     try {
-      // Antes esto era un fetch() crudo sin el header de autorización —
-      // el backend probablemente lo rechazaba con 401 y el error se perdía
-      // en silencio porque no había try/catch.
-      await api.post("/api/descuentos", {
-        ...form,
-        porcentaje: Number(form.porcentaje),
-        fechaFin: form.fechaFin || null,
-      });
-      onCreated();
+      await api.delete(`/api/descuentos/${descuentoId}`);
+      toast.success("Descuento eliminado");
+      onDeleted();
       setOpen(false);
-      setForm(FORM_VACIO);
-      toast.success("Nuevo descuento agregado");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || "No se pudo crear el descuento");
+      toast.error(
+        error.response?.data?.message || error.response?.data || "No se pudo eliminar el descuento",
+      );
     } finally {
-      setGuardando(false);
+      setLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="mr-2 h-4 w-4" />Nuevo Descuento</Button>
+        <Button variant="destructive" size="sm">
+          <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+        </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Crear nuevo descuento</DialogTitle>
+          <DialogTitle>¿Eliminar "{nombreDescuento}"?</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Nombre</Label>
-            <Input name="nombre" value={form.nombre} onChange={handleChange} />
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <Textarea name="descripcion" value={form.descripcion} onChange={handleChange} />
-          </div>
-          <div>
-            <Label>Porcentaje (%)</Label>
-            <Input
-              name="porcentaje"
-              type="number"
-              min={0}
-              max={100}
-              step={0.01}
-              value={form.porcentaje}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label>Fecha inicio</Label>
-              <Input name="fechaInicio" type="date" value={form.fechaInicio} onChange={handleChange} />
-            </div>
-            <div className="flex-1">
-              <Label>
-                Fecha fin <span className="font-normal text-muted-foreground">(opcional)</span>
-              </Label>
-              <Input name="fechaFin" type="date" value={form.fechaFin} onChange={handleChange} />
-            </div>
-          </div>
-          <Button onClick={handleSubmit} className="w-full" disabled={guardando}>
-            {guardando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Guardar
+        <DialogDescription>
+          Esta acción no se puede deshacer. Si el descuento está en uso por algún convenio,
+          el backend rechazará el borrado — en ese caso, considera desactivarlo en vez de eliminarlo.
+        </DialogDescription>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            Cancelar
           </Button>
-        </div>
+          <Button variant="destructive" onClick={handleEliminar} disabled={loading}>
+            {loading ? "Eliminando..." : "Sí, eliminar"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -204,6 +204,19 @@ export default function ProductoFormModal({
               />
             </div>
           </div>
+          {producto ? (
+            <p className="text-xs text-muted-foreground">
+              El stock se maneja por variante (talla/color). Agrega o ajusta variantes desde
+              el detalle del producto para registrar entradas de inventario.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Si llenas al menos un precio de referencia, se crea automáticamente una variante
+              base (sin talla/color) con stock inicial en 0 — así el producto ya aparece en
+              Inventario y Ventas. Si dejas ambos precios vacíos, tendrás que crear la primera
+              variante manualmente después, desde el detalle del producto.
+            </p>
+          )}
           <div className="grid gap-1.5">
             <Label>Origen / Proveedor</Label>
             <Input

@@ -28,8 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, ChevronRight, Plus, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsUpDown, Plus, Trash2, Loader2, Printer } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -43,6 +52,7 @@ interface Venta {
   personaId: number | null;
   nombreComprador: string;
   facturaId: number | null;
+  numeroFactura: string | null;
   detalles: {
     productoVarianteId: number;
     skuVariante: string;
@@ -67,6 +77,7 @@ interface VarianteOpcion {
   nombreProducto: string;
   talla: string;
   color: string;
+  skuVariante: string;
   precioVenta: number;
   stockActual: number | null;
 }
@@ -107,6 +118,7 @@ export default function VentasPage() {
   const [metodoPago, setMetodoPago] = useState("Efectivo");
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [varianteParaAgregar, setVarianteParaAgregar] = useState("");
+  const [buscadorProductoAbierto, setBuscadorProductoAbierto] = useState(false);
   const [cantidadParaAgregar, setCantidadParaAgregar] = useState("1");
   const [guardando, setGuardando] = useState(false);
 
@@ -130,6 +142,97 @@ export default function VentasPage() {
     );
   };
 
+  // Comprobante imprimible para cualquier venta, tenga o no Factura contable
+  // asociada (los compradores externos nunca la tienen, ver VentaService).
+  // Se arma en una ventana aparte con su propio HTML/CSS en vez de reusar el
+  // layout de la app, para no imprimir sidebar/nav ni pelear con el CSS
+  // global — así el comprobante sale limpio en la impresora térmica o en PDF.
+  const imprimirComprobante = (venta: Venta) => {
+    const filas = venta.detalles
+      .map(
+        (d) => `
+        <tr>
+          <td>${d.nombreProducto}${
+            [d.talla, d.color].filter(Boolean).length
+              ? ` (${[d.talla, d.color].filter(Boolean).join(" / ")})`
+              : ""
+          }</td>
+          <td class="num">${d.cantidad}</td>
+          <td class="num">$${Number(d.precioUnitario).toLocaleString()}</td>
+          <td class="num">$${Number(d.subtotal).toLocaleString()}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const referencia = venta.numeroFactura
+      ? `Factura ${venta.numeroFactura}`
+      : `Comprobante de venta #${venta.id}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${referencia}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: -apple-system, Arial, sans-serif;
+              max-width: 380px;
+              margin: 0 auto;
+              padding: 24px 16px;
+              color: #111;
+            }
+            h1 { font-size: 16px; margin: 0 0 2px; }
+            .sub { font-size: 12px; color: #555; margin-bottom: 16px; }
+            .linea { display: flex; justify-content: space-between; font-size: 13px; margin: 3px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12px; }
+            th { text-align: left; border-bottom: 1px solid #333; padding: 4px 2px; font-size: 11px; text-transform: uppercase; }
+            td { padding: 5px 2px; border-bottom: 1px dashed #ccc; vertical-align: top; }
+            .num { text-align: right; white-space: nowrap; }
+            .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: bold; margin-top: 14px; border-top: 1px solid #333; padding-top: 8px; }
+            .footer { margin-top: 24px; font-size: 11px; color: #777; text-align: center; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Ratels All Stars</h1>
+          <div class="sub">${referencia}</div>
+
+          <div class="linea"><span>Fecha</span><span>${new Date(venta.fecha).toLocaleDateString()}</span></div>
+          <div class="linea"><span>Comprador</span><span>${venta.nombreComprador}</span></div>
+          <div class="linea"><span>Método de pago</span><span>${venta.metodoPago}</span></div>
+
+          <table>
+            <thead>
+              <tr><th>Producto</th><th class="num">Cant.</th><th class="num">P. unit.</th><th class="num">Subtotal</th></tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+
+          <div class="total"><span>Total</span><span>$${Number(venta.total).toLocaleString()}</span></div>
+
+          <div class="footer">
+            ${venta.numeroFactura ? "Factura registrada a la cuenta del deportista." : "Comprobante de venta — sin valor fiscal."}
+          </div>
+        </body>
+      </html>`;
+
+    const ventana = window.open("", "_blank", "width=420,height=650");
+    if (!ventana) {
+      toast.error("El navegador bloqueó la ventana de impresión. Permite pop-ups para este sitio.");
+      return;
+    }
+    ventana.document.write(html);
+    ventana.document.close();
+    ventana.focus();
+    // Pequeño delay para que el navegador termine de pintar antes de abrir
+    // el diálogo de impresión (si no, a veces sale en blanco).
+    setTimeout(() => ventana.print(), 300);
+  };
+
   const abrirNuevaVenta = () => {
     setTipoComprador(COMPRADOR_INTERNO);
     setPersonaId("");
@@ -145,29 +248,54 @@ export default function VentasPage() {
       api.get("/api/deportistas"),
       api.get("/api/productos/activos"),
     ]).then(([resDeportistas, resProductos]) => {
-      if (resDeportistas.status === "fulfilled") setDeportistas(resDeportistas.value.data);
+      if (resDeportistas.status === "fulfilled")
+        setDeportistas(resDeportistas.value.data);
       if (resProductos.status === "fulfilled") {
         const todasLasVariantes: VarianteOpcion[] = [];
+        const productosSinVariantes: string[] = [];
         for (const p of resProductos.value.data) {
-          for (const v of p.variantes ?? []) {
-            todasLasVariantes.push({
-              id: v.id,
-              productoId: p.id,
-              nombreProducto: p.nombre,
-              talla: v.talla,
-              color: v.color,
-              precioVenta: v.precioVenta,
-              stockActual: v.stockActual,
-            });
+          if (p.variantes && p.variantes.length > 0) {
+            for (const v of p.variantes) {
+              if (v.activo === false) continue;
+              todasLasVariantes.push({
+                id: v.id,
+                productoId: p.id,
+                nombreProducto: p.nombre,
+                talla: v.talla,
+                color: v.color,
+                skuVariante: v.skuVariante,
+                precioVenta: v.precioVenta,
+                stockActual: v.stockActual,
+              });
+            }
+          } else {
+            // Antes esto agregaba una "variante" falsa usando el id del
+            // Producto como si fuera un id de ProductoVariante real, con
+            // stock tomado del campo cantidadStock (que nunca reflejaba el
+            // inventario real). Vender con ese id rompía /api/ventas o, peor,
+            // apuntaba a una variante distinta que coincidiera por número.
+            // Un producto sin variantes simplemente no es vendible todavía.
+            productosSinVariantes.push(p.nombre);
           }
+        }
+        if (productosSinVariantes.length > 0) {
+          toast.warn(
+            `${productosSinVariantes.length} producto(s) sin variantes no aparecen para venta: ${productosSinVariantes.join(", ")}. Agrégales una variante (talla/color) desde Inventario.`,
+          );
         }
         setVariantes(todasLasVariantes);
       }
     });
   };
 
+  const varianteSeleccionada = variantes.find(
+    (v) => String(v.id) === varianteParaAgregar,
+  );
+
   const agregarAlCarrito = () => {
-    const variante = variantes.find((v) => String(v.id) === varianteParaAgregar);
+    const variante = variantes.find(
+      (v) => String(v.id) === varianteParaAgregar,
+    );
     const cantidad = Number(cantidadParaAgregar);
     if (!variante) {
       toast.error("Selecciona un producto");
@@ -195,7 +323,10 @@ export default function VentasPage() {
     setCarrito((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const totalCarrito = carrito.reduce((sum, i) => sum + i.cantidad * i.precioUnitario, 0);
+  const totalCarrito = carrito.reduce(
+    (sum, i) => sum + i.cantidad * i.precioUnitario,
+    0,
+  );
 
   const guardarVenta = async () => {
     if (tipoComprador === COMPRADOR_INTERNO && !personaId) {
@@ -213,9 +344,12 @@ export default function VentasPage() {
     setGuardando(true);
     try {
       await api.post("/api/ventas", {
-        personaId: tipoComprador === COMPRADOR_INTERNO ? Number(personaId) : null,
-        nombreCompradorExterno: tipoComprador === COMPRADOR_EXTERNO ? nombreExterno : null,
-        contactoCompradorExterno: tipoComprador === COMPRADOR_EXTERNO ? contactoExterno : null,
+        personaId:
+          tipoComprador === COMPRADOR_INTERNO ? Number(personaId) : null,
+        nombreCompradorExterno:
+          tipoComprador === COMPRADOR_EXTERNO ? nombreExterno : null,
+        contactoCompradorExterno:
+          tipoComprador === COMPRADOR_EXTERNO ? contactoExterno : null,
         metodoPago,
         items: carrito.map((i) => ({
           productoVarianteId: i.productoVarianteId,
@@ -229,7 +363,9 @@ export default function VentasPage() {
       // El backend responde 409 tanto para "comprador inválido" como para
       // "stock insuficiente" — el mensaje ya viene claro sobre cuál es.
       toast.error(
-        error.response?.data?.message || error.response?.data || "No se pudo registrar la venta",
+        error.response?.data?.message ||
+          error.response?.data ||
+          "No se pudo registrar la venta",
       );
     } finally {
       setGuardando(false);
@@ -242,7 +378,9 @@ export default function VentasPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Ventas</h1>
-            <p className="text-muted-foreground">Ventas de la tienda del club</p>
+            <p className="text-muted-foreground">
+              Ventas de la tienda del club
+            </p>
           </div>
           <Button onClick={abrirNuevaVenta}>
             <Plus className="mr-2 h-4 w-4" /> Nueva Venta
@@ -252,11 +390,19 @@ export default function VentasPage() {
         <div className="flex gap-4 items-end">
           <div className="grid gap-1.5">
             <Label>Desde</Label>
-            <Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+            <Input
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>Hasta</Label>
-            <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+            <Input
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+            />
           </div>
         </div>
 
@@ -276,12 +422,16 @@ export default function VentasPage() {
                     <TableHead>Método de pago</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Factura</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ventas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         No hay ventas en este rango de fechas.
                       </TableCell>
                     </TableRow>
@@ -304,21 +454,39 @@ export default function VentasPage() {
                                 )}
                               </Button>
                             </TableCell>
-                            <TableCell>{new Date(venta.fecha).toLocaleDateString()}</TableCell>
-                            <TableCell className="font-medium">{venta.nombreComprador}</TableCell>
+                            <TableCell>
+                              {new Date(venta.fecha).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {venta.nombreComprador}
+                            </TableCell>
                             <TableCell>{venta.metodoPago}</TableCell>
-                            <TableCell>${Number(venta.total).toLocaleString()}</TableCell>
+                            <TableCell>
+                              ${Number(venta.total).toLocaleString()}
+                            </TableCell>
                             <TableCell>
                               {venta.facturaId ? (
-                                <Badge variant="outline">Factura #{venta.facturaId}</Badge>
+                                <Badge variant="outline">
+                                  {venta.numeroFactura ?? `Factura #${venta.facturaId}`}
+                                </Badge>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
                             </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Ver / imprimir comprobante"
+                                onClick={() => imprimirComprobante(venta)}
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                           {estaExpandida && (
                             <TableRow className="bg-muted/50">
-                              <TableCell colSpan={6} className="p-0">
+                              <TableCell colSpan={7} className="p-0">
                                 <div className="p-4">
                                   <Table>
                                     <TableHeader>
@@ -333,16 +501,26 @@ export default function VentasPage() {
                                     <TableBody>
                                       {venta.detalles.map((d, i) => (
                                         <TableRow key={i}>
-                                          <TableCell>{d.nombreProducto}</TableCell>
                                           <TableCell>
-                                            {[d.talla, d.color].filter(Boolean).join(" / ") || "—"}
+                                            {d.nombreProducto}
+                                          </TableCell>
+                                          <TableCell>
+                                            {[d.talla, d.color]
+                                              .filter(Boolean)
+                                              .join(" / ") || "—"}
                                           </TableCell>
                                           <TableCell>{d.cantidad}</TableCell>
                                           <TableCell>
-                                            ${Number(d.precioUnitario).toLocaleString()}
+                                            $
+                                            {Number(
+                                              d.precioUnitario,
+                                            ).toLocaleString()}
                                           </TableCell>
                                           <TableCell>
-                                            ${Number(d.subtotal).toLocaleString()}
+                                            $
+                                            {Number(
+                                              d.subtotal,
+                                            ).toLocaleString()}
                                           </TableCell>
                                         </TableRow>
                                       ))}
@@ -371,8 +549,12 @@ export default function VentasPage() {
           <div className="space-y-4 px-6 py-4 overflow-y-auto flex-1">
             <Tabs value={tipoComprador} onValueChange={setTipoComprador}>
               <TabsList>
-                <TabsTrigger value={COMPRADOR_INTERNO}>Deportista del club</TabsTrigger>
-                <TabsTrigger value={COMPRADOR_EXTERNO}>Comprador externo</TabsTrigger>
+                <TabsTrigger value={COMPRADOR_INTERNO}>
+                  Deportista del club
+                </TabsTrigger>
+                <TabsTrigger value={COMPRADOR_EXTERNO}>
+                  Comprador externo
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -385,7 +567,10 @@ export default function VentasPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {deportistas.map((d) => (
-                      <SelectItem key={d.deportistaId} value={String(d.deportistaId)}>
+                      <SelectItem
+                        key={d.deportistaId}
+                        value={String(d.deportistaId)}
+                      >
                         {d.nombre} {d.apellidos}
                       </SelectItem>
                     ))}
@@ -429,20 +614,64 @@ export default function VentasPage() {
             <div className="border-t pt-4 space-y-3">
               <Label>Productos</Label>
               <div className="flex gap-2">
-                <Select value={varianteParaAgregar} onValueChange={setVarianteParaAgregar}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecciona un producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {variantes.map((v) => (
-                      <SelectItem key={v.id} value={String(v.id)}>
-                        {v.nombreProducto}
-                        {v.talla ? ` - ${v.talla}` : ""}
-                        {v.color ? ` - ${v.color}` : ""} (${Number(v.precioVenta).toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={buscadorProductoAbierto} onOpenChange={setBuscadorProductoAbierto}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={buscadorProductoAbierto}
+                      className="flex-1 justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {varianteSeleccionada ? (
+                          <>
+                            {varianteSeleccionada.nombreProducto}
+                            {varianteSeleccionada.talla ? ` - ${varianteSeleccionada.talla}` : ""}
+                            {varianteSeleccionada.color ? ` - ${varianteSeleccionada.color}` : ""} ($
+                            {Number(varianteSeleccionada.precioVenta).toLocaleString()})
+                          </>
+                        ) : (
+                          "Buscar producto..."
+                        )}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Nombre, talla, color o SKU..." />
+                      <CommandList>
+                        <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                          Sin resultados.
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {variantes.map((v) => {
+                            const etiqueta = [v.nombreProducto, v.talla, v.color, v.skuVariante]
+                              .filter(Boolean)
+                              .join(" ");
+                            return (
+                              <CommandItem
+                                key={v.id}
+                                value={etiqueta}
+                                onSelect={() => {
+                                  setVarianteParaAgregar(String(v.id));
+                                  setBuscadorProductoAbierto(false);
+                                }}
+                              >
+                                <span className="truncate">
+                                  {v.nombreProducto}
+                                  {v.talla ? ` - ${v.talla}` : ""}
+                                  {v.color ? ` - ${v.color}` : ""} ($
+                                  {Number(v.precioVenta).toLocaleString()})
+                                </span>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Input
                   type="number"
                   min={1}
@@ -463,10 +692,32 @@ export default function VentasPage() {
                         <TableCell>{item.descripcion}</TableCell>
                         <TableCell>x{item.cantidad}</TableCell>
                         <TableCell>
-                          ${(item.cantidad * item.precioUnitario).toLocaleString()}
+                          <Input
+                            type="number"
+                            className="w-28"
+                            value={item.precioUnitario}
+                            onChange={(e) => {
+                              const nuevoPrecio = Number(e.target.value);
+
+                              setCarrito((prev) =>
+                                prev.map((p, index) =>
+                                  index === i
+                                    ? {
+                                        ...p,
+                                        precioUnitario: nuevoPrecio,
+                                      }
+                                    : p,
+                                ),
+                              );
+                            }}
+                          />
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => quitarDelCarrito(i)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => quitarDelCarrito(i)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -484,11 +735,17 @@ export default function VentasPage() {
             </div>
           </div>
           <DialogFooter className="px-6 pb-6 pt-3 border-t">
-            <Button variant="outline" onClick={() => setModalAbierto(false)} disabled={guardando}>
+            <Button
+              variant="outline"
+              onClick={() => setModalAbierto(false)}
+              disabled={guardando}
+            >
               Cancelar
             </Button>
             <Button onClick={guardarVenta} disabled={guardando}>
-              {guardando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {guardando ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
               Registrar Venta
             </Button>
           </DialogFooter>

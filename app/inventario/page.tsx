@@ -20,7 +20,9 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -33,22 +35,33 @@ export default function InventarioPage() {
   const [cargando, setCargando] = useState(true);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [expandidos, setExpandidos] = useState<number[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [busquedaDebounced, setBusquedaDebounced] = useState("");
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
 
-  const cargar = () => {
+  const cargar = (q: string = busquedaDebounced) => {
     setCargando(true);
     api
-      .get("/api/productos")
+      .get("/api/productos", { params: q ? { q } : {} })
       .then((res) => setProductos(res.data))
       .catch(() => toast.error("No se pudieron cargar los productos"))
       .finally(() => setCargando(false));
   };
 
+  // Espera 350ms de silencio antes de disparar la búsqueda — así no se
+  // manda una petición al backend por cada tecla mientras el usuario
+  // todavía está escribiendo.
   useEffect(() => {
-    cargar();
-  }, []);
+    const timeout = setTimeout(() => setBusquedaDebounced(busqueda), 350);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
+
+  useEffect(() => {
+    cargar(busquedaDebounced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busquedaDebounced]);
 
   const toggleExpand = (id: number) => {
     setExpandidos((prev) =>
@@ -100,7 +113,16 @@ export default function InventarioPage() {
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="productos" className="mt-4">
+          <TabsContent value="productos" className="mt-4 space-y-3">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, SKU o categoría..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-8"
+              />
+            </div>
             <Card>
               <CardContent className="p-0">
                 {cargando ? (
@@ -124,7 +146,9 @@ export default function InventarioPage() {
                       {productos.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            No hay productos para mostrar.
+                            {busquedaDebounced
+                              ? `Sin resultados para "${busquedaDebounced}".`
+                              : "No hay productos para mostrar."}
                           </TableCell>
                         </TableRow>
                       ) : (

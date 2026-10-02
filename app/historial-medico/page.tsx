@@ -1,26 +1,37 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Plus,
   Search,
-  Filter,
-  Download,
-  FileText,
-  Calendar,
-  AlertCircle,
-  CheckCircle2,
   Eye,
   Pencil,
   Trash2,
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Stethoscope,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -28,485 +39,696 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { api } from "@/lib/api";
+import { useUser } from "@/context/UserContext";
+import {
+  obtenerHistorialMedicoGlobal,
+  actualizarHistorialMedico,
+  eliminarHistorialMedico,
+  crearHistorialMedico,
+  type RegistroHistorialMedicoGlobal,
+} from "@/lib/deportistas-historiales";
 
-// Datos de ejemplo
-const historialMedico = [
-  {
-    id: 1,
-    deportista_id: 1,
-    deportista_nombre: "Sofía Pérez",
-    tipo: "Lesión",
-    fecha: "2023-10-15",
-    descripcion: "Esguince de tobillo durante entrenamiento",
-    estado: "Recuperado",
-    documentos: ["radiografia.pdf", "receta_medica.pdf"],
-    restricciones: "No realizar saltos por 2 semanas",
-    medico: "Dr. Martínez",
-    seguimiento: [
-      { fecha: "2023-10-20", nota: "Mejorando, continuar con reposo" },
-      { fecha: "2023-11-05", nota: "Alta médica, puede retomar actividades gradualmente" },
-    ],
-  },
-  {
-    id: 2,
-    deportista_id: 7,
-    deportista_nombre: "Isabella Sánchez",
-    tipo: "Condición Crónica",
-    fecha: "2023-08-03",
-    descripcion: "Asma leve, controlada con inhalador",
-    estado: "En tratamiento",
-    documentos: ["informe_medico.pdf"],
-    restricciones: "Monitorear durante ejercicios de alta intensidad",
-    medico: "Dra. Rodríguez",
-    seguimiento: [{ fecha: "2023-09-10", nota: "Control rutinario, condición estable" }],
-  },
-  {
-    id: 3,
-    deportista_id: 10,
-    deportista_nombre: "Alejandro Díaz",
-    tipo: "Lesión",
-    fecha: "2023-11-20",
-    descripcion: "Contusión en hombro derecho durante competencia",
-    estado: "En recuperación",
-    documentos: ["resonancia.pdf", "plan_fisioterapia.pdf"],
-    restricciones: "Evitar cargas en el hombro por 3 semanas",
-    medico: "Dr. Gómez",
-    seguimiento: [{ fecha: "2023-11-27", nota: "Iniciando fisioterapia, dolor reducido" }],
-  },
-  {
-    id: 4,
-    deportista_id: 5,
-    deportista_nombre: "Valentina López",
-    tipo: "Alergia",
-    fecha: "2023-07-12",
-    descripcion: "Alergia a ciertos materiales sintéticos",
-    estado: "Controlado",
-    documentos: ["test_alergia.pdf"],
-    restricciones: "Evitar contacto con uniformes de material sintético específico",
-    medico: "Dra. Fernández",
-    seguimiento: [],
-  },
-  {
-    id: 5,
-    deportista_id: 8,
-    deportista_nombre: "Nicolás Ramírez",
-    tipo: "Lesión",
-    fecha: "2023-09-05",
-    descripcion: "Distensión muscular en muslo izquierdo",
-    estado: "Recuperado",
-    documentos: ["evaluacion_fisioterapia.pdf"],
-    restricciones: "Completó rehabilitación, sin restricciones actuales",
-    medico: "Dr. Torres",
-    seguimiento: [
-      { fecha: "2023-09-15", nota: "Progreso favorable con fisioterapia" },
-      { fecha: "2023-10-01", nota: "Alta médica, puede retomar todas las actividades" },
-    ],
-  },
-]
+const TIPOS_SUGERIDOS = ["Lesión", "Condición Crónica", "Alergia", "Enfermedad", "Otro"];
+const GRAVEDADES_SUGERIDAS = ["Leve", "Moderada", "Grave"];
+const PAGE_SIZE = 20;
 
-// Componente para mostrar el estado con un badge de color
-const EstadoBadge = ({ estado }: { estado: string }) => {
-  let variant: "default" | "secondary" | "destructive" | "outline" = "default"
-
-  switch (estado) {
-    case "Recuperado":
-      variant = "default"
-      break
-    case "En recuperación":
-      variant = "secondary"
-      break
-    case "En tratamiento":
-      variant = "outline"
-      break
-    default:
-      variant = "default"
-  }
-
-  return <Badge variant={variant}>{estado}</Badge>
+function badgeGravedad(gravedad: string | null): "success" | "default" | "destructive" | "outline" {
+  if (!gravedad) return "outline";
+  const g = gravedad.toLowerCase();
+  if (g.includes("grave") || g.includes("alta")) return "destructive";
+  if (g.includes("moder") || g.includes("media")) return "default";
+  if (g.includes("leve") || g.includes("baja")) return "success";
+  return "outline";
 }
 
-export default function HistorialMedicoPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedRecord, setSelectedRecord] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState("registros")
+interface DeportistaOpcion {
+  id: number;
+  nombre: string;
+  apellidos: string;
+}
 
-  // Filtrar registros por término de búsqueda
-  const filteredRecords = historialMedico.filter(
-    (record) =>
-      record.deportista_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.descripcion.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+interface FormHistorial {
+  deportistaId: string;
+  descripcion: string;
+  fechaRegistro: string;
+  tipoRegistro: string;
+  gravedad: string;
+  medicoTratante: string;
+}
+
+const FORM_VACIO: FormHistorial = {
+  deportistaId: "",
+  descripcion: "",
+  fechaRegistro: new Date().toISOString().slice(0, 10),
+  tipoRegistro: "",
+  gravedad: "",
+  medicoTratante: "",
+};
+
+export default function HistorialMedicoPage() {
+  const { permissions } = useUser();
+
+  const [registros, setRegistros] = useState<RegistroHistorialMedicoGlobal[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(0);
+  const [cargando, setCargando] = useState(true);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
+  const [gravedadFiltro, setGravedadFiltro] = useState<string | null>(null);
+
+  const [deportistas, setDeportistas] = useState<DeportistaOpcion[]>([]);
+  const [registroSeleccionado, setRegistroSeleccionado] =
+    useState<RegistroHistorialMedicoGlobal | null>(null);
+
+  const [modalAbierto, setModalAbierto] = useState<"nuevo" | "editar" | null>(null);
+  const [registroEnEdicion, setRegistroEnEdicion] = useState<RegistroHistorialMedicoGlobal | null>(
+    null,
+  );
+  const [form, setForm] = useState<FormHistorial>(FORM_VACIO);
+  const [guardando, setGuardando] = useState(false);
+
+  const [registroAEliminar, setRegistroAEliminar] =
+    useState<RegistroHistorialMedicoGlobal | null>(null);
+
+  // Estadísticas: se traen aparte con un tamaño de página grande, ya que no
+  // hay (todavía) un endpoint de agregación — para el volumen de un club
+  // esto es suficiente y evita inventar números.
+  const [stats, setStats] = useState<{
+    porTipo: Record<string, number>;
+    porGravedad: Record<string, number>;
+    total: number;
+  } | null>(null);
+
+  useEffect(() => {
+    api
+      .get("/api/deportistas")
+      .then((res) => setDeportistas(res.data))
+      .catch(() => {
+        // silencioso: el selector de deportista en el formulario simplemente queda vacío
+      });
+  }, []);
+
+  const cargar = () => {
+    setCargando(true);
+    obtenerHistorialMedicoGlobal({
+      tipoRegistro: tipoFiltro ?? undefined,
+      gravedad: gravedadFiltro ?? undefined,
+      q: searchTerm || undefined,
+      page,
+      size: PAGE_SIZE,
+    })
+      .then((data) => {
+        setRegistros(data.content);
+        setTotalElements(data.totalElements);
+        setTotalPages(data.totalPages);
+      })
+      .catch(() => toast.error("No se pudo cargar el historial médico"))
+      .finally(() => setCargando(false));
+  };
+
+  useEffect(() => {
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipoFiltro, gravedadFiltro, searchTerm, page]);
+
+  const cargarStats = () => {
+    obtenerHistorialMedicoGlobal({ size: 1000 })
+      .then((data) => {
+        const porTipo: Record<string, number> = {};
+        const porGravedad: Record<string, number> = {};
+        for (const r of data.content) {
+          const tipo = r.tipoRegistro || "Sin especificar";
+          const gravedad = r.gravedad || "Sin especificar";
+          porTipo[tipo] = (porTipo[tipo] || 0) + 1;
+          porGravedad[gravedad] = (porGravedad[gravedad] || 0) + 1;
+        }
+        setStats({ porTipo, porGravedad, total: data.totalElements });
+      })
+      .catch(() => toast.error("No se pudieron calcular las estadísticas"));
+  };
+
+  const abrirNuevo = () => {
+    setForm(FORM_VACIO);
+    setModalAbierto("nuevo");
+  };
+
+  const abrirEdicion = (registro: RegistroHistorialMedicoGlobal) => {
+    setRegistroEnEdicion(registro);
+    setForm({
+      deportistaId: "",
+      descripcion: registro.descripcion,
+      fechaRegistro: registro.fechaRegistro,
+      tipoRegistro: registro.tipoRegistro || "",
+      gravedad: registro.gravedad || "",
+      medicoTratante: registro.medicoTratante || "",
+    });
+    setModalAbierto("editar");
+  };
+
+  const guardar = async () => {
+    if (!form.descripcion.trim() || !form.fechaRegistro) {
+      toast.error("Descripción y fecha son obligatorias");
+      return;
+    }
+    setGuardando(true);
+    try {
+      if (modalAbierto === "nuevo") {
+        if (!form.deportistaId) {
+          toast.error("Selecciona un deportista");
+          setGuardando(false);
+          return;
+        }
+        await crearHistorialMedico(parseInt(form.deportistaId), {
+          descripcion: form.descripcion,
+          fechaRegistro: form.fechaRegistro,
+          tipoRegistro: form.tipoRegistro || undefined,
+          gravedad: form.gravedad || undefined,
+          medicoTratante: form.medicoTratante || undefined,
+        });
+        toast.success("Registro médico creado");
+      } else if (registroEnEdicion) {
+        await actualizarHistorialMedico(registroEnEdicion.id, {
+          descripcion: form.descripcion,
+          fechaRegistro: form.fechaRegistro,
+          tipoRegistro: form.tipoRegistro || undefined,
+          gravedad: form.gravedad || undefined,
+          medicoTratante: form.medicoTratante || undefined,
+        });
+        toast.success("Registro médico actualizado");
+      }
+      setModalAbierto(null);
+      setRegistroEnEdicion(null);
+      cargar();
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo guardar el registro médico");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const eliminar = async () => {
+    if (!registroAEliminar) return;
+    try {
+      await eliminarHistorialMedico(registroAEliminar.id);
+      toast.success("Registro eliminado");
+      setRegistroAEliminar(null);
+      if (registroSeleccionado?.id === registroAEliminar.id) setRegistroSeleccionado(null);
+      cargar();
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo eliminar el registro");
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Historial Médico</h1>
-          <p className="text-muted-foreground">
-            Gestiona el historial médico, lesiones y condiciones de salud de los deportistas
-          </p>
+    <ProtectedRoute requiredPermission="ver_historial_medico">
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-display font-bold tracking-tight">
+              Historial Médico
+            </h1>
+            <p className="text-muted-foreground">
+              Lesiones y condiciones de salud registradas para los deportistas
+            </p>
+          </div>
+          {permissions.includes("crear_historial_medico") && (
+            <Button onClick={abrirNuevo}>
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Registro
+            </Button>
+          )}
         </div>
-      </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="registros">Registros Médicos</TabsTrigger>
-          <TabsTrigger value="estadisticas">Estadísticas y Reportes</TabsTrigger>
-        </TabsList>
+        <Tabs
+          defaultValue="registros"
+          className="w-full"
+          onValueChange={(v) => {
+            if (v === "estadisticas" && !stats) cargarStats();
+          }}
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="registros">Registros Médicos</TabsTrigger>
+            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+          </TabsList>
 
-        {/* Pestaña de Registros Médicos */}
-        <TabsContent value="registros">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Registros Médicos</CardTitle>
-                <CardDescription>
-                  Historial de lesiones, condiciones médicas y seguimiento de los deportistas
-                </CardDescription>
+          <TabsContent value="registros" className="space-y-4">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div className="relative flex items-center w-full max-w-sm">
+                <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por deportista o descripción…"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setPage(0);
+                    setSearchTerm(e.target.value);
+                  }}
+                  className="h-9 pl-9"
+                />
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Nuevo Registro
+              <div className="flex flex-wrap gap-2">
+                <Select
+                  value={tipoFiltro ?? "all"}
+                  onValueChange={(v) => {
+                    setPage(0);
+                    setTipoFiltro(v === "all" ? null : v);
+                  }}
+                >
+                  <SelectTrigger className="w-[170px]">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    {TIPOS_SUGERIDOS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={gravedadFiltro ?? "all"}
+                  onValueChange={(v) => {
+                    setPage(0);
+                    setGravedadFiltro(v === "all" ? null : v);
+                  }}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Gravedad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {GRAVEDADES_SUGERIDAS.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(tipoFiltro || gravedadFiltro || searchTerm) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setTipoFiltro(null);
+                      setGravedadFiltro(null);
+                      setSearchTerm("");
+                      setPage(0);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Limpiar
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Añadir Nuevo Registro Médico</DialogTitle>
-                    <DialogDescription>
-                      Ingresa la información médica del deportista. Todos los campos marcados con * son obligatorios.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="deportista">Deportista *</Label>
-                        <Select>
-                          <SelectTrigger id="deportista">
-                            <SelectValue placeholder="Seleccionar deportista" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Sofía Pérez</SelectItem>
-                            <SelectItem value="2">Lucas Martínez</SelectItem>
-                            <SelectItem value="3">Emma Rodríguez</SelectItem>
-                            <SelectItem value="4">Mateo González</SelectItem>
-                            <SelectItem value="5">Valentina López</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="tipo">Tipo *</Label>
-                        <Select>
-                          <SelectTrigger id="tipo">
-                            <SelectValue placeholder="Seleccionar tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lesion">Lesión</SelectItem>
-                            <SelectItem value="condicion">Condición Crónica</SelectItem>
-                            <SelectItem value="alergia">Alergia</SelectItem>
-                            <SelectItem value="otro">Otro</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fecha">Fecha *</Label>
-                        <Input id="fecha" type="date" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="medico">Médico</Label>
-                        <Input id="medico" placeholder="Nombre del médico" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="descripcion">Descripción *</Label>
-                      <Textarea id="descripcion" placeholder="Describe la condición médica o lesión" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="restricciones">Restricciones</Label>
-                      <Textarea id="restricciones" placeholder="Restricciones de actividad si aplican" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="estado">Estado *</Label>
-                      <Select>
-                        <SelectTrigger id="estado">
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="recuperado">Recuperado</SelectItem>
-                          <SelectItem value="en_recuperacion">En recuperación</SelectItem>
-                          <SelectItem value="en_tratamiento">En tratamiento</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="documentos">Documentos</Label>
-                      <Input id="documentos" type="file" multiple />
-                      <p className="text-xs text-muted-foreground">Puedes subir múltiples archivos (PDF, JPG, PNG)</p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">Guardar</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between mb-4">
-                <div className="flex items-center space-x-2 w-full max-w-sm">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por deportista, tipo o descripción..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filtrar
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Todos los registros</DropdownMenuItem>
-                      <DropdownMenuItem>Lesiones</DropdownMenuItem>
-                      <DropdownMenuItem>Condiciones crónicas</DropdownMenuItem>
-                      <DropdownMenuItem>Alergias</DropdownMenuItem>
-                      <DropdownMenuItem>En recuperación</DropdownMenuItem>
-                      <DropdownMenuItem>Recuperados</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button variant="outline" size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Exportar
-                  </Button>
-                </div>
+                )}
               </div>
+            </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Deportista</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Documentos</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRecords.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">{record.deportista_nombre}</TableCell>
-                      <TableCell>{record.tipo}</TableCell>
-                      <TableCell>{new Date(record.fecha).toLocaleDateString()}</TableCell>
-                      <TableCell className="max-w-xs truncate">{record.descripcion}</TableCell>
-                      <TableCell>
-                        <EstadoBadge estado={record.estado} />
-                      </TableCell>
-                      <TableCell>
-                        {record.documentos.length > 0 ? (
-                          <Badge variant="outline" className="flex items-center">
-                            <FileText className="h-3 w-3 mr-1" />
-                            {record.documentos.length}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Ninguno</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedRecord(record)}>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Deportista
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Tipo
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Fecha
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Descripción
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Gravedad
+                      </TableHead>
+                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
+                        Acciones
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cargando ? (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <div className="flex items-center justify-center py-10 text-muted-foreground">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cargando…
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : registros.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+                              <Stethoscope className="h-6 w-6 text-accent" />
+                            </div>
+                            <p className="text-lg font-display font-semibold text-foreground">
+                              Sin registros médicos
+                            </p>
+                            <p className="text-sm text-muted-foreground max-w-sm">
+                              {tipoFiltro || gravedadFiltro || searchTerm
+                                ? "No hay registros que coincidan con estos filtros."
+                                : 'Usa "Nuevo Registro" para documentar una lesión o condición médica.'}
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      registros.map((registro) => (
+                        <TableRow key={registro.id}>
+                          <TableCell className="font-medium">
+                            {registro.personaNombre} {registro.personaApellidos}
+                          </TableCell>
+                          <TableCell>{registro.tipoRegistro || "—"}</TableCell>
+                          <TableCell>
+                            {new Date(registro.fechaRegistro).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="max-w-[280px] truncate">
+                            {registro.descripcion}
+                          </TableCell>
+                          <TableCell>
+                            {registro.gravedad ? (
+                              <Badge variant={badgeGravedad(registro.gravedad)}>
+                                {registro.gravedad}
+                              </Badge>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRegistroSeleccionado(registro)}
+                              >
                                 <Eye className="h-4 w-4 mr-1" /> Ver
                               </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[700px]">
-                              <DialogHeader>
-                                <DialogTitle>Detalles del Registro Médico</DialogTitle>
-                                <DialogDescription>
-                                  Información completa y seguimiento del registro médico
-                                </DialogDescription>
-                              </DialogHeader>
-                              {selectedRecord && (
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h3 className="font-semibold text-sm">Deportista</h3>
-                                      <p>{selectedRecord.deportista_nombre}</p>
-                                    </div>
-                                    <div>
-                                      <h3 className="font-semibold text-sm">Tipo</h3>
-                                      <p>{selectedRecord.tipo}</p>
-                                    </div>
-                                    <div>
-                                      <h3 className="font-semibold text-sm">Fecha</h3>
-                                      <p>{new Date(selectedRecord.fecha).toLocaleDateString()}</p>
-                                    </div>
-                                    <div>
-                                      <h3 className="font-semibold text-sm">Estado</h3>
-                                      <EstadoBadge estado={selectedRecord.estado} />
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-semibold text-sm">Descripción</h3>
-                                    <p>{selectedRecord.descripcion}</p>
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-semibold text-sm">Restricciones</h3>
-                                    <p>{selectedRecord.restricciones || "Ninguna"}</p>
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-semibold text-sm">Médico</h3>
-                                    <p>{selectedRecord.medico}</p>
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-semibold text-sm">Documentos</h3>
-                                    {selectedRecord.documentos.length > 0 ? (
-                                      <ul className="list-disc pl-5 space-y-1">
-                                        {selectedRecord.documentos.map((doc: string, index: number) => (
-                                          <li key={index}>
-                                            <a href="#" className="text-blue-600 hover:underline flex items-center">
-                                              <FileText className="h-3 w-3 mr-1" />
-                                              {doc}
-                                            </a>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <p>No hay documentos adjuntos</p>
-                                    )}
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-semibold text-sm">Seguimiento</h3>
-                                    {selectedRecord.seguimiento.length > 0 ? (
-                                      <div className="border rounded-md p-3 space-y-3">
-                                        {selectedRecord.seguimiento.map((seg: any, index: number) => (
-                                          <div key={index} className="border-b pb-2 last:border-0 last:pb-0">
-                                            <div className="flex items-center text-sm text-muted-foreground">
-                                              <Calendar className="h-3 w-3 mr-1" />
-                                              {new Date(seg.fecha).toLocaleDateString()}
-                                            </div>
-                                            <p>{seg.nota}</p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p>No hay registros de seguimiento</p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              <DialogFooter>
-                                <Button variant="outline">
+                              {permissions.includes("modificar_historial_medico") && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => abrirEdicion(registro)}
+                                >
                                   <Pencil className="h-4 w-4 mr-1" /> Editar
                                 </Button>
-                                <Button variant="destructive">
+                              )}
+                              {permissions.includes("eliminar_historial_medico") && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setRegistroAEliminar(registro)}
+                                >
                                   <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                                 </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                          <Button variant="outline" size="sm">
-                            <Pencil className="h-4 w-4 mr-1" /> Editar
-                          </Button>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-        {/* Pestaña de Estadísticas y Reportes */}
-        <TabsContent value="estadisticas">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lesiones Activas</CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">2</div>
-                <p className="text-xs text-muted-foreground">Deportistas con lesiones en recuperación</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Recuperados (Último mes)</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">3</div>
-                <p className="text-xs text-muted-foreground">Deportistas recuperados en los últimos 30 días</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Condiciones Crónicas</CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1</div>
-                <p className="text-xs text-muted-foreground">Deportistas con condiciones médicas crónicas</p>
-              </CardContent>
-            </Card>
-          </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {totalElements} registros · página {page + 1} de {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tipos de Lesiones</CardTitle>
-                <CardDescription>Distribución de lesiones por tipo en los últimos 12 meses</CardDescription>
-              </CardHeader>
-              <CardContent className="pl-2">
-                <div className="h-[300px] flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    Gráfico de distribución de lesiones
-                    <p className="text-sm">(Datos de ejemplo)</p>
+          <TabsContent value="estadisticas" className="space-y-4">
+            {!stats ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calculando…
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="lane-accent text-accent">
+                  <CardHeader className="pb-2 pl-5">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Total de registros
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pl-5">
+                    <div className="text-3xl font-display font-bold font-figures text-foreground">
+                      {stats.total.toLocaleString()}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-display">Por gravedad</CardTitle>
+                    <CardDescription>Sobre los registros cargados</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(stats.porGravedad).map(([g, count]) => (
+                      <div key={g} className="flex items-center justify-between text-sm">
+                        <span>{g}</span>
+                        <span className="font-figures font-semibold">{count}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="font-display">Por tipo de registro</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(stats.porTipo).map(([t, count]) => (
+                      <div key={t} className="flex items-center justify-between text-sm">
+                        <span>{t}</span>
+                        <span className="font-figures font-semibold">{count}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Ver detalle */}
+        <Dialog
+          open={!!registroSeleccionado}
+          onOpenChange={(open) => !open && setRegistroSeleccionado(null)}
+        >
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Detalle del Registro Médico</DialogTitle>
+            </DialogHeader>
+            {registroSeleccionado && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-display font-semibold text-sm">Deportista</h3>
+                    <p>
+                      {registroSeleccionado.personaNombre} {registroSeleccionado.personaApellidos}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-display font-semibold text-sm">Tipo</h3>
+                    <p>{registroSeleccionado.tipoRegistro || "—"}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-display font-semibold text-sm">Fecha</h3>
+                    <p>{new Date(registroSeleccionado.fechaRegistro).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-display font-semibold text-sm">Gravedad</h3>
+                    <p>{registroSeleccionado.gravedad || "—"}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Lesiones por Grupo</CardTitle>
-                <CardDescription>Incidencia de lesiones por grupo de entrenamiento</CardDescription>
-              </CardHeader>
-              <CardContent className="pl-2">
-                <div className="h-[300px] flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    Gráfico de lesiones por grupo
-                    <p className="text-sm">(Datos de ejemplo)</p>
-                  </div>
+                <div>
+                  <h3 className="font-display font-semibold text-sm">Descripción</h3>
+                  <p>{registroSeleccionado.descripcion}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  )
+                <div>
+                  <h3 className="font-display font-semibold text-sm">Médico tratante</h3>
+                  <p>{registroSeleccionado.medicoTratante || "No especificado"}</p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRegistroSeleccionado(null)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Nuevo / Editar */}
+        <Dialog open={!!modalAbierto} onOpenChange={(open) => !open && setModalAbierto(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>
+                {modalAbierto === "nuevo" ? "Nuevo Registro Médico" : "Editar Registro Médico"}
+              </DialogTitle>
+              <DialogDescription>
+                {modalAbierto === "nuevo"
+                  ? "Ingresa la información médica del deportista."
+                  : `Editando el registro de ${registroEnEdicion?.personaNombre ?? ""}.`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              {modalAbierto === "nuevo" && (
+                <div className="space-y-2">
+                  <Label>Deportista</Label>
+                  <Select
+                    value={form.deportistaId}
+                    onValueChange={(v) => setForm({ ...form, deportistaId: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un deportista" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deportistas.map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>
+                          {d.nombre} {d.apellidos}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select
+                    value={form.tipoRegistro}
+                    onValueChange={(v) => setForm({ ...form, tipoRegistro: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_SUGERIDOS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fecha *</Label>
+                  <Input
+                    type="date"
+                    value={form.fechaRegistro}
+                    onChange={(e) => setForm({ ...form, fechaRegistro: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Descripción *</Label>
+                <Textarea
+                  value={form.descripcion}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                  placeholder="Ej. Esguince de tobillo durante entrenamiento"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Gravedad</Label>
+                  <Select
+                    value={form.gravedad}
+                    onValueChange={(v) => setForm({ ...form, gravedad: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona gravedad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GRAVEDADES_SUGERIDAS.map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Médico tratante</Label>
+                  <Input
+                    value={form.medicoTratante}
+                    onChange={(e) => setForm({ ...form, medicoTratante: e.target.value })}
+                    placeholder="Dr./Dra. …"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalAbierto(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={guardar} disabled={guardando}>
+                {guardando ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Eliminar */}
+        <Dialog
+          open={!!registroAEliminar}
+          onOpenChange={(open) => !open && setRegistroAEliminar(null)}
+        >
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Confirmar Eliminación</DialogTitle>
+              <DialogDescription>
+                ¿Eliminar este registro médico de {registroAEliminar?.personaNombre}? Esta acción
+                no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="destructive" onClick={eliminar}>
+                Eliminar
+              </Button>
+              <Button variant="secondary" onClick={() => setRegistroAEliminar(null)}>
+                Cancelar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ProtectedRoute>
+  );
 }

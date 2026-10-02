@@ -107,7 +107,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         href: "/eventos",
-        label: "Competencias y Eventos",
+        label: "Eventos y Competencias",
         icon: Award,
       },
       { href: "/premios", label: "Premios", icon: Trophy, status: "soon" },
@@ -127,6 +127,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
       { href: "/objetivos", label: "Objetivos", icon: Target},
+      { href: "/evaluacion-rutina", label: "Rutinas", icon: BarChart3 },
     ],
   },
   {
@@ -147,17 +148,17 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         href: "/planes-inscripcion",
-        label: "Planes de Inscripción",
+        label: "Inscripciónes y Membresías",
         icon: FileText,
       },
       {
         href: "/planes-mensualidad",
-        label: "Planes de Mensualidad",
+        label: "Mensualidades y Cuotas",
         icon: FileText,
       },
       {
         href: "/tipos-planes-pago",
-        label: "Tipos de Planes de Pago",
+        label: "Planes de Pago",
         icon: FileText,
       },
       { href: "/descuentos", label: "Descuentos", icon: DollarSign },

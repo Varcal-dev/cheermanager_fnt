@@ -20,8 +20,6 @@ import {
   Filter,
   Download,
   Search,
-  Calendar,
-  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +31,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
-import axios from "axios";
 import {
   Dialog,
   DialogContent,
@@ -54,64 +51,10 @@ import { toast } from "react-toastify";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/lib/api";
+import AsignarGrupoAEntrenadorModal from "../components/Forms/AsignarGrupoAEntrenadorModal";
+import EditarAsignacionEntrenadorModal from "../components/Forms/EditarAsignacionEntrenadorModal";
+import FinalizarAsignacionEntrenadorModal from "../components/Forms/FinalizarAsignacionEntrenadorModal";
 import { set } from "date-fns";
-
-// Datos de ejemplo para entrenadores
-const entrenadores = [
-  {
-    id: 1,
-    nombre: "Ana García",
-    especializacion: "Tumbling",
-    experiencia: "5 años",
-    certificaciones: "Nivel 3 USASF",
-    fecha_contratacion: "2019-06-15",
-    estado: "Activo",
-    telefono: "555-123-4567",
-    email: "ana.garcia@example.com",
-  },
-];
-
-// Datos de ejemplo para asignaciones de entrenadores a grupos
-const asignacionesGrupos = [
-  {
-    id: 1,
-    entrenador_id: 1,
-    grupo: "Mini Estrellas",
-    fecha_inicio: "2023-01-15",
-    fecha_fin: null,
-    rol: "Entrenador Principal",
-  },
-  {
-    id: 2,
-    entrenador_id: 2,
-    grupo: "Youth Rockets",
-    fecha_inicio: "2022-08-10",
-    fecha_fin: null,
-    rol: "Entrenador Principal",
-  },
-];
-
-// Datos de ejemplo para horarios de entrenadores
-const horariosEntrenadores = [
-  {
-    id: 1,
-    entrenador_id: 1,
-    grupo: "Mini Estrellas",
-    dia: "Lunes",
-    hora_inicio: "16:00",
-    hora_fin: "17:30",
-    es_principal: true,
-  },
-  {
-    id: 2,
-    entrenador_id: 1,
-    grupo: "Mini Estrellas",
-    dia: "Miércoles",
-    hora_inicio: "16:00",
-    hora_fin: "17:30",
-    es_principal: true,
-  },
-];
 
 interface Persona {
   id: number;
@@ -137,13 +80,39 @@ interface Entrenador {
   fechaContratacion?: string;
   estado?: EstadoPersona;
 }
+
+interface AsignacionEntrenador {
+  id: number;
+  grupoId: number;
+  grupoNombre: string;
+  rol: string;
+  fechaInicio: string;
+  fechaFin: string | null;
+}
+
+interface HorarioEntrenador {
+  asignacionId: number;
+  grupoId: number;
+  grupoNombre: string;
+  rol: string;
+  dia: string;
+  horaInicio: string;
+  horaFin: string;
+}
+
+// Estado local para los modales de Editar/Finalizar — lleva entrenadorId
+// además de los datos de la asignación, para saber qué entrada de caché
+// refrescar cuando el modal termina con éxito (los datos de la API en sí no
+// necesitan cargar ese dato, ya viene implícito en qué entrenador se expandió).
+interface AsignacionEnAccion extends AsignacionEntrenador {
+  entrenadorId: number;
+}
 export interface Genero {
   id: number;
   genero: string;
 }
 
 export default function EntrenadoresPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [expandedEntrenadores, setExpandedEntrenadores] = useState<number[]>(
     []
@@ -161,6 +130,7 @@ export default function EntrenadoresPage() {
         ? prev.filter((id) => id !== entrenadorId)
         : [...prev, entrenadorId]
     );
+    cargarDetalleEntrenador(entrenadorId);
   };
 
   // Estado para la lista de entrenadores
@@ -380,15 +350,64 @@ export default function EntrenadoresPage() {
     return matchesSearch;
   });
 
-  // Obtener asignaciones de grupos para un entrenador
-  const getAsignacionesGrupos = (entrenadorId: number) => {
-    return asignacionesGrupos.filter((a) => a.entrenador_id === entrenadorId);
+  // Asignaciones y horario del entrenador expandido — se cargan desde el
+  // backend solo cuando se expande la fila (no de entrada para todos), y se
+  // cachean en memoria por entrenadorId para no repetir la petición si se
+  // colapsa y se vuelve a expandir la misma fila.
+  const [asignacionesPorEntrenador, setAsignacionesPorEntrenador] = useState<
+    Record<number, AsignacionEntrenador[]>
+  >({});
+  const [horarioPorEntrenador, setHorarioPorEntrenador] = useState<
+    Record<number, HorarioEntrenador[]>
+  >({});
+  const [cargandoDetalle, setCargandoDetalle] = useState<number | null>(null);
+
+  // Compartido entre las pestañas "Grupos Asignados" y "Horarios" — ambas
+  // editan/finalizan la misma asignación (GrupoEntrenador), solo se llega a
+  // ella desde dos vistas distintas de los mismos datos.
+  const [asignacionEnEdicion, setAsignacionEnEdicion] =
+    useState<AsignacionEnAccion | null>(null);
+  const [asignacionAFinalizar, setAsignacionAFinalizar] =
+    useState<AsignacionEnAccion | null>(null);
+
+  const cargarDetalleEntrenador = (entrenadorId: number) => {
+    if (asignacionesPorEntrenador[entrenadorId]) return; // ya en caché
+    setCargandoDetalle(entrenadorId);
+    Promise.allSettled([
+      api.get(`/api/grupos/entrenadores/${entrenadorId}/asignaciones`),
+      api.get(`/api/grupos/entrenadores/${entrenadorId}/horario`),
+    ]).then(([asignacionesRes, horarioRes]) => {
+      setAsignacionesPorEntrenador((prev) => ({
+        ...prev,
+        [entrenadorId]: asignacionesRes.status === "fulfilled" ? asignacionesRes.value.data : [],
+      }));
+      setHorarioPorEntrenador((prev) => ({
+        ...prev,
+        [entrenadorId]: horarioRes.status === "fulfilled" ? horarioRes.value.data : [],
+      }));
+      if (asignacionesRes.status === "rejected" || horarioRes.status === "rejected") {
+        toast.error("No se pudo cargar la información de grupos/horario de este entrenador");
+      }
+    }).finally(() => setCargandoDetalle(null));
   };
 
-  // Obtener horarios para un entrenador
-  const getHorariosEntrenador = (entrenadorId: number) => {
-    return horariosEntrenadores.filter((h) => h.entrenador_id === entrenadorId);
+  const refrescarDetalleEntrenador = (entrenadorId: number) => {
+    setAsignacionesPorEntrenador((prev) => {
+      const { [entrenadorId]: _, ...resto } = prev;
+      return resto;
+    });
+    setHorarioPorEntrenador((prev) => {
+      const { [entrenadorId]: _, ...resto } = prev;
+      return resto;
+    });
+    cargarDetalleEntrenador(entrenadorId);
   };
+
+  const getAsignacionesGrupos = (entrenadorId: number) =>
+    asignacionesPorEntrenador[entrenadorId] ?? [];
+
+  const getHorariosEntrenador = (entrenadorId: number) =>
+    horarioPorEntrenador[entrenadorId] ?? [];
 
   const { permissions } = useUser();
 
@@ -509,7 +528,7 @@ export default function EntrenadoresPage() {
                             <Pencil className="h-4 w-4 mr-1" /> Editar
                           </Button>
                         )}
-                        {permissions.includes("eliminar_deportista") && (
+                        {permissions.includes("eliminar_entrenador") && (
                           <Button
                             variant="destructive"
                             size="sm"
@@ -622,12 +641,16 @@ export default function EntrenadoresPage() {
                                 <h4 className="font-semibold">
                                   Grupos Asignados
                                 </h4>
-                                <Button size="sm" variant="outline">
-                                  <Users className="h-4 w-4 mr-1" /> Asignar a
-                                  Grupo
-                                </Button>
+                                <AsignarGrupoAEntrenadorModal
+                                  entrenadorId={entrenador.id}
+                                  onAsignado={() => refrescarDetalleEntrenador(entrenador.id)}
+                                />
                               </div>
-                              {getAsignacionesGrupos(entrenador.id).length >
+                              {cargandoDetalle === entrenador.id ? (
+                                <div className="text-center py-4 text-muted-foreground">
+                                  Cargando…
+                                </div>
+                              ) : getAsignacionesGrupos(entrenador.id).length >
                               0 ? (
                                 <Table>
                                   <TableHeader>
@@ -644,20 +667,20 @@ export default function EntrenadoresPage() {
                                       (asignacion) => (
                                         <TableRow key={asignacion.id}>
                                           <TableCell>
-                                            {asignacion.grupo}
+                                            {asignacion.grupoNombre}
                                           </TableCell>
                                           <TableCell>
                                             {asignacion.rol}
                                           </TableCell>
                                           <TableCell>
                                             {new Date(
-                                              asignacion.fecha_inicio
+                                              asignacion.fechaInicio
                                             ).toLocaleDateString()}
                                           </TableCell>
                                           <TableCell>
-                                            {asignacion.fecha_fin
+                                            {asignacion.fechaFin
                                               ? new Date(
-                                                  asignacion.fecha_fin
+                                                  asignacion.fechaFin
                                                 ).toLocaleDateString()
                                               : "Activo"}
                                           </TableCell>
@@ -666,17 +689,31 @@ export default function EntrenadoresPage() {
                                               <Button
                                                 variant="outline"
                                                 size="sm"
+                                                onClick={() =>
+                                                  setAsignacionEnEdicion({
+                                                    ...asignacion,
+                                                    entrenadorId: entrenador.id,
+                                                  })
+                                                }
                                               >
                                                 <Pencil className="h-4 w-4 mr-1" />{" "}
                                                 Editar
                                               </Button>
-                                              <Button
-                                                variant="destructive"
-                                                size="sm"
-                                              >
-                                                <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                Eliminar
-                                              </Button>
+                                              {!asignacion.fechaFin && (
+                                                <Button
+                                                  variant="destructive"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    setAsignacionAFinalizar({
+                                                      ...asignacion,
+                                                      entrenadorId: entrenador.id,
+                                                    })
+                                                  }
+                                                >
+                                                  <Trash2 className="h-4 w-4 mr-1" />{" "}
+                                                  Finalizar
+                                                </Button>
+                                              )}
                                             </div>
                                           </TableCell>
                                         </TableRow>
@@ -694,12 +731,17 @@ export default function EntrenadoresPage() {
                             <TabsContent value="horarios" className="mt-4">
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-semibold">Horarios</h4>
-                                <Button size="sm" variant="outline">
-                                  <Calendar className="h-4 w-4 mr-1" /> Asignar
-                                  Horario
-                                </Button>
                               </div>
-                              {getHorariosEntrenador(entrenador.id).length >
+                              <p className="text-xs text-muted-foreground mb-3">
+                                Estos bloques vienen del horario real de cada grupo asignado.
+                                Para agregar o cambiar días/horas, hazlo desde el módulo Horarios
+                                — afecta a todo el grupo, no solo a este entrenador.
+                              </p>
+                              {cargandoDetalle === entrenador.id ? (
+                                <div className="text-center py-4 text-muted-foreground">
+                                  Cargando…
+                                </div>
+                              ) : getHorariosEntrenador(entrenador.id).length >
                               0 ? (
                                 <Table>
                                   <TableHeader>
@@ -714,27 +756,25 @@ export default function EntrenadoresPage() {
                                   </TableHeader>
                                   <TableBody>
                                     {getHorariosEntrenador(entrenador.id).map(
-                                      (horario) => (
-                                        <TableRow key={horario.id}>
-                                          <TableCell>{horario.grupo}</TableCell>
+                                      (horario, idx) => (
+                                        <TableRow key={`${horario.asignacionId}-${idx}`}>
+                                          <TableCell>{horario.grupoNombre}</TableCell>
                                           <TableCell>{horario.dia}</TableCell>
                                           <TableCell>
-                                            {horario.hora_inicio}
+                                            {horario.horaInicio}
                                           </TableCell>
                                           <TableCell>
-                                            {horario.hora_fin}
+                                            {horario.horaFin}
                                           </TableCell>
                                           <TableCell>
                                             <Badge
                                               variant={
-                                                horario.es_principal
+                                                horario.rol === "Entrenador Principal"
                                                   ? "default"
                                                   : "outline"
                                               }
                                             >
-                                              {horario.es_principal
-                                                ? "Principal"
-                                                : "Asistente"}
+                                              {horario.rol}
                                             </Badge>
                                           </TableCell>
                                           <TableCell>
@@ -742,16 +782,38 @@ export default function EntrenadoresPage() {
                                               <Button
                                                 variant="outline"
                                                 size="sm"
+                                                onClick={() =>
+                                                  setAsignacionEnEdicion({
+                                                    id: horario.asignacionId,
+                                                    grupoId: horario.grupoId,
+                                                    grupoNombre: horario.grupoNombre,
+                                                    rol: horario.rol,
+                                                    fechaInicio: "",
+                                                    fechaFin: null,
+                                                    entrenadorId: entrenador.id,
+                                                  })
+                                                }
                                               >
                                                 <Pencil className="h-4 w-4 mr-1" />{" "}
-                                                Editar
+                                                Editar rol
                                               </Button>
                                               <Button
                                                 variant="destructive"
                                                 size="sm"
+                                                onClick={() =>
+                                                  setAsignacionAFinalizar({
+                                                    id: horario.asignacionId,
+                                                    grupoId: horario.grupoId,
+                                                    grupoNombre: horario.grupoNombre,
+                                                    rol: horario.rol,
+                                                    fechaInicio: "",
+                                                    fechaFin: null,
+                                                    entrenadorId: entrenador.id,
+                                                  })
+                                                }
                                               >
                                                 <Trash2 className="h-4 w-4 mr-1" />{" "}
-                                                Eliminar
+                                                Finalizar
                                               </Button>
                                             </div>
                                           </TableCell>
@@ -1040,6 +1102,39 @@ export default function EntrenadoresPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {asignacionEnEdicion && (
+        <EditarAsignacionEntrenadorModal
+          asignacionId={asignacionEnEdicion.id}
+          grupoNombre={asignacionEnEdicion.grupoNombre}
+          rolActual={asignacionEnEdicion.rol}
+          open={asignacionEnEdicion !== null}
+          onOpenChange={(open) => {
+            if (!open) setAsignacionEnEdicion(null);
+          }}
+          onActualizado={() => {
+            const id = asignacionEnEdicion.entrenadorId;
+            setAsignacionEnEdicion(null);
+            refrescarDetalleEntrenador(id);
+          }}
+        />
+      )}
+
+      {asignacionAFinalizar && (
+        <FinalizarAsignacionEntrenadorModal
+          asignacionId={asignacionAFinalizar.id}
+          grupoNombre={asignacionAFinalizar.grupoNombre}
+          open={asignacionAFinalizar !== null}
+          onOpenChange={(open) => {
+            if (!open) setAsignacionAFinalizar(null);
+          }}
+          onFinalizado={() => {
+            const id = asignacionAFinalizar.entrenadorId;
+            setAsignacionAFinalizar(null);
+            refrescarDetalleEntrenador(id);
+          }}
+        />
+      )}
     </div>
   );
 }

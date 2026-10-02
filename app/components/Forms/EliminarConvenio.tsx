@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 
 interface ModalEliminarConvenioProps {
   convenioId: number;
@@ -28,20 +30,14 @@ export function ModalEliminarConvenio({
   const eliminarConvenio = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/convenios/${convenioId}`,
-        {
-          method: "DELETE",
-        }
+      await api.delete(`/api/convenios/${convenioId}`);
+      toast.success("Convenio eliminado");
+      onEliminado();
+      setOpen(false);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || error.response?.data || "No se pudo eliminar el convenio",
       );
-      if (response.ok) {
-        onEliminado();
-        setOpen(false);
-      } else {
-        console.error("Error al eliminar convenio");
-      }
-    } catch (error) {
-      console.error("Error en la solicitud:", error);
     } finally {
       setLoading(false);
     }

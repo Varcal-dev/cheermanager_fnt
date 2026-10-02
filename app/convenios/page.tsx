@@ -17,14 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  DollarSign,
-  Building,
-} from "lucide-react";
+import { Search, Building } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -33,42 +26,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ModalCrearConvenio } from "../components/Forms/CrearConvenio";
+import { ModalEditarConvenio } from "../components/Forms/EditarConvenio";
 import { ModalEliminarConvenio } from "../components/Forms/EliminarConvenio";
 import { api } from "@/lib/api";
 
-// Datos de ejemplo para convenios
-const convenios = [
-  {
-    id: 1,
-    nombre_empresa: "Colegio San Patricio",
-    descuento_id: 1,
-    descuento_nombre: "Descuento Colegio San Patricio",
-    porcentaje: 15.0,
-    fecha_inicio: "2024-01-01",
-    fecha_fin: "2024-12-31",
-    deportistas_beneficiados: 8,
-  },
-  {
-    id: 2,
-    nombre_empresa: "Club Deportivo Municipal",
-    descuento_id: 2,
-    descuento_nombre: "Descuento Club Deportivo",
-    porcentaje: 10.0,
-    fecha_inicio: "2024-01-01",
-    fecha_fin: "2024-12-31",
-    deportistas_beneficiados: 5,
-  },
-  {
-    id: 3,
-    nombre_empresa: "Empresa XYZ",
-    descuento_id: 3,
-    descuento_nombre: "Descuento Corporativo",
-    porcentaje: 12.0,
-    fecha_inicio: "2024-01-01",
-    fecha_fin: "2024-12-31",
-    deportistas_beneficiados: 3,
-  },
-];
 interface Descuento {
   id: number;
   nombre: string;
@@ -120,17 +81,9 @@ export default function DescuentosPage() {
 
   // Filtrar convenios por término de búsqueda
   const filteredConvenios = Array.isArray(convenios)
-    ? convenios.filter((convenio) => {
-        return (
-          convenio.nombreEmpresa
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          // la segunda condición es redundante, podrías quitarla
-          convenio.nombreEmpresa
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-        );
-      })
+    ? convenios.filter((convenio) =>
+        convenio.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
     : [];
 
   return (
@@ -161,10 +114,6 @@ export default function DescuentosPage() {
               </div>
 
               <ModalCrearConvenio onConvenioCreado={cargarConvenios} />
-              {/*
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Nuevo Convenio
-              </Button>*/}
             </div>
 
             <Card>
@@ -198,18 +147,15 @@ export default function DescuentosPage() {
                         <TableCell>
                           {" "}
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Pencil className="h-4 w-4 mr-1" /> Editar
-                            </Button>
+                            <ModalEditarConvenio
+                              convenio={convenio}
+                              onConvenioActualizado={cargarConvenios}
+                            />
                             <ModalEliminarConvenio
                               convenioId={convenio.id}
                               nombreEmpresa={convenio.nombreEmpresa}
                               onEliminado={cargarConvenios}
                             />
-                            {/*
-                            <Button variant="destructive" size="sm">
-                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                            </Button>*/}
                           </div>
                         </TableCell>
                       </TableRow>

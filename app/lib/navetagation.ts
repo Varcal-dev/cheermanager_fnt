@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Skills", url: "/skills" },
       { title: "Progreso", url: "/progreso" },
+      { title: "Rutinas", url: "/evaluacion-rutina" },
     ],
   },
   {

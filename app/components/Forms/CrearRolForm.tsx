@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -31,8 +31,7 @@ interface CrearRolFormProps {
 }
 
 export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
-  const [open, setOpen] = useState(false);
-  const { toast } = useToast();
+  const [enviando, setEnviando] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,33 +42,22 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setEnviando(true);
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/roles`,
-        values
-      );
+      const response = await api.post("/api/roles", values);
       if (response.status === 200) {
-        toast({
-          title: "Rol creado exitosamente.",
-        });
+        toast.success("Rol creado exitosamente.");
         form.reset();
-        onRolCreated(); // Refresh the roles list
-        onClose(); // Close the dialog
-      } else {
-        toast({
-          title: "Error al crear el rol.",
-          description: "Por favor, inténtelo de nuevo.",
-          variant: "destructive",
-        });
+        onRolCreated();
+        onClose();
       }
     } catch (error) {
-      toast({
-        title: "Error al crear el rol.",
-        description:
-          "Hubo un error al comunicarse con el servidor. Por favor, inténtelo de nuevo.",
-        variant: "destructive",
-      });
       console.error("Error creating rol:", error);
+      toast.error(
+        "Hubo un error al comunicarse con el servidor. Por favor, inténtelo de nuevo.",
+      );
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -108,7 +96,9 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit">Crear Rol</Button>
+        <Button type="submit" disabled={enviando}>
+          {enviando ? "Creando..." : "Crear Rol"}
+        </Button>
       </form>
     </Form>
   );

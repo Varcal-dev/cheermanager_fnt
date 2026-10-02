@@ -159,16 +159,13 @@ export default function DescuentosPage() {
                       <TableCell>
                         <div className="flex space-x-2">
                           <ModalEditarDescuento
-                            {...({
-                              descuento,
-                              onUpdated: refetchDescuentos,
-                            } as any)}
+                            descuento={descuento}
+                            onUpdated={refetchDescuentos}
                           />
                           <ModalEliminarDescuento
-                            {...({
-                              descuentoId: descuento.id,
-                              onDeleted: refetchDescuentos,
-                            } as any)}
+                            descuentoId={descuento.id}
+                            nombreDescuento={descuento.nombre}
+                            onDeleted={refetchDescuentos}
                           />
                         </div>
                       </TableCell>

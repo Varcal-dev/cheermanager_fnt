@@ -27,8 +27,8 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 
 interface Descuento {
   id: number;
@@ -50,44 +50,41 @@ export function ModalCrearConvenio({
   const [descuentos, setDescuentos] = useState<Descuento[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/descuentos`)
-      .then((res) => res.json())
-      .then((data: Descuento[]) => {
-        const activos = data.filter((d) => d.activo);
+    api
+      .get("/api/descuentos")
+      .then((res) => {
+        const activos = (res.data as Descuento[]).filter((d) => d.activo);
         setDescuentos(activos);
-      });
+      })
+      .catch(() => toast.error("No se pudieron cargar los descuentos"));
   }, []);
 
   const handleSubmit = async () => {
+    if (!fechaInicio || !fechaFin) return;
+
+    // El backend espera LocalDate en formato yyyy-MM-dd. Mandar el objeto
+    // Date crudo lo serializa como datetime ISO completo y el deserializador
+    // de Jackson lo rechaza.
     const payload = {
       nombreEmpresa,
       descuentoId: parseInt(descuentoId),
-      fechaInicio,
-      fechaFin,
+      fechaInicio: format(fechaInicio, "yyyy-MM-dd"),
+      fechaFin: format(fechaFin, "yyyy-MM-dd"),
     };
 
     try {
-        console.log("Data: ", payload);
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/convenios`,
-        payload
+      await api.post("/api/convenios", payload);
+      toast.success("Nuevo convenio registrado");
+      setOpen(false);
+      setNombreEmpresa("");
+      setDescuentoId("");
+      setFechaInicio(undefined);
+      setFechaFin(undefined);
+      onConvenioCreado?.();
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || error.response?.data || "No se pudo registrar el convenio",
       );
-
-      if (res.status === 200 || res.status === 201) {
-        toast.success("Nuevo convenio registrado");
-        setOpen(false);
-        setNombreEmpresa("");
-        setDescuentoId("");
-        setFechaInicio(undefined);
-        setFechaFin(undefined);
-        onConvenioCreado?.();
-      } else {
-        toast.error("Respuesta inesperada al crear convenio");
-        console.error("Respuesta inesperada al crear convenio:", res.status);
-      }
-    } catch (error) {
-      toast.error("Error al crear convenio:");
-      console.error("Error al crear convenio:", error);
     }
   };
 

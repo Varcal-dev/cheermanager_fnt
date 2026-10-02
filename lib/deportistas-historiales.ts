@@ -141,3 +141,66 @@ export async function crearHistorialMedico(
   const { data } = await api.post(`/api/deportistas/${deportistaId}/historial-medico`, payload);
   return data;
 }
+
+// ---------- Historial Médico: vista de club completo (todas las personas) ----------
+// A diferencia de obtenerHistorialMedico/crearHistorialMedico (arriba, que son
+// por deportista, para la ficha individual), estas funciones alimentan la
+// página global /historial-medico.
+
+export interface RegistroHistorialMedicoGlobal extends HistorialMedico {
+  personaNombre: string | null;
+  personaApellidos: string | null;
+}
+
+export interface PaginaHistorialMedicoGlobal {
+  content: RegistroHistorialMedicoGlobal[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+}
+
+export interface FiltrosHistorialMedico {
+  tipoRegistro?: string;
+  gravedad?: string;
+  q?: string;
+  desde?: string; // yyyy-MM-dd
+  hasta?: string; // yyyy-MM-dd
+  page?: number;
+  size?: number;
+}
+
+export async function obtenerHistorialMedicoGlobal(
+  filtros: FiltrosHistorialMedico = {},
+): Promise<PaginaHistorialMedicoGlobal> {
+  const { data } = await api.get("/api/historial-medico", {
+    params: {
+      tipoRegistro: filtros.tipoRegistro,
+      gravedad: filtros.gravedad,
+      q: filtros.q,
+      desde: filtros.desde,
+      hasta: filtros.hasta,
+      page: filtros.page ?? 0,
+      size: filtros.size ?? 20,
+      sort: "fechaRegistro,desc",
+    },
+  });
+  return data;
+}
+
+export async function actualizarHistorialMedico(
+  id: number,
+  payload: {
+    descripcion: string;
+    fechaRegistro: string;
+    tipoRegistro?: string;
+    gravedad?: string;
+    medicoTratante?: string;
+  },
+): Promise<RegistroHistorialMedicoGlobal> {
+  const { data } = await api.put(`/api/historial-medico/${id}`, payload);
+  return data;
+}
+
+export async function eliminarHistorialMedico(id: number): Promise<void> {
+  await api.delete(`/api/historial-medico/${id}`);
+}

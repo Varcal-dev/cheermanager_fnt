@@ -1,31 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2 } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
+import { Descuento } from "@/app/descuentos/page";
 
-interface CrearDescuentoModalProps {
-  onCreated: () => void;
+interface EditarDescuentoModalProps {
+  descuento: Descuento;
+  onUpdated: () => void;
 }
 
-const FORM_VACIO = {
-  nombre: "",
-  descripcion: "",
-  porcentaje: 0,
-  fechaInicio: "",
-  fechaFin: "",
-};
+// Convierte lo que venga del backend (fecha completa ISO o solo yyyy-MM-dd)
+// al formato que espera <input type="date">.
+const aInputDate = (valor: string | null) => (valor ? valor.slice(0, 10) : "");
 
-export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalProps) {
+export default function ModalEditarDescuento({ descuento, onUpdated }: EditarDescuentoModalProps) {
   const [open, setOpen] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [form, setForm] = useState(FORM_VACIO);
+  const [form, setForm] = useState({
+    nombre: descuento.nombre,
+    descripcion: descuento.descripcion ?? "",
+    porcentaje: descuento.porcentaje,
+    fechaInicio: aInputDate(descuento.fechaInicio),
+    fechaFin: aInputDate(descuento.fechaFin),
+  });
+
+  // Si el usuario abre el modal de otro descuento sin que el componente se
+  // desmonte (misma fila reutilizada), refrescamos el formulario con los
+  // datos vigentes de ese descuento en concreto.
+  useEffect(() => {
+    if (!open) return;
+    setForm({
+      nombre: descuento.nombre,
+      descripcion: descuento.descripcion ?? "",
+      porcentaje: descuento.porcentaje,
+      fechaInicio: aInputDate(descuento.fechaInicio),
+      fechaFin: aInputDate(descuento.fechaFin),
+    });
+  }, [open, descuento]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -39,20 +57,17 @@ export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalPr
 
     setGuardando(true);
     try {
-      // Antes esto era un fetch() crudo sin el header de autorización —
-      // el backend probablemente lo rechazaba con 401 y el error se perdía
-      // en silencio porque no había try/catch.
-      await api.post("/api/descuentos", {
+      await api.put(`/api/descuentos/${descuento.id}`, {
         ...form,
         porcentaje: Number(form.porcentaje),
         fechaFin: form.fechaFin || null,
+        activo: descuento.activo,
       });
-      onCreated();
+      onUpdated();
       setOpen(false);
-      setForm(FORM_VACIO);
-      toast.success("Nuevo descuento agregado");
+      toast.success("Descuento actualizado");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || "No se pudo crear el descuento");
+      toast.error(error.response?.data?.message || error.response?.data || "No se pudo actualizar el descuento");
     } finally {
       setGuardando(false);
     }
@@ -61,11 +76,13 @@ export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalPr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="mr-2 h-4 w-4" />Nuevo Descuento</Button>
+        <Button variant="outline" size="sm">
+          <Pencil className="h-4 w-4 mr-1" /> Editar
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Crear nuevo descuento</DialogTitle>
+          <DialogTitle>Editar descuento</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -102,7 +119,7 @@ export default function ModalCrearDescuento({ onCreated }: CrearDescuentoModalPr
           </div>
           <Button onClick={handleSubmit} className="w-full" disabled={guardando}>
             {guardando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Guardar
+            Guardar cambios
           </Button>
         </div>
       </DialogContent>
