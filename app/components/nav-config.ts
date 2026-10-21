@@ -18,6 +18,9 @@ import {
   ShoppingCart,
   CreditCard,
   Lock,
+  Building2,
+  CalendarRange,
+  ShieldCheck,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -66,6 +69,8 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Historial Médico",
         icon: ClipboardList,
       },
+      // Deportistas sin consentimiento vigente (Ley 1581). El permiso lo valida la propia página.
+      { href: "/consentimientos", label: "Consentimientos", icon: ShieldCheck },
     ],
   },
   {
@@ -81,6 +86,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Categorías por Nivel",
         icon: Layers
       },
+      { href: "/temporadas", label: "Temporadas", icon: CalendarRange },
       { href: "/grupos", label: "Grupos", icon: Users },
       { href: "/inscripciones", label: "Inscripciones", icon: FileText },
     ],
@@ -177,6 +183,14 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/roles", label: "Roles y Permisos", icon: Lock },
       { href: "/auditoria", label: "Auditoría", icon: Shield },
     ],
+  },
+  // Solo el superadmin de la plataforma (permiso gestionar_clubes): alta y suspensión de clubes.
+  {
+    id: "plataforma",
+    label: "Plataforma",
+    icon: Building2,
+    permission: "gestionar_clubes",
+    items: [{ href: "/clubes", label: "Clubes", icon: Building2 }],
   },
 ];
 

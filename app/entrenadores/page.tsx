@@ -50,7 +50,7 @@ import {
 import { toast } from "react-toastify";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import AsignarGrupoAEntrenadorModal from "../components/Forms/AsignarGrupoAEntrenadorModal";
 import EditarAsignacionEntrenadorModal from "../components/Forms/EditarAsignacionEntrenadorModal";
 import FinalizarAsignacionEntrenadorModal from "../components/Forms/FinalizarAsignacionEntrenadorModal";
@@ -174,13 +174,19 @@ export default function EntrenadoresPage() {
       });
 
       toast.success("Entrenador guardado con éxito");
+      // Su usuario se crea con una clave aleatoria (ya no existe "0000"): el acceso se entrega
+      // generando una clave temporal en Administración → Usuarios.
+      toast.info(
+        "Para que pueda ingresar, genera su clave temporal en Administración → Usuarios.",
+        { autoClose: 8000 },
+      );
       // Aquí puedes refrescar la lista de entrenadores
       setModalAbierto(false);
       fetchEntrenadores();
       // Aquí deberías refrescar la lista de entrenadores
     } catch (error) {
       console.error("Error guardando entrenador:", error);
-      toast.error("Error guardando entrenador");
+      toast.error(getErrorMessage(error, "Error guardando entrenador"));
     }
   };
 
@@ -222,29 +228,42 @@ export default function EntrenadoresPage() {
     }
   }, [entrenadorSeleccionado, isEditModalOpen]);
 
+  // El back expone la edición como PATCH /api/entrenadores/{id} (no PUT) y espera
+  // "apellidos"/"fechaContratacion" (el form usa apellido/fecha_contratacion).
   const actualizarEntrenador = () => {
     api
-      .put(`/api/entrenadores/${formData.id}`, formData, {
-        withCredentials: true,
+      .patch(`/api/entrenadores/${formData.id}`, {
+        nombre: formData.nombre,
+        apellidos: formData.apellido,
+        direccion: formData.direccion,
+        telefono: formData.telefono,
+        fechaNacimiento: formData.fechaNacimiento || null,
+        generoId: formData.generoId,
+        fechaContratacion: formData.fecha_contratacion || null,
       })
       .then(() => {
         setIsEditModalOpen(false);
         fetchEntrenadores();
         toast.success("Entrenador actualizado correctamente");
+      })
+      .catch((error) => {
+        console.error("Error al actualizar entrenador", error);
+        toast.error(getErrorMessage(error, "No se pudo actualizar el entrenador"));
       });
   };
 
+  // El endpoint de "eliminar" del back está comentado (el PATCH /{id} que quedó es el de editar, y con
+  // este body vacío no hacía nada aunque el front dijera "eliminado"). Lo que sí existe es cambiar el
+  // estado: se pasa al entrenador a "Retirado" (estadoId 2, el mismo que usaba eliminarEntrenador).
+  // OJO: esto NO desactiva su usuario de acceso; eso se hace en Administración → Usuarios.
   const eliminarEntrenador = async (id: number) => {
     try {
-      await api.patch(`/api/entrenadores/${id}`, {
-        withCredentials: true,
-      });
-      toast.success("Entrenador eliminado correctamente");
-      // Aquí puedes llamar a una función para recargar la lista de entrenadores o actualizar el estado
-      fetchEntrenadores(); // asumiendo que tienes esta función para refrescar la lista
+      await api.patch(`/api/entrenadores/${id}`, { estadoId: 2 });
+      toast.success("Entrenador retirado correctamente");
+      fetchEntrenadores();
     } catch (error) {
-      console.error("Error al eliminar Entrenador", error);
-      toast.error("No se pudo eliminar el Entrenador");
+      console.error("Error al retirar entrenador", error);
+      toast.error(getErrorMessage(error, "No se pudo retirar el entrenador"));
     }
   };
 
@@ -1080,7 +1099,7 @@ export default function EntrenadoresPage() {
           <DialogHeader>
             <DialogTitle>Confirmar eliminación</DialogTitle>
           </DialogHeader>
-          <p>¿Estás seguro que deseas eliminar este Entrenador?</p>
+          <p>¿Estás seguro que deseas retirar a este entrenador? Pasará a estado "Retirado".</p>
           <DialogFooter className="mt-4">
             <Button
               variant="secondary"
@@ -1097,7 +1116,7 @@ export default function EntrenadoresPage() {
                 }
               }}
             >
-              Sí, eliminar
+              Sí, retirar
             </Button>
           </DialogFooter>
         </DialogContent>

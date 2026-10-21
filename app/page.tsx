@@ -51,6 +51,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
+import OnboardingCard from "@/app/components/OnboardingCard";
 import { toast } from "react-toastify";
 import {
   ResponsiveContainer,
@@ -287,9 +288,12 @@ export default function Home() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Bienvenido al sistema de gestión de Ratels All Stars
+            Bienvenido al sistema de gestión de tu club
           </p>
         </div>
+
+        {/* Lista de puesta en marcha: solo aparece mientras falte algo (GET /api/onboarding) */}
+        <OnboardingCard />
 
         {/* KPIs principales — conectados a /api/dashboard/inicio */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

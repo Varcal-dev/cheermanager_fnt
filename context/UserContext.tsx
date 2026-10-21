@@ -21,6 +21,8 @@ interface UserContextType {
   user: User | null;
   permissions: string[];
   loading: boolean;
+  /** true para el superadmin de la plataforma (club 1): tiene el permiso gestionar_clubes. */
+  esPlataforma: boolean;
   setUser: (user: User | null) => void;
   refreshUser: () => Promise<void>;
 }
@@ -29,6 +31,7 @@ const UserContext = createContext<UserContextType>({
   user: null,
   permissions: [],
   loading: true,
+  esPlataforma: false,
   setUser: () => {},
   refreshUser: async () => {},
 });
@@ -85,7 +88,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <UserContext.Provider
-      value={{ user, permissions, loading, setUser, refreshUser: fetchUserData }}
+      value={{
+        user,
+        permissions,
+        loading,
+        esPlataforma: permissions.includes("gestionar_clubes"),
+        setUser,
+        refreshUser: fetchUserData,
+      }}
     >
       {children}
     </UserContext.Provider>

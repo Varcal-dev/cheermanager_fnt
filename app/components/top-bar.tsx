@@ -60,10 +60,10 @@ export function TopBar() {
 
       <Link href="/" className="hidden shrink-0 items-center gap-2 md:flex">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-display font-bold text-primary-foreground">
-          R
+          C
         </span>
         <span className="font-display text-lg font-semibold tracking-tight">
-          Ratels All Stars
+          CheerManager
         </span>
       </Link>
 

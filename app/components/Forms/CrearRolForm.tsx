@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -54,7 +54,7 @@ export function CrearRolForm({ onRolCreated, onClose }: CrearRolFormProps) {
     } catch (error) {
       console.error("Error creating rol:", error);
       toast.error(
-        "Hubo un error al comunicarse con el servidor. Por favor, inténtelo de nuevo.",
+        getErrorMessage(error, "Hubo un error al comunicarse con el servidor. Por favor, inténtelo de nuevo."),
       );
     } finally {
       setEnviando(false);

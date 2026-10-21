@@ -3,7 +3,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 import { useEffect, useState } from "react";
 import React from "react";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
+import ClaveTemporalDialog, { generarClaveTemporal } from "@/app/components/Forms/ClaveTemporalDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -116,8 +117,9 @@ export default function UsuariosPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editRolId, setEditRolId] = useState<string>("");
 
+  // Clave temporal (reemplaza la antigua clave por defecto "0000")
   const [usuarioParaPassword, setUsuarioParaPassword] = useState<any | null>(null);
-  const [nuevaPassword, setNuevaPassword] = useState("");
+  const [claveGenerada, setClaveGenerada] = useState<{ clave: string; username: string } | null>(null);
 
   const [usuarioParaEliminar, setUsuarioParaEliminar] = useState<any | null>(null);
   const [accionEnCurso, setAccionEnCurso] = useState(false);
@@ -187,7 +189,8 @@ export default function UsuariosPage() {
 
   const fetchPersonas = async () => {
     try {
-      const response = await api.get("/api/personas/listar");
+      // GET /api/personas (antes /api/personas/listar, que ya no existe en el back)
+      const response = await api.get("/api/personas");
       setPersonas(response.data);
     } catch (error) {
       console.error("Error al obtener personas:", error);
@@ -198,8 +201,13 @@ export default function UsuariosPage() {
   useEffect(() => {
     fetchUsuarios();
     fetchRoles();
-    fetchPersonas();
   }, []);
+
+  // /api/personas exige ver_persona: solo se pide si el usuario lo tiene.
+  const puedeVerPersonas = permissions.includes("ver_persona");
+  useEffect(() => {
+    if (puedeVerPersonas) fetchPersonas();
+  }, [puedeVerPersonas]);
 
   useEffect(() => {
     if (isModalOpen) {
@@ -208,13 +216,33 @@ export default function UsuariosPage() {
     }
   }, [isModalOpen]);
 
+  // Clave aleatoria que nadie ve: la persona entra con la clave temporal que se genera justo después.
+  const claveAleatoria = () => {
+    const bytes = new Uint8Array(18);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
   const handleAddUser = async () => {
+    if (!newUserData.username.trim()) {
+      toast.error("El nombre de usuario es obligatorio");
+      return;
+    }
+    if (!newUserData.rol) {
+      toast.error("Selecciona un rol");
+      return;
+    }
     setIsSubmitting(true);
     try {
+      // El username y el email son únicos en TODA la plataforma (no solo en tu club).
+      // Si no se escribe un correo real se usa uno ficticio: sirve para iniciar sesión,
+      // pero la recuperación de clave por correo no funcionará con él.
+      const emailFinal = newUserData.email.trim() || `${newUserData.username.trim()}@cheermanager.com`;
+
       let dataToSend: any = {
-        username: newUserData.username,
-        password: "0000",
-        email: `${newUserData.username}@cheermanager.com`,
+        username: newUserData.username.trim(),
+        password: claveAleatoria(),
+        email: emailFinal,
         rolId: newUserData.rol,
       };
 
@@ -257,10 +285,21 @@ export default function UsuariosPage() {
           generoId: null,
         });
         setTipoAsociacion("ninguna");
+
+        // El usuario recién creado todavía no tiene una clave que alguien conozca:
+        // se genera una temporal (con cambio obligatorio en el primer ingreso).
+        if (permissions.includes("restablecer_clave_usuario") && response.data?.id) {
+          const clave = await generarClaveTemporal(response.data.id);
+          if (clave) setClaveGenerada({ clave, username: response.data.username });
+        } else {
+          toast.info(
+            "Pide a un administrador que genere la clave temporal de este usuario para que pueda ingresar.",
+          );
+        }
       }
     } catch (error: any) {
       console.error("Error al agregar usuario:", error);
-      toast.error(error?.response?.data?.message ?? "Error al registrar usuario");
+      toast.error(getErrorMessage(error, "Error al registrar usuario"));
     } finally {
       setIsSubmitting(false);
     }
@@ -287,7 +326,7 @@ export default function UsuariosPage() {
       return true;
     } catch (error: any) {
       console.error("Error al actualizar usuario:", error);
-      toast.error(error?.response?.data?.message ?? "No se pudo actualizar el usuario");
+      toast.error(getErrorMessage(error, "No se pudo actualizar el usuario"));
       return false;
     } finally {
       setAccionEnCurso(false);
@@ -314,16 +353,14 @@ export default function UsuariosPage() {
     }
   };
 
-  const cambiarPassword = async () => {
-    if (!usuarioParaPassword || nuevaPassword.trim().length < 4) {
-      toast.error("La contraseña debe tener al menos 4 caracteres");
-      return;
-    }
-    const ok = await actualizarUsuario(usuarioParaPassword, { password: nuevaPassword });
-    if (ok) {
-      toast.success("Contraseña actualizada");
+  const generarClave = async () => {
+    if (!usuarioParaPassword) return;
+    setAccionEnCurso(true);
+    const clave = await generarClaveTemporal(usuarioParaPassword.id);
+    setAccionEnCurso(false);
+    if (clave) {
+      setClaveGenerada({ clave, username: usuarioParaPassword.username });
       setUsuarioParaPassword(null);
-      setNuevaPassword("");
     }
   };
 
@@ -344,7 +381,7 @@ export default function UsuariosPage() {
       fetchUsuarios();
     } catch (error: any) {
       console.error("Error al eliminar usuario:", error);
-      toast.error(error?.response?.data ?? "No se pudo eliminar el usuario");
+      toast.error(getErrorMessage(error, "No se pudo eliminar el usuario"));
     } finally {
       setAccionEnCurso(false);
     }
@@ -521,13 +558,15 @@ export default function UsuariosPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {permissions.includes("restablecer_clave_usuario") && (
+                                <DropdownMenuItem
+                                  onClick={() => setUsuarioParaPassword(usuario)}
+                                >
+                                  <Key className="h-4 w-4 mr-2" /> Generar clave temporal
+                                </DropdownMenuItem>
+                              )}
                               {permissions.includes("modificar_usuario") && (
                                 <>
-                                  <DropdownMenuItem
-                                    onClick={() => setUsuarioParaPassword(usuario)}
-                                  >
-                                    <Key className="h-4 w-4 mr-2" /> Cambiar Contraseña
-                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => abrirEdicion(usuario)}>
                                     <Shield className="h-4 w-4 mr-2" /> Cambiar Rol
                                   </DropdownMenuItem>
@@ -602,14 +641,16 @@ export default function UsuariosPage() {
                                   Acciones Rápidas
                                 </h4>
                                 <div className="space-y-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={() => setUsuarioParaPassword(usuario)}
-                                  >
-                                    <Key className="h-4 w-4 mr-2" /> Cambiar Contraseña
-                                  </Button>
+                                  {permissions.includes("restablecer_clave_usuario") && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full justify-start"
+                                      onClick={() => setUsuarioParaPassword(usuario)}
+                                    >
+                                      <Key className="h-4 w-4 mr-2" /> Generar clave temporal
+                                    </Button>
+                                  )}
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -650,6 +691,19 @@ export default function UsuariosPage() {
                   id="username"
                   value={newUserData.username}
                   onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Correo
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUserData.email}
+                  onChange={handleInputChange}
+                  placeholder="Opcional (si no, se usa uno ficticio)"
                   className="col-span-3"
                 />
               </div>
@@ -895,50 +949,36 @@ export default function UsuariosPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Cambiar contraseña */}
+        {/* Generar clave temporal */}
         <Dialog
           open={!!usuarioParaPassword}
-          onOpenChange={(open) => {
-            if (!open) {
-              setUsuarioParaPassword(null);
-              setNuevaPassword("");
-            }
-          }}
+          onOpenChange={(open) => !open && setUsuarioParaPassword(null)}
         >
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Cambiar Contraseña</DialogTitle>
+              <DialogTitle>Generar clave temporal</DialogTitle>
               <DialogDescription>
-                Nueva contraseña para {usuarioParaPassword?.username}. El usuario deberá usarla
-                en su próximo inicio de sesión.
+                Se creará una clave nueva para {usuarioParaPassword?.username}, que reemplaza la actual y
+                desbloquea la cuenta. Deberá cambiarla al iniciar sesión. Las sesiones ya abiertas siguen
+                válidas hasta que venza su token.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-2">
-              <Label>Nueva contraseña</Label>
-              <Input
-                type="password"
-                value={nuevaPassword}
-                onChange={(e) => setNuevaPassword(e.target.value)}
-                className="mt-2"
-                placeholder="Mínimo 4 caracteres"
-              />
-            </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setUsuarioParaPassword(null);
-                  setNuevaPassword("");
-                }}
-              >
+              <Button variant="outline" onClick={() => setUsuarioParaPassword(null)}>
                 Cancelar
               </Button>
-              <Button onClick={cambiarPassword} disabled={accionEnCurso}>
-                {accionEnCurso ? "Guardando..." : "Actualizar contraseña"}
+              <Button onClick={generarClave} disabled={accionEnCurso}>
+                {accionEnCurso ? "Generando..." : "Generar clave"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ClaveTemporalDialog
+          clave={claveGenerada?.clave ?? null}
+          username={claveGenerada?.username}
+          onClose={() => setClaveGenerada(null)}
+        />
 
         {/* Confirmar eliminación */}
         <Dialog

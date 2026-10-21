@@ -23,6 +23,7 @@ import {
   FileText,
   Target,
   UserPlus,
+  KeyRound,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Label } from "@/components/ui/label";
 
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { toast } from "react-toastify";
 
 import {
@@ -73,6 +74,8 @@ import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import ObjetivosPanel from "@/app/components/deportistas/ObjetivosPanel";
 import EvaluacionesPanel from "@/app/components/deportistas/EvaluacionesPanel";
+import ClaveTemporalDialog, { generarClaveTemporal } from "@/app/components/Forms/ClaveTemporalDialog";
+import AcudientesConsentimientosPanel from "@/app/components/deportistas/AcudientesConsentimientosPanel";
 import { useSearchParams } from "next/navigation";
 
 // Datos de ejemplo
@@ -308,7 +311,7 @@ export default function DeportistasPage() {
     estadoId: 1,
     altura: 0,
     peso: 0,
-    nivelActualId: 1,
+    nivelActualId: 0, // ids de nivel son por club: se elige en el formulario
     fechaRegistro: "",
     contactoEmergencia: "",
     convenioId: null,
@@ -415,7 +418,7 @@ export default function DeportistasPage() {
     estadoId: 1,
     altura: 0,
     peso: 0,
-    nivelActualId: 1,
+    nivelActualId: 0, // ids de nivel son por club: se elige en el formulario
     fechaRegistro: "",
     contactoEmergencia: "",
     convenioId: deportistaSeleccionado?.convenioId || "",
@@ -437,7 +440,7 @@ export default function DeportistasPage() {
         estadoId: deportistaSeleccionado.estadoId || 1,
         altura: deportistaSeleccionado.altura || 0,
         peso: deportistaSeleccionado.peso || 0,
-        nivelActualId: deportistaSeleccionado.nivelActualId || 1,
+        nivelActualId: deportistaSeleccionado.nivelActualId || 0,
         fechaRegistro: deportistaSeleccionado.fechaRegistro || "",
         contactoEmergencia: deportistaSeleccionado.contactoEmergencia || "",
         convenioId: deportistaSeleccionado.convenioId ?? "",
@@ -484,7 +487,7 @@ export default function DeportistasPage() {
       cargarDeportistas();
     } catch (error) {
       console.error("Error al eliminar deportista", error);
-      toast.error("No se pudo eliminar el deportista");
+      toast.error(getErrorMessage(error, "No se pudo eliminar el deportista"));
     }
   };
   /*
@@ -620,10 +623,11 @@ export default function DeportistasPage() {
       !nuevoDeportista.numeroDocumento.trim() ||
       !nuevoDeportista.tipoDocumento ||
       !nuevoDeportista.fechaNacimiento ||
-      !nuevoDeportista.generoId
+      !nuevoDeportista.generoId ||
+      !nuevoDeportista.nivelActualId
     ) {
       toast.error(
-        "Completa nombre, apellidos, tipo y número de documento, fecha de nacimiento y género.",
+        "Completa nombre, apellidos, tipo y número de documento, fecha de nacimiento, género y nivel.",
       );
       return;
     }
@@ -668,7 +672,7 @@ export default function DeportistasPage() {
         estadoId: 1,
         altura: 0,
         peso: 0,
-        nivelActualId: 1,
+        nivelActualId: 0, // ids de nivel son por club: se elige en el formulario
         fechaRegistro: "",
         contactoEmergencia: "",
         convenioId: null,
@@ -700,7 +704,7 @@ export default function DeportistasPage() {
       cargarDeportistas(); // el nivel actual del deportista también pudo cambiar
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo registrar el cambio de nivel");
+      toast.error(getErrorMessage(error, "No se pudo registrar el cambio de nivel"));
     }
   };
 
@@ -719,7 +723,7 @@ export default function DeportistasPage() {
       cargarHistorialesDeDeportista(planModal.deportistaId);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo registrar el cambio de plan");
+      toast.error(getErrorMessage(error, "No se pudo registrar el cambio de plan"));
     }
   };
 
@@ -746,15 +750,35 @@ export default function DeportistasPage() {
       cargarHistorialesDeDeportista(medicoModal.deportistaId);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo guardar el registro médico");
+      // Si el club exige consentimiento de datos de salud, el back responde con el motivo
+      // (hay que registrarlo antes en la pestaña "Acudientes y consentimientos").
+      toast.error(getErrorMessage(error, "No se pudo guardar el registro médico"));
     }
   };
 
   // Obtener permisos del usuario desde el contexto
   const { permissions } = useUser();
 
+  // Los usuarios de deportistas nacen con una clave aleatoria que nadie conoce (ya no existe "0000").
+  // El admin genera una clave temporal y se la entrega a la familia; se muestra una sola vez.
+  const [claveDeportista, setClaveDeportista] = useState<{ clave: string; username: string } | null>(null);
+  const claveTemporalDeDeportista = async (deportistaId: number) => {
+    try {
+      const u = await api.get(`/api/deportistas/${deportistaId}/usuario`);
+      const clave = await generarClaveTemporal(u.data.id);
+      if (clave) setClaveDeportista({ clave, username: u.data.username });
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Este deportista no tiene un usuario asociado"));
+    }
+  };
+
   return (
     <ProtectedRoute requiredPermission="ver_deportista">
+      <ClaveTemporalDialog
+        clave={claveDeportista?.clave ?? null}
+        username={claveDeportista?.username}
+        onClose={() => setClaveDeportista(null)}
+      />
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -971,6 +995,23 @@ export default function DeportistasPage() {
                                 <Pencil className="h-4 w-4 mr-1" /> Editar
                               </Button>
                             )}
+                            {permissions.includes("restablecer_clave_usuario") && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Generar clave temporal de acceso"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `¿Generar una clave temporal para ${deportista.nombre} ${deportista.apellidos}? Reemplaza la clave actual.`,
+                                    )
+                                  )
+                                    claveTemporalDeDeportista(deportista.deportistaId);
+                                }}
+                              >
+                                <KeyRound className="h-4 w-4 mr-1" /> Clave
+                              </Button>
+                            )}
                             {noInscritos.has(deportista.deportistaId) && (
                               <Button
                                 variant="outline"
@@ -1029,6 +1070,12 @@ export default function DeportistasPage() {
                                     Objetivos
                                   </TabsTrigger>
                                   <TabsTrigger value="pagos">Pagos</TabsTrigger>
+                                  {(permissions.includes("ver_acudientes") ||
+                                    permissions.includes("ver_consentimientos")) && (
+                                    <TabsTrigger value="acudientes">
+                                      Acudientes y consentimientos
+                                    </TabsTrigger>
+                                  )}
                                 </TabsList>
 
                                 <TabsContent value="info" className="mt-4">
@@ -1404,6 +1451,14 @@ export default function DeportistasPage() {
                                 <TabsContent value="objetivos" className="mt-4">
                                   <ObjetivosPanel
                                     deportistaId={deportista.deportistaId}
+                                  />
+                                </TabsContent>
+
+                                <TabsContent value="acudientes" className="mt-4">
+                                  <AcudientesConsentimientosPanel
+                                    deportistaId={deportista.deportistaId}
+                                    personaId={deportista.personaId}
+                                    fechaNacimiento={deportista.fechaNacimiento}
                                   />
                                 </TabsContent>
 

@@ -46,17 +46,27 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Si el backend responde 401 (token inválido/expirado/en blacklist tras logout),
-// limpiamos el token local y mandamos al usuario a login. Evita que la app quede
-// en un estado "colgado" mostrando spinners infinitos por un token muerto.
+// 401 = token inválido/expirado/revocado -> limpiamos sesión y mandamos a login. Pero los endpoints de
+// autenticación también devuelven 401 por motivos "normales" (clave incorrecta en login, "contraseña
+// actual incorrecta" en change-password): ahí NO se debe cerrar la sesión.
+//
+// Ojo con los errores del back: unos controllers devuelven JSON { message } y otros TEXTO PLANO en el body.
+// No se normaliza aquí (varias pantallas ya leen `data` como string); usa getErrorMessage() abajo.
+const AUTH_URLS_SIN_LOGOUT = [
+  "/api/login",
+  "/api/change-password",
+  "/api/forgot-password",
+  "/api/reset-password",
+];
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== "undefined" && error?.response?.status === 401) {
-      const isAuthEndpoint =
-        typeof error.config?.url === "string" && error.config.url.includes("/api/login");
+      const url: string = typeof error.config?.url === "string" ? error.config.url : "";
+      const esEndpointAuth = AUTH_URLS_SIN_LOGOUT.some((u) => url.includes(u));
 
-      if (!isAuthEndpoint) {
+      if (!esEndpointAuth) {
         window.localStorage.removeItem(TOKEN_KEY);
         setAuthorizationHeader(null);
         if (!window.location.pathname.startsWith("/login")) {
@@ -67,6 +77,17 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/** Mensaje legible a partir de un error de axios: sirve tanto para body JSON { message } como para texto plano. */
+export const getErrorMessage = (error: any, fallback = "Ocurrió un error inesperado") => {
+  const data = error?.response?.data;
+  if (typeof data === "string" && data.trim() !== "") return data;
+  if (data?.message) return String(data.message);
+  if (error?.response?.status === 403) return "No tienes permiso para realizar esta acción";
+  if (error?.response && error.response.status >= 500) return "Error interno del servidor";
+  if (!error?.response && error?.message) return "No se pudo conectar con el servidor";
+  return fallback;
+};
 
 export const setAuthToken = (token: string | null) => {
   if (typeof window === "undefined") {

@@ -23,7 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
+import { useUser } from "@/context/UserContext";
 import { toast } from "react-toastify";
 import { CrearRolForm } from "@/app/components/Forms/CrearRolForm";
 import {
@@ -35,6 +36,22 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+// Permisos reservados a la plataforma (superadmin). El back rechaza asignarlos a un rol de un club
+// (RolesPlantilla.SOLO_PLATAFORMA); aquí se ocultan para que el admin del club no los vea ni intente.
+const PERMISOS_SOLO_PLATAFORMA = [
+  "gestionar_clubes",
+  "gestionar_catalogos",
+  "configurar_rubrica",
+  "administrar_roles",
+  "administrar_permisos",
+  "configurar_sistema",
+  "gestionar_parametros",
+  "importar_datos",
+  "exportar_datos",
+  "ver_dashboard_global",
+  "ver_logs_sistema",
+];
 
 interface Permiso {
   id: number;
@@ -57,6 +74,11 @@ type ConteoRol = {
 };
 
 export default function RolesPage() {
+  const { permissions, esPlataforma } = useUser();
+  const puedeGestionarRoles = permissions.includes("gestionar_roles");
+  const puedeAsignarPermisos = permissions.includes("asignar_permiso");
+  // Crear/editar/borrar permisos (catálogo global) ahora es solo de la plataforma.
+  const puedeGestionarCatalogo = permissions.includes("gestionar_catalogos");
   const [roles, setRoles] = useState<Rol[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<Rol[]>([]);
   const [selectedRol, setSelectedRol] = useState<number | null>(null);
@@ -138,7 +160,7 @@ export default function RolesPage() {
       fetchConteos();
     } catch (error) {
       console.error("Error al eliminar rol", error);
-      toast.error("No se pudo eliminar el rol");
+      toast.error(getErrorMessage(error, "No se pudo eliminar el rol"));
     }
   };
 
@@ -169,7 +191,7 @@ export default function RolesPage() {
       fetchRoles();
     } catch (error) {
       console.error("Error al actualizar rol", error);
-      toast.error("No se pudo actualizar el rol");
+      toast.error(getErrorMessage(error, "No se pudo actualizar el rol"));
     } finally {
       setGuardandoRol(false);
     }
@@ -197,7 +219,7 @@ export default function RolesPage() {
       setRoles((prev) => prev.map((r) => (r.id === selectedRol ? res.data : r)));
     } catch (error) {
       console.error("Error al actualizar permisos del rol", error);
-      toast.error("No se pudo actualizar el permiso");
+      toast.error(getErrorMessage(error, "No se pudo actualizar el permiso"));
     } finally {
       setGuardandoPermiso(false);
     }
@@ -236,7 +258,7 @@ export default function RolesPage() {
       fetchRoles(); // los permisos embebidos en cada rol pueden haber cambiado de nombre/descripción
     } catch (error) {
       console.error("Error al guardar permiso", error);
-      toast.error("No se pudo guardar el permiso");
+      toast.error(getErrorMessage(error, "No se pudo guardar el permiso"));
     } finally {
       setGuardandoPermisoForm(false);
     }
@@ -252,7 +274,7 @@ export default function RolesPage() {
       fetchRoles();
     } catch (error) {
       console.error("Error al eliminar permiso", error);
-      toast.error("No se pudo eliminar el permiso (puede estar en uso)");
+      toast.error(getErrorMessage(error, "No se pudo eliminar el permiso (puede estar en uso)"));
     }
   };
 
@@ -275,7 +297,10 @@ export default function RolesPage() {
   const conteoMap = new Map(conteos.map((rol) => [rol.id, rol.usuariosCount]));
 
   const rolSeleccionado = roles.find((r) => r.id === selectedRol);
-  const permisosAgrupados = agruparPermisosPorEntidad(permisos);
+  const permisosAsignables = esPlataforma
+    ? permisos
+    : permisos.filter((p) => !PERMISOS_SOLO_PLATAFORMA.includes(p.nombre));
+  const permisosAgrupados = agruparPermisosPorEntidad(permisosAsignables);
 
   return (
     <div className="space-y-6">
@@ -308,6 +333,7 @@ export default function RolesPage() {
                   className="h-9 pl-9"
                 />
               </div>
+              {puedeGestionarRoles && (
               <Dialog open={openCrearRol} onOpenChange={setOpenCrearRol}>
                 <DialogTrigger asChild>
                   <Button>
@@ -327,6 +353,7 @@ export default function RolesPage() {
                   />
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <Card>
@@ -369,6 +396,7 @@ export default function RolesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
+                            {puedeGestionarRoles && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -376,6 +404,7 @@ export default function RolesPage() {
                             >
                               <Pencil className="h-4 w-4 mr-1" /> Editar
                             </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -385,6 +414,7 @@ export default function RolesPage() {
                             >
                               <Shield className="h-4 w-4 mr-1" /> Permisos
                             </Button>
+                            {puedeGestionarRoles && (
                             <Button
                               variant="destructive"
                               size="sm"
@@ -395,6 +425,7 @@ export default function RolesPage() {
                             >
                               <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                             </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -411,7 +442,9 @@ export default function RolesPage() {
                     Permisos del rol: {roles.find((r) => r.id === selectedRol)?.nombre}
                   </CardTitle>
                   <CardDescription>
-                    Marca o desmarca para asignar o quitar permisos de este rol.
+                    {puedeAsignarPermisos
+                      ? "Marca o desmarca para asignar o quitar permisos de este rol."
+                      : "Solo lectura: no tienes permiso para asignar permisos."}
                     {guardandoPermiso && " Guardando…"}
                   </CardDescription>
                 </CardHeader>
@@ -446,7 +479,7 @@ export default function RolesPage() {
                                 <Checkbox
                                   id={`permiso-${selectedRol}-${permiso.id}`}
                                   checked={asignado}
-                                  disabled={guardandoPermiso}
+                                  disabled={guardandoPermiso || !puedeAsignarPermisos}
                                   onCheckedChange={() => togglePermiso(permiso.id, asignado)}
                                 />
                                 <label
@@ -483,9 +516,11 @@ export default function RolesPage() {
                   className="h-9 pl-9"
                 />
               </div>
-              <Button onClick={abrirNuevoPermiso}>
-                <Plus className="mr-2 h-4 w-4" /> Nuevo Permiso
-              </Button>
+              {puedeGestionarCatalogo && (
+                <Button onClick={abrirNuevoPermiso}>
+                  <Plus className="mr-2 h-4 w-4" /> Nuevo Permiso
+                </Button>
+              )}
             </div>
 
             <Card>
@@ -527,6 +562,7 @@ export default function RolesPage() {
                           </TableCell>
                           <TableCell className="font-figures">{rolesAsignados}</TableCell>
                           <TableCell>
+                            {puedeGestionarCatalogo ? (
                             <div className="flex space-x-2">
                               <Button
                                 variant="outline"
@@ -543,6 +579,9 @@ export default function RolesPage() {
                                 <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                               </Button>
                             </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Solo plataforma</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
