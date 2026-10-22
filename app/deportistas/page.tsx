@@ -482,7 +482,7 @@ export default function DeportistasPage() {
   const eliminarDeportista = async (id: number) => {
     try {
       await api.patch(`${API_URL}/api/deportistas/${id}`);
-      toast.success("Deportista eliminado correctamente");
+      toast.success("Deportista retirado: inscripción cerrada y fuera de su grupo");
       //llamar a una función para recargar la lista de deportistas o actualizar el estado
       cargarDeportistas();
     } catch (error) {
@@ -2086,29 +2086,16 @@ export default function DeportistasPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirmar Cambio</DialogTitle>
+              <DialogTitle>Retirar deportista</DialogTitle>
             </DialogHeader>
-            <p>¿Estás seguro que deseas Cambiar el estado del deportista?</p>
-            <div>
-              <Label>Estado</Label>
-              <Select
-                value={formData.estadoId?.toString()}
-                onValueChange={(value) =>
-                  handleChange("estadoId", parseInt(value))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {estados.map((estado) => (
-                    <SelectItem key={estado.id} value={estado.id.toString()}>
-                      {estado.estado}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p>¿Retirar al deportista del club?</p>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+              <li>Su estado pasa a <strong>Retirado</strong> (queda en el historial).</li>
+              <li>Se <strong>cierra su inscripción</strong>: no se le generan más cobros mensuales.</li>
+              <li>Sale de su grupo de entrenamiento.</li>
+              <li>Las facturas ya emitidas se conservan: la deuda pendiente sigue visible en Facturas.</li>
+              <li>Su usuario se desactiva.</li>
+            </ul>
             <DialogFooter className="mt-4">
               <Button
                 variant="secondary"
@@ -2125,7 +2112,7 @@ export default function DeportistasPage() {
                   }
                 }}
               >
-                Sí, eliminar
+                Sí, retirar
               </Button>
             </DialogFooter>
           </DialogContent>

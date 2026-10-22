@@ -21,6 +21,8 @@ import {
   Building2,
   CalendarRange,
   ShieldCheck,
+  UserCircle,
+  Inbox,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -53,6 +55,13 @@ export const HOME_ITEM: NavItem = {
   href: "/",
   label: "Inicio",
   icon: Home,
+};
+
+/** Portal de solo lectura (deportista / acudiente): se muestra si el usuario tiene el permiso acceder_portal. */
+export const PORTAL_ITEM: NavItem = {
+  href: "/mi",
+  label: "Mi portal",
+  icon: UserCircle,
 };
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -89,6 +98,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/temporadas", label: "Temporadas", icon: CalendarRange },
       { href: "/grupos", label: "Grupos", icon: Users },
       { href: "/inscripciones", label: "Inscripciones", icon: FileText },
+      { href: "/solicitudes-inscripcion", label: "Solicitudes", icon: Inbox },
     ],
   },
   {
@@ -197,6 +207,7 @@ export const NAV_SECTIONS: NavSection[] = [
 /** Todas las entradas de navegación, planas, incluyendo Inicio. Útil para breadcrumbs. */
 export const ALL_NAV_ITEMS: NavItem[] = [
   HOME_ITEM,
+  PORTAL_ITEM,
   ...NAV_SECTIONS.flatMap((s) => s.items),
 ];
 

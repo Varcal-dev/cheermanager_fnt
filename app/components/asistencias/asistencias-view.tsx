@@ -1,332 +1,318 @@
 "use client"
 
 import * as React from "react"
-import {
-  CalendarClock,
-  CalendarDays,
-  Clock,
-  Save,
-  Users,
-  CheckCheck,
-  History,
-  ListChecks,
-} from "lucide-react"
+import { CalendarClock, CheckCheck, History, ListChecks, Loader2, Save, Users } from "lucide-react"
 import { toast } from "react-toastify"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
-import {
-  DEPORTISTAS,
-  ESTADOS_ASISTENCIA,
-  GRUPOS,
-  HISTORIAL_EJEMPLO,
-  HORARIOS,
-  deportistasDeHorario,
-  estadoInfo,
-  fechaLegible,
-  nombreDeportista,
-  nombreGrupo,
-  nombreHorario,
-  type EstadoAsistencia,
-  type RegistroAsistencia,
-} from "@/app/lib/data/asistencias"
+import { api, getErrorMessage } from "@/lib/api"
 
-const HOY = new Date().toISOString().slice(0, 10)
+// Vista de asistencias conectada al backend (antes usaba datos de ejemplo en memoria).
+// Endpoints: /api/grupos/con-deportistas, /api/horarios, /api/estados-asistencia,
+// /api/asistencias/grupo/{id}/deportistas-activos, /api/asistencias/grupo/{id}?fecha=, /api/asistencias/masivo
 
-const HORARIO_ITEMS = Object.fromEntries(
-  HORARIOS.map((h: { id: string; nombre: string }) => [h.id, h.nombre]),
-)
-const ESTADO_ITEMS = Object.fromEntries(
-  ESTADOS_ASISTENCIA.map((e: { value: EstadoAsistencia; label: string }) => [e.value, e.label]),
-)
+interface GrupoSimple {
+  id: number
+  nombre: string
+}
 
-function EstadoBadge({ estado }: { estado: EstadoAsistencia }) {
-  const info = estadoInfo(estado)
-  return <Badge variant={info.variant}>{info.label}</Badge>
+interface HorarioDTO {
+  id: number
+  dia: string
+  horaInicio: string
+  horaFin: string
+  grupos: { horarioEntrenamientoId: number; grupoId: number; nombreGrupo: string }[]
+}
+
+interface EstadoAsistencia {
+  id: number
+  estado: string
+}
+
+interface DeportistaActivo {
+  deportistaId: number
+  nombre: string
+}
+
+interface AsistenciaDTO {
+  id: number
+  deportistaId: number
+  nombreDeportista: string
+  horarioId: number
+  fecha: string
+  estadoAsistenciaId: number
+  estadoAsistencia: string
+}
+
+const hoyISO = () => new Date().toISOString().slice(0, 10)
+const hora = (h: string) => h?.slice(0, 5) ?? ""
+
+function badgeVariant(estado: string): "default" | "secondary" | "destructive" | "outline" {
+  const e = estado.toLowerCase()
+  if (e === "presente") return "default"
+  if (e === "ausente") return "destructive"
+  if (e === "tarde") return "secondary"
+  return "outline"
+}
+
+function useCatalogos() {
+  const [grupos, setGrupos] = React.useState<GrupoSimple[]>([])
+  const [horarios, setHorarios] = React.useState<HorarioDTO[]>([])
+  const [estados, setEstados] = React.useState<EstadoAsistencia[]>([])
+  const [cargando, setCargando] = React.useState(true)
+
+  React.useEffect(() => {
+    Promise.all([
+      api.get("/api/grupos/con-deportistas"),
+      api.get("/api/horarios"),
+      api.get("/api/estados-asistencia"),
+    ])
+      .then(([g, h, e]) => {
+        setGrupos((g.data as any[]).map((x) => ({ id: x.id, nombre: x.nombre })))
+        setHorarios(h.data)
+        setEstados(e.data)
+      })
+      .catch((err) => toast.error(getErrorMessage(err, "No se pudieron cargar grupos, horarios o estados")))
+      .finally(() => setCargando(false))
+  }, [])
+
+  return { grupos, horarios, estados, cargando }
 }
 
 export function AsistenciasView() {
-  const [historial, setHistorial] = React.useState<RegistroAsistencia[]>(HISTORIAL_EJEMPLO)
+  const cat = useCatalogos()
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight text-balance">Asistencias</h1>
         <p className="text-sm text-muted-foreground text-pretty">
-          Registra la asistencia de un entrenamiento en bloque y consulta el historial registrado.
+          Registra la asistencia de un entrenamiento en bloque y consulta lo ya registrado por grupo y fecha.
         </p>
       </div>
 
-      <Tabs defaultValue="registro" className="gap-6">
-        <TabsList>
-          <TabsTrigger value="registro">
-            <ListChecks data-icon="inline-start" />
-            Registro masivo
-          </TabsTrigger>
-          <TabsTrigger value="historial">
-            <History data-icon="inline-start" />
-            Historial
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="registro">
-          <RegistroMasivo historial={historial} setHistorial={setHistorial} />
-        </TabsContent>
-
-        <TabsContent value="historial">
-          <HistorialAsistencias historial={historial} />
-        </TabsContent>
-      </Tabs>
+      {cat.cargando ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Cargando…
+        </div>
+      ) : (
+        <Tabs defaultValue="registro" className="gap-6">
+          <TabsList>
+            <TabsTrigger value="registro">
+              <ListChecks data-icon="inline-start" />
+              Registro masivo
+            </TabsTrigger>
+            <TabsTrigger value="historial">
+              <History data-icon="inline-start" />
+              Consulta
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="registro">
+            <RegistroMasivo {...cat} />
+          </TabsContent>
+          <TabsContent value="historial">
+            <Consulta {...cat} />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }
 
+type CatProps = { grupos: GrupoSimple[]; horarios: HorarioDTO[]; estados: EstadoAsistencia[] }
+
 /* ---------------------------- Tab 1: Registro ---------------------------- */
 
-function RegistroMasivo({
-  historial,
-  setHistorial,
-}: {
-  historial: RegistroAsistencia[]
-  setHistorial: React.Dispatch<React.SetStateAction<RegistroAsistencia[]>>
-}) {
-  const [horarioId, setHorarioId] = React.useState<string>("")
-  const [fecha, setFecha] = React.useState<string>(HOY)
-  // Mapa deportistaId -> estado
-  const [marcas, setMarcas] = React.useState<Record<string, EstadoAsistencia>>({})
+function RegistroMasivo({ grupos, horarios, estados }: CatProps) {
+  const [grupoId, setGrupoId] = React.useState("")
+  const [horarioId, setHorarioId] = React.useState("")
+  const [fecha, setFecha] = React.useState(hoyISO())
+  const [roster, setRoster] = React.useState<{ deportistaId: number; nombre: string; estadoId: string }[]>([])
+  const [cargada, setCargada] = React.useState(false)
+  const [cargando, setCargando] = React.useState(false)
+  const [guardando, setGuardando] = React.useState(false)
 
-  const deportistas = React.useMemo(
-    () => (horarioId ? deportistasDeHorario(horarioId) : []),
-    [horarioId],
+  const horariosDelGrupo = React.useMemo(
+    () => (grupoId ? horarios.filter((h) => h.grupos.some((g) => g.grupoId === Number(grupoId))) : []),
+    [horarios, grupoId],
   )
 
-  const listo = horarioId !== "" && fecha !== ""
-
-  // Cargar estados existentes (o "presente" por defecto) cuando cambian horario/fecha
   React.useEffect(() => {
-    if (!listo) {
-      setMarcas({})
+    setHorarioId("")
+    setCargada(false)
+    setRoster([])
+  }, [grupoId])
+
+  const estadoPorDefecto = () => (estados.find((e) => e.estado.toLowerCase() === "presente") ?? estados[0])?.id.toString() ?? ""
+
+  async function cargarLista() {
+    if (!grupoId || !horarioId || !fecha) {
+      toast.error("Selecciona grupo, horario y fecha")
       return
     }
-    const previos = historial.filter((r) => r.horarioId === horarioId && r.fecha === fecha)
-    const base: Record<string, EstadoAsistencia> = {}
-    for (const d of deportistasDeHorario(horarioId)) {
-      const prev = previos.find((r) => r.deportistaId === d.id)
-      base[d.id] = prev ? prev.estado : "presente"
+    setCargando(true)
+    try {
+      const [activos, yaRegistradas] = await Promise.all([
+        api.get<DeportistaActivo[]>(`/api/asistencias/grupo/${grupoId}/deportistas-activos`),
+        api.get<AsistenciaDTO[]>(`/api/asistencias/grupo/${grupoId}`, { params: { fecha } }),
+      ])
+      const previos = new Map(
+        yaRegistradas.data.filter((a) => a.horarioId === Number(horarioId)).map((a) => [a.deportistaId, a]),
+      )
+      const defecto = estadoPorDefecto()
+      setRoster(
+        activos.data.map((d) => ({
+          deportistaId: d.deportistaId,
+          nombre: d.nombre,
+          estadoId: previos.get(d.deportistaId)?.estadoAsistenciaId.toString() ?? defecto,
+        })),
+      )
+      setCargada(true)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "No se pudo cargar la lista del grupo"))
+    } finally {
+      setCargando(false)
     }
-    setMarcas(base)
-  }, [horarioId, fecha, listo, historial])
+  }
 
-  const yaRegistrado = React.useMemo(
-    () => listo && historial.some((r) => r.horarioId === horarioId && r.fecha === fecha),
-    [historial, horarioId, fecha, listo],
-  )
+  async function guardar() {
+    if (!horarioId || roster.length === 0) return
+    setGuardando(true)
+    try {
+      const { data } = await api.post("/api/asistencias/masivo", {
+        horarioId: Number(horarioId),
+        fecha,
+        registros: roster.map((r) => ({ deportistaId: r.deportistaId, estadoAsistenciaId: Number(r.estadoId) })),
+      })
+      const errores: Record<string, string> = data?.errores ?? {}
+      const n = Object.keys(errores).length
+      if (n === 0) toast.success(`Asistencia guardada: ${data?.registrados?.length ?? roster.length} deportistas`)
+      else toast.warn(`Se guardaron ${data?.registrados?.length ?? 0} registros y ${n} fallaron: ${Object.values(errores)[0]}`)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "No se pudo guardar la asistencia"))
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const marcarTodos = (estadoId: string) => setRoster((p) => p.map((r) => ({ ...r, estadoId })))
 
   const resumen = React.useMemo(() => {
-    const counts: Record<EstadoAsistencia, number> = {
-      presente: 0,
-      ausente: 0,
-      tarde: 0,
-      justificado: 0,
+    const out: Record<string, number> = {}
+    for (const r of roster) {
+      const nombre = estados.find((e) => e.id === Number(r.estadoId))?.estado ?? "—"
+      out[nombre] = (out[nombre] ?? 0) + 1
     }
-    for (const id of Object.keys(marcas)) counts[marcas[id]]++
-    return counts
-  }, [marcas])
-
-  function marcarTodos(estado: EstadoAsistencia) {
-    setMarcas((prev) => {
-      const next = { ...prev }
-      for (const d of deportistas) next[d.id] = estado
-      return next
-    })
-  }
-
-  function guardar() {
-    const nuevos: RegistroAsistencia[] = deportistas.map((d: { id: string | number }) => ({
-      id: `${horarioId}-${d.id}-${fecha}`,
-      deportistaId: d.id,
-      horarioId,
-      fecha,
-      estado: marcas[d.id] ?? "presente",
-    }))
-    setHistorial((prev) => {
-      const restantes = prev.filter((r) => !(r.horarioId === horarioId && r.fecha === fecha))
-      return [...nuevos, ...restantes]
-    })
-    toast.success(`Asistencia guardada · ${deportistas.length} deportistas`)
-  }
+    return out
+  }, [roster, estados])
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Selectores */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarClock className="size-4 text-primary" />
-            Selecciona horario y fecha
+            Grupo, horario y fecha
           </CardTitle>
-          <CardDescription>
-            Elige el entrenamiento y la fecha para cargar los deportistas del grupo.
-          </CardDescription>
+          <CardDescription>Elige el entrenamiento para cargar los deportistas activos del grupo.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
-              <Label>Horario / Entrenamiento</Label>
-              <Select
-                items={HORARIO_ITEMS}
-                value={horarioId}
-                onValueChange={(v) => setHorarioId((v as string) ?? "")}
-              >
+              <Label>Grupo</Label>
+              <Select value={grupoId} onValueChange={setGrupoId}>
                 <SelectTrigger>
-                  <Clock className="size-4 text-muted-foreground" />
-                  <SelectValue placeholder="Seleccionar horario" />
+                  <SelectValue placeholder="Selecciona un grupo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {HORARIOS.map((h: (typeof HORARIOS)[number]) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {h.nombre} · {h.dias} · {h.hora}
+                  {grupos.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="fecha-asistencia">Fecha</Label>
-              <Input
-                id="fecha-asistencia"
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-              />
+              <Label>Horario</Label>
+              <Select value={horarioId} onValueChange={setHorarioId} disabled={!grupoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={grupoId ? "Selecciona un horario" : "Primero el grupo"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {horariosDelGrupo.map((h) => (
+                    <SelectItem key={h.id} value={String(h.id)}>
+                      {h.dia} {hora(h.horaInicio)}–{hora(h.horaFin)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Fecha</Label>
+              <Input type="date" value={fecha} max={hoyISO()} onChange={(e) => setFecha(e.target.value)} />
             </div>
           </div>
+          <Button className="mt-4" onClick={cargarLista} disabled={cargando || !grupoId || !horarioId}>
+            {cargando ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Users className="mr-2 size-4" />}
+            Cargar lista
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Lista de deportistas */}
-      {!listo ? (
-        <Empty className="rounded-lg border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CalendarDays />
-            </EmptyMedia>
-            <EmptyTitle>Sin datos cargados</EmptyTitle>
-            <EmptyDescription>
-              Selecciona un horario y una fecha para ver la lista de deportistas del grupo.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : deportistas.length === 0 ? (
-        <Empty className="rounded-lg border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Users />
-            </EmptyMedia>
-            <EmptyTitle>Grupo sin deportistas</EmptyTitle>
-            <EmptyDescription>Este horario no tiene deportistas asignados.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
+      {cargada && (
         <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="size-4 text-primary" />
-                    {nombreHorario(horarioId)}
-                  </CardTitle>
-                  <CardDescription>
-                    {deportistas.length} deportista{deportistas.length === 1 ? "" : "s"} ·{" "}
-                    {fechaLegible(fecha)}
-                    {yaRegistrado && " · editando registro existente"}
-                  </CardDescription>
-                </div>
-                <Button onClick={guardar}>
-                  <Save data-icon="inline-start" />
-                  Guardar asistencia
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle>Lista de asistencia</CardTitle>
+              <CardDescription>
+                {roster.length} deportistas activos ·{" "}
+                {Object.entries(resumen)
+                  .map(([k, v]) => `${v} ${k.toLowerCase()}`)
+                  .join(" · ")}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              {estados.slice(0, 2).map((e) => (
+                <Button key={e.id} variant="outline" size="sm" onClick={() => marcarTodos(String(e.id))}>
+                  <CheckCheck className="mr-1 size-4" /> Todos {e.estado.toLowerCase()}
                 </Button>
-              </div>
-
-              {/* Resumen + marcar todos */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => marcarTodos("presente")}>
-                  <CheckCheck data-icon="inline-start" />
-                  Marcar todos presentes
-                </Button>
-                <span className="text-muted-foreground text-sm">Resumen:</span>
-                {ESTADOS_ASISTENCIA.map(
-                  (e: {
-                    value: EstadoAsistencia
-                    label: string
-                    variant: React.ComponentProps<typeof Badge>["variant"]
-                  }) => (
-                  <Badge key={e.value} variant={e.variant}>
-                    {e.label}: {resumen[e.value]}
-                  </Badge>
-                  ),
-                )}
-              </div>
+              ))}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto rounded-lg border">
+            {roster.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Este grupo no tiene deportistas activos.</p>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">#</TableHead>
                     <TableHead>Deportista</TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead className="w-[220px]">Estado de asistencia</TableHead>
+                    <TableHead className="w-56">Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deportistas.map((d: (typeof DEPORTISTAS)[number], i: number) => (
-                    <TableRow key={d.id}>
-                      <TableCell className="text-muted-foreground tabular-nums">{i + 1}</TableCell>
-                      <TableCell className="font-medium">{d.nombre}</TableCell>
-                      <TableCell className="text-muted-foreground">{nombreGrupo(d.grupoId)}</TableCell>
+                  {roster.map((r, i) => (
+                    <TableRow key={r.deportistaId}>
+                      <TableCell className="font-medium">{r.nombre}</TableCell>
                       <TableCell>
                         <Select
-                          items={ESTADO_ITEMS}
-                          value={marcas[d.id] ?? "presente"}
-                          onValueChange={(v) =>
-                            setMarcas((prev) => ({ ...prev, [d.id]: v as EstadoAsistencia }))
-                          }
+                          value={r.estadoId}
+                          onValueChange={(v) => setRoster((p) => p.map((x, j) => (j === i ? { ...x, estadoId: v } : x)))}
                         >
-                          <SelectTrigger className="w-[200px]">
+                          <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {ESTADOS_ASISTENCIA.map((e: { value: EstadoAsistencia; label: string }) => (
-                              <SelectItem key={e.value} value={e.value}>
-                                {e.label}
+                            {estados.map((e) => (
+                              <SelectItem key={e.id} value={String(e.id)}>
+                                {e.estado}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -336,7 +322,11 @@ function RegistroMasivo({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            )}
+            <Button className="mt-4" onClick={guardar} disabled={guardando || roster.length === 0}>
+              {guardando ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
+              Guardar asistencia
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -344,151 +334,100 @@ function RegistroMasivo({
   )
 }
 
-/* --------------------------- Tab 2: Historial ---------------------------- */
+/* ---------------------------- Tab 2: Consulta ---------------------------- */
 
-const DEPORTISTA_ITEMS = {
-  all: "Todos los deportistas",
-  ...Object.fromEntries(
-    DEPORTISTAS.map((d: { id: string; nombre: string }) => [d.id, d.nombre]),
-  ),
-}
-const GRUPO_ITEMS = {
-  all: "Todos los grupos",
-  ...Object.fromEntries(GRUPOS.map((g: { id: string; nombre: string }) => [g.id, g.nombre])),
-}
+function Consulta({ grupos, horarios }: CatProps) {
+  const [grupoId, setGrupoId] = React.useState("")
+  const [fecha, setFecha] = React.useState(hoyISO())
+  const [filas, setFilas] = React.useState<AsistenciaDTO[] | null>(null)
+  const [cargando, setCargando] = React.useState(false)
 
-function HistorialAsistencias({ historial }: { historial: RegistroAsistencia[] }) {
-  const [deportistaFiltro, setDeportistaFiltro] = React.useState("all")
-  const [grupoFiltro, setGrupoFiltro] = React.useState("all")
-  const [desde, setDesde] = React.useState("")
-  const [hasta, setHasta] = React.useState("")
+  async function consultar() {
+    if (!grupoId || !fecha) {
+      toast.error("Selecciona grupo y fecha")
+      return
+    }
+    setCargando(true)
+    try {
+      const res = await api.get<AsistenciaDTO[]>(`/api/asistencias/grupo/${grupoId}`, { params: { fecha } })
+      setFilas(res.data)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "No se pudo consultar la asistencia"))
+    } finally {
+      setCargando(false)
+    }
+  }
 
-  const grupoDeDeportista = React.useMemo(
-    () => Object.fromEntries(DEPORTISTAS.map((d: { id: string; grupoId: string }) => [d.id, d.grupoId])),
-    [],
-  )
-
-  const filtrado = React.useMemo(() => {
-    return historial
-      .filter((r) => {
-        if (deportistaFiltro !== "all" && r.deportistaId !== deportistaFiltro) return false
-        if (grupoFiltro !== "all" && grupoDeDeportista[r.deportistaId] !== grupoFiltro) return false
-        if (desde && r.fecha < desde) return false
-        if (hasta && r.fecha > hasta) return false
-        return true
-      })
-      .sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0))
-  }, [historial, deportistaFiltro, grupoFiltro, desde, hasta, grupoDeDeportista])
-
-  function limpiar() {
-    setDeportistaFiltro("all")
-    setGrupoFiltro("all")
-    setDesde("")
-    setHasta("")
+  const etiquetaHorario = (id: number) => {
+    const h = horarios.find((x) => x.id === id)
+    return h ? `${h.dia} ${hora(h.horaInicio)}–${hora(h.horaFin)}` : `#${id}`
   }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <History className="size-4 text-primary" />
-              Historial de asistencias
-            </CardTitle>
-            <CardDescription>
-              {filtrado.length} registro{filtrado.length === 1 ? "" : "s"} encontrado
-              {filtrado.length === 1 ? "" : "s"}
-            </CardDescription>
+        <CardTitle>Asistencia registrada</CardTitle>
+        <CardDescription>Consulta lo guardado para un grupo en una fecha.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <Label>Grupo</Label>
+            <Select value={grupoId} onValueChange={setGrupoId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                {grupos.map((g) => (
+                  <SelectItem key={g.id} value={String(g.id)}>
+                    {g.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto_auto] lg:items-end">
-            <div className="flex flex-col gap-2">
-              <Label>Deportista</Label>
-              <Select
-                items={DEPORTISTA_ITEMS}
-                value={deportistaFiltro}
-                onValueChange={(v) => setDeportistaFiltro((v as string) ?? "all")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los deportistas</SelectItem>
-                  {DEPORTISTAS.map((d: { id: string; nombre: string }) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Grupo</Label>
-              <Select
-                items={GRUPO_ITEMS}
-                value={grupoFiltro}
-                onValueChange={(v) => setGrupoFiltro((v as string) ?? "all")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los grupos</SelectItem>
-                  {GRUPOS.map((g: { id: string; nombre: string }) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="desde">Desde</Label>
-              <Input id="desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="hasta">Hasta</Label>
-              <Input id="hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
-            </div>
-            <Button variant="ghost" onClick={limpiar}>
-              Limpiar
+          <div className="flex flex-col gap-2">
+            <Label>Fecha</Label>
+            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={consultar} disabled={cargando}>
+              {cargando && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Consultar
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto rounded-lg border">
+
+        {filas && (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Deportista</TableHead>
                 <TableHead>Horario</TableHead>
-                <TableHead>Fecha</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtrado.length === 0 ? (
+              {filas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    No hay registros con los filtros aplicados.
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    Sin registros para esa fecha.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtrado.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{nombreDeportista(r.deportistaId)}</TableCell>
-                    <TableCell className="text-muted-foreground">{nombreHorario(r.horarioId)}</TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">{fechaLegible(r.fecha)}</TableCell>
+                filas.map((f) => (
+                  <TableRow key={f.id}>
+                    <TableCell className="font-medium">{f.nombreDeportista}</TableCell>
+                    <TableCell>{etiquetaHorario(f.horarioId)}</TableCell>
                     <TableCell>
-                      <EstadoBadge estado={r.estado} />
+                      <Badge variant={badgeVariant(f.estadoAsistencia)}>{f.estadoAsistencia}</Badge>
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
-        </div>
+        )}
       </CardContent>
     </Card>
   )

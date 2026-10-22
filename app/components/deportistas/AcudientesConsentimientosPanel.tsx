@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, ShieldCheck, ShieldOff, UserPlus } from "lucide-react";
+import { Plus, Trash2, ShieldCheck, ShieldOff, UserPlus, KeyRound } from "lucide-react";
 import { toast } from "react-toastify";
 import { api, getErrorMessage } from "@/lib/api";
 import { useUser } from "@/context/UserContext";
@@ -45,6 +45,7 @@ interface Vinculo {
   parentesco?: string;
   principal: boolean;
   autorizaRecoger: boolean;
+  tieneAcceso?: boolean;
 }
 
 interface AcudienteLista {
@@ -117,6 +118,20 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
   const [otorgaAcudienteId, setOtorgaAcudienteId] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [guardandoConsent, setGuardandoConsent] = useState(false);
+
+  // --- acceso al portal del acudiente ---
+  const [acceso, setAcceso] = useState<{ username: string; claveTemporal: string } | null>(null);
+
+  const crearAcceso = async (v: Vinculo) => {
+    if (!confirm(`¿Crear acceso al portal para ${v.nombre} ${v.apellidos}? Entrará con su correo (${v.email ?? "sin correo"}) y verá, solo lectura, la información de sus deportistas.`)) return;
+    try {
+      const res = await api.post(`/api/acudientes/${v.acudienteId}/acceso`);
+      setAcceso(res.data);
+      cargarVinculos();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo crear el acceso"));
+    }
+  };
 
   // --- revocar ---
   const [revocando, setRevocando] = useState<Consentimiento | null>(null);
@@ -288,6 +303,7 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
                     <p className="font-medium">
                       {v.nombre} {v.apellidos}
                       {v.principal && <Badge className="ml-2">Principal</Badge>}
+                      {v.tieneAcceso && <Badge variant="outline" className="ml-2">Con acceso al portal</Badge>}
                     </p>
                     <p className="text-muted-foreground">
                       {[v.parentesco, v.telefono, v.email].filter(Boolean).join(" · ") || "—"}
@@ -295,9 +311,17 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
                     </p>
                   </div>
                   {gestionarAcudientes && (
-                    <Button size="sm" variant="ghost" onClick={() => desvincular(v)} aria-label="Quitar acudiente">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      {!v.tieneAcceso && (
+                        <Button size="sm" variant="outline" onClick={() => crearAcceso(v)} disabled={!v.email}
+                          title={v.email ? "Crear usuario del portal" : "El acudiente necesita un correo"}>
+                          <KeyRound className="h-4 w-4 mr-1" /> Crear acceso
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => desvincular(v)} aria-label="Quitar acudiente">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </li>
               ))}
@@ -511,6 +535,25 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
             <Button onClick={guardarConsentimiento} disabled={guardandoConsent || (menor === true && vinculos.length === 0)}>
               {guardandoConsent ? "Guardando..." : "Registrar"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clave temporal del acudiente */}
+      <Dialog open={acceso !== null} onOpenChange={(o) => !o && setAcceso(null)}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Acceso creado</DialogTitle>
+            <DialogDescription>
+              Entrégale estos datos al acudiente. La clave se muestra UNA sola vez y deberá cambiarla al ingresar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border p-3 text-sm space-y-1 font-mono">
+            <p>Usuario: {acceso?.username}</p>
+            <p>Clave temporal: {acceso?.claveTemporal}</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setAcceso(null)}>Listo</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

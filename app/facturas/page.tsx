@@ -20,6 +20,8 @@ import {
   FileText,
   CreditCard,
   Loader2,
+  Ban,
+  AlertTriangle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,14 +34,22 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "react-toastify";
 import React from "react";
 import RegistrarPagoModal from "@/app/components/Forms/RegistrarPagoModal";
+import NuevaFacturaModal from "@/app/components/Forms/NuevaFacturaModal";
+import AnularDialog from "@/app/components/Forms/AnularDialog";
+import { useUser } from "@/context/UserContext";
 import {
   Factura,
   FacturaConSaldo,
   Pago,
+  anularFactura,
   calcularFacturasConSaldo,
+  etiquetaTipoFactura,
   formatCOP,
+  formatFecha,
+  mensajeError,
   obtenerFacturas,
   obtenerPagos,
+  variantEstadoCuenta,
 } from "@/app/lib/facturas-pagos";
 
 export default function FacturasPage() {
@@ -54,6 +64,12 @@ export default function FacturasPage() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [facturaParaPago, setFacturaParaPago] =
     useState<FacturaConSaldo | null>(null);
+
+  const { permissions } = useUser();
+  const puedeCrear = permissions.includes("crear_factura");
+  const puedeAnular = permissions.includes("anular_factura");
+  const [modalNueva, setModalNueva] = useState(false);
+  const [facturaAAnular, setFacturaAAnular] = useState<FacturaConSaldo | null>(null);
 
   const cargarDatos = () => {
     setCargando(true);
@@ -113,6 +129,22 @@ export default function FacturasPage() {
     (f) => f.saldoPendiente > 0,
   );
 
+  // Cartera en mora: vencidas (10 días después de emitidas) con saldo pendiente.
+  const facturasEnMora = facturasConSaldo.filter((f) => f.estadoCuenta === "En mora");
+  const totalEnMora = facturasEnMora.reduce((acc, f) => acc + f.saldoPendiente, 0);
+
+  const confirmarAnulacion = async (motivo: string) => {
+    if (!facturaAAnular) return;
+    try {
+      await anularFactura(facturaAAnular.id, motivo);
+      toast.success(`Factura ${facturaAAnular.numeroFactura} anulada`);
+      cargarDatos();
+    } catch (error) {
+      toast.error(mensajeError(error, "No se pudo anular la factura"));
+      throw error;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -124,10 +156,37 @@ export default function FacturasPage() {
             Gestiona las facturas y pagos de los deportistas
           </p>
         </div>
-        <Button disabled title="Las facturas se generan automáticamente al crear una inscripción">
-          <Plus className="mr-2 h-4 w-4" /> Nueva Factura
-        </Button>
+        {puedeCrear && (
+          <Button
+            onClick={() => setModalNueva(true)}
+            title="Cobros de uniforme, competencia, evento u otros. La inscripción y la mensualidad se facturan solas."
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nuevo cobro
+          </Button>
+        )}
       </div>
+
+      {facturasEnMora.length > 0 && (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-medium">
+                  {facturasEnMora.length} {facturasEnMora.length === 1 ? "factura en mora" : "facturas en mora"} ·{" "}
+                  <span className="font-figures">{formatCOP(totalEnMora)}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Vencidas con saldo pendiente (se emiten el primer día hábil y vencen a los 10 días).
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setEstadoFiltro("En mora")}>
+              Ver solo en mora
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-4">
         <div className="flex justify-between mb-4">
@@ -163,6 +222,12 @@ export default function FacturasPage() {
                 <DropdownMenuItem onClick={() => setEstadoFiltro("Sin pagos")}>
                   Sin pagos
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEstadoFiltro("En mora")}>
+                  En mora
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEstadoFiltro("Anulada")}>
+                  Anuladas
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -184,7 +249,7 @@ export default function FacturasPage() {
                       Número
                     </TableHead>
                     <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                      Fecha
+                      Emisión / Vence
                     </TableHead>
                     <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
                       Cliente
@@ -231,25 +296,30 @@ export default function FacturasPage() {
                             {factura.numeroFactura}
                           </TableCell>
                           <TableCell>
-                            {new Date(factura.fechaEmision).toLocaleDateString()}
+                            <div>{formatFecha(factura.fechaEmision)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              vence {formatFecha(factura.fechaVencimiento)}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {factura.persona.nombre} {factura.persona.apellidos}
                           </TableCell>
-                          <TableCell>{factura.descripcion}</TableCell>
+                          <TableCell>
+                            <div>{factura.descripcion}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {etiquetaTipoFactura(factura)}
+                            </div>
+                          </TableCell>
                           <TableCell className="font-figures">{formatCOP(factura.total)}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                factura.estadoCuenta === "Pagado"
-                                  ? "success"
-                                  : factura.estadoCuenta === "Abono parcial"
-                                  ? "outline"
-                                  : "destructive"
-                              }
-                            >
+                            <Badge variant={variantEstadoCuenta(factura.estadoCuenta)}>
                               {factura.estadoCuenta}
                             </Badge>
+                            {factura.estadoCuenta === "En mora" && factura.diasMora != null && (
+                              <div className="mt-1 text-xs text-destructive">
+                                {factura.diasMora} {factura.diasMora === 1 ? "día" : "días"} de mora
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
@@ -274,6 +344,14 @@ export default function FacturasPage() {
                                   >
                                     Ver desglose
                                   </DropdownMenuItem>
+                                  {puedeAnular && factura.estadoCuenta !== "Anulada" && (
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => setFacturaAAnular(factura)}
+                                    >
+                                      <Ban className="mr-2 h-4 w-4" /> Anular factura
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -314,6 +392,14 @@ export default function FacturasPage() {
                                             tenía descuento, ya está aplicado
                                             en el total)
                                           </span>
+                                        </div>
+                                      )}
+                                      {factura.estadoCuenta === "Anulada" && (
+                                        <div className="grid grid-cols-2">
+                                          <span className="text-muted-foreground">
+                                            Motivo de anulación:
+                                          </span>
+                                          <span>{factura.motivoAnulacion ?? "—"}</span>
                                         </div>
                                       )}
                                       <div className="grid grid-cols-2">
@@ -387,6 +473,20 @@ export default function FacturasPage() {
         facturas={facturasPendientes}
         facturaPreseleccionada={facturaParaPago}
         onPagoRegistrado={cargarDatos}
+      />
+
+      <NuevaFacturaModal
+        open={modalNueva}
+        onOpenChange={setModalNueva}
+        onCreada={cargarDatos}
+      />
+
+      <AnularDialog
+        open={facturaAAnular !== null}
+        onOpenChange={(abierto) => !abierto && setFacturaAAnular(null)}
+        titulo={`Anular factura ${facturaAAnular?.numeroFactura ?? ""}`}
+        descripcion="La factura no se borra: queda anulada con su motivo, fecha y usuario, y deja de contar en la cartera. Si tiene pagos confirmados, anula primero esos pagos."
+        onConfirmar={confirmarAnulacion}
       />
     </div>
   );

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/context/UserContext";
 import {
   HOME_ITEM,
+  PORTAL_ITEM,
   NAV_SECTIONS,
   findSectionForPath,
   type NavItem,
@@ -169,6 +170,18 @@ const Sidebar = () => {
               <Link href={HOME_ITEM.href} passHref>
                 <NavButton active={isActive(HOME_ITEM.href)} icon={HOME_ITEM.icon}>
                   {HOME_ITEM.label}
+                </NavButton>
+              </Link>
+            )}
+
+            {permissions.includes("acceder_portal") && (
+              <Link href={PORTAL_ITEM.href} passHref>
+                <NavButton
+                  active={isActive(PORTAL_ITEM.href)}
+                  icon={PORTAL_ITEM.icon}
+                  className={collapsed ? "justify-center" : undefined}
+                >
+                  {!collapsed && PORTAL_ITEM.label}
                 </NavButton>
               </Link>
             )}

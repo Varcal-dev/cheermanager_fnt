@@ -51,6 +51,7 @@ import {
   FacturaConSaldo,
   calcularUnaFacturaConSaldo,
   etiquetaTipoFactura,
+  variantEstadoCuenta,
   formatCOP,
   obtenerFacturasDeInscripcion,
   obtenerPagosPorFactura,
@@ -625,15 +626,9 @@ export default function InscripcionesPage() {
                                                   </div>
                                                   <div className="mt-1">
                                                     <Badge
-                                                      variant={
-                                                        factura.estadoCuenta ===
-                                                        "Pagado"
-                                                          ? "success"
-                                                          : factura.estadoCuenta ===
-                                                              "Abono parcial"
-                                                            ? "outline"
-                                                            : "destructive"
-                                                      }
+                                                      variant={variantEstadoCuenta(
+                                                        factura.estadoCuenta,
+                                                      )}
                                                     >
                                                       {factura.estadoCuenta}
                                                     </Badge>
