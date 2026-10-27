@@ -30,14 +30,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "react-toastify";
 import RegistrarPagoModal from "@/app/components/Forms/RegistrarPagoModal";
+import AnularDialog from "@/app/components/Forms/AnularDialog";
+import RecordatoriosMoraCard from "@/app/components/pagos/RecordatoriosMoraCard";
+import { useUser } from "@/context/UserContext";
 import {
   Factura,
   FacturaConSaldo,
   Pago,
   ResumenGeneracionCobros,
   calcularFacturasConSaldo,
+  anularPago,
   cambiarEstadoPago,
-  eliminarPago,
   formatCOP,
   generarCobrosMensualidad,
   mensajeError,
@@ -46,6 +49,10 @@ import {
 } from "@/app/lib/facturas-pagos";
 
 export default function PagosPage() {
+  const { permissions } = useUser();
+  const puedeRecordar = permissions.includes("gestionar_recordatorios_mora");
+  const puedeAnularPago = permissions.includes("anular_pago");
+  const [pagoAAnular, setPagoAAnular] = useState<Pago | null>(null);
   const [cargando, setCargando] = useState(true);
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -169,23 +176,16 @@ export default function PagosPage() {
     }
   };
 
-  const borrarPago = async (pago: Pago) => {
-    if (
-      !confirm(
-        `¿Eliminar el pago de ${formatCOP(pago.monto)} de la factura ${pago.numeroFactura}? Esta acción no se puede deshacer.`,
-      )
-    ) {
-      return;
-    }
-    setActualizandoId(pago.id);
+  // Los pagos no se borran: se anulan con motivo (queda fecha y usuario).
+  const confirmarAnulacionPago = async (motivo: string) => {
+    if (!pagoAAnular) return;
     try {
-      await eliminarPago(pago.id);
-      toast.success("Pago eliminado");
+      await anularPago(pagoAAnular.id, motivo);
+      toast.success(`Pago de la factura ${pagoAAnular.numeroFactura} anulado`);
       cargarDatos();
     } catch (error) {
-      toast.error(mensajeError(error, "No se pudo eliminar el pago"));
-    } finally {
-      setActualizandoId(null);
+      toast.error(mensajeError(error, "No se pudo anular el pago"));
+      throw error;
     }
   };
 
@@ -284,6 +284,8 @@ export default function PagosPage() {
           )}
         </CardContent>
       </Card>
+
+      {puedeRecordar && <RecordatoriosMoraCard />}
 
       <div className="relative flex items-center max-w-sm">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
@@ -466,14 +468,17 @@ export default function PagosPage() {
                                 Marcar pagado
                               </Button>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={actualizandoId === p.id}
-                              onClick={() => borrarPago(p)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {puedeAnularPago && p.estado !== "Anulado" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Anular pago"
+                                disabled={actualizandoId === p.id}
+                                onClick={() => setPagoAAnular(p)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" /> Anular
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -485,6 +490,14 @@ export default function PagosPage() {
           </Card>
         </>
       )}
+
+      <AnularDialog
+        open={pagoAAnular !== null}
+        onOpenChange={(abierto) => !abierto && setPagoAAnular(null)}
+        titulo={`Anular pago de ${pagoAAnular?.numeroFactura ?? ""}`}
+        descripcion="El pago no se borra: queda anulado con su motivo, fecha y usuario, y su valor vuelve al saldo de la factura."
+        onConfirmar={confirmarAnulacionPago}
+      />
 
       <RegistrarPagoModal
         open={modalAbierto}

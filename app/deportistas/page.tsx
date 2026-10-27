@@ -24,6 +24,7 @@ import {
   Target,
   UserPlus,
   KeyRound,
+  RotateCcw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -257,6 +258,13 @@ export default function DeportistasPage() {
   const [deportistaAEliminar, setDeportistaAEliminar] = useState<number | null>(
     null,
   );
+  // Reactivar un deportista retirado (estado Activo + usuario; la inscripción se hace con una matrícula nueva).
+  const [deportistaAReactivar, setDeportistaAReactivar] = useState<{
+    id: number;
+    nombre: string;
+  } | null>(null);
+  const [motivoReactivacion, setMotivoReactivacion] = useState("");
+  const [reactivando, setReactivando] = useState(false);
 
   const [deportistas, setDeportistas] = useState<Deportista[]>([]);
   const [expandedDeportistas, setExpandedDeportistas] = useState<number[]>([]);
@@ -488,6 +496,28 @@ export default function DeportistasPage() {
     } catch (error) {
       console.error("Error al eliminar deportista", error);
       toast.error(getErrorMessage(error, "No se pudo eliminar el deportista"));
+    }
+  };
+
+  const reactivarDeportista = async () => {
+    if (!deportistaAReactivar) return;
+    setReactivando(true);
+    try {
+      const { data } = await api.patch(
+        `${API_URL}/api/deportistas/${deportistaAReactivar.id}/reactivar`,
+        { motivo: motivoReactivacion.trim() || null },
+      );
+      toast.success(
+        data?.requiereMatricula
+          ? `${deportistaAReactivar.nombre} reactivado. Falta matricularlo para que vuelva a tener inscripción y cobros.`
+          : `${deportistaAReactivar.nombre} reactivado`,
+      );
+      setDeportistaAReactivar(null);
+      cargarDeportistas();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo reactivar el deportista"));
+    } finally {
+      setReactivando(false);
     }
   };
   /*
@@ -1028,19 +1058,36 @@ export default function DeportistasPage() {
                                 <UserPlus className="h-4 w-4 mr-1" /> Matricular
                               </Button>
                             )}
-                            {/*permissions.includes("eliminar_deportista") && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() =>
-                                  setDeportistaAEliminar(
-                                    deportista.deportistaId
-                                  )
-                                }
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" /> Cambiar Estado
-                              </Button>
-                            )*/}
+                            {permissions.includes("eliminar_deportista") &&
+                              deportista.estadoNombre !== "Retirado" && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() =>
+                                    setDeportistaAEliminar(
+                                      deportista.deportistaId
+                                    )
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Retirar
+                                </Button>
+                              )}
+                            {permissions.includes("modificar_deportista") &&
+                              deportista.estadoNombre === "Retirado" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setMotivoReactivacion("");
+                                    setDeportistaAReactivar({
+                                      id: deportista.deportistaId,
+                                      nombre: `${deportista.nombre} ${deportista.apellidos}`,
+                                    });
+                                  }}
+                                >
+                                  <RotateCcw className="h-4 w-4 mr-1" /> Reactivar
+                                </Button>
+                              )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1806,23 +1853,48 @@ export default function DeportistasPage() {
                   Estado del Deportista
                 </Label>
               </div>
-              <Select
-                value={formData.estadoId?.toString()}
-                onValueChange={(value) =>
-                  handleChange("estadoId", parseInt(value))
-                }
-              >
-                <SelectTrigger className="">
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {estados.map((estado) => (
-                    <SelectItem key={estado.id} value={estado.id.toString()}>
-                      {estado.estado}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Retirar y Reactivar tienen efectos (inscripción, grupo, usuario): se hacen con sus
+                  botones de la tabla, no cambiando el estado a mano. El backend también lo exige. */}
+              {(() => {
+                const idRetirado = estados.find((e) => e.estado === "Retirado")?.id;
+                const yaRetirado =
+                  idRetirado !== undefined && deportistaSeleccionado?.estadoId === idRetirado;
+                return (
+                  <>
+                    <Select
+                      value={formData.estadoId?.toString()}
+                      disabled={yaRetirado}
+                      onValueChange={(value) =>
+                        handleChange("estadoId", parseInt(value))
+                      }
+                    >
+                      <SelectTrigger className="">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {estados.map((estado) => (
+                          <SelectItem
+                            key={estado.id}
+                            value={estado.id.toString()}
+                            disabled={estado.id === idRetirado && !yaRetirado}
+                          >
+                            {estado.estado}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {yaRetirado ? (
+                      <p className="text-xs text-muted-foreground -mt-4">
+                        Está retirado. Para volver a activarlo usa el botón <strong>Reactivar</strong> de la tabla.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground -mt-4">
+                        Para retirarlo usa el botón <strong>Retirar</strong> de la tabla.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Sección: Datos Personales */}
               <div>
@@ -2074,6 +2146,45 @@ export default function DeportistasPage() {
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Guardar cambios
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reactivar Deportista retirado */}
+        <Dialog
+          open={deportistaAReactivar !== null}
+          onOpenChange={(abierto) => !abierto && setDeportistaAReactivar(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reactivar deportista</DialogTitle>
+            </DialogHeader>
+            <p>¿Reactivar a {deportistaAReactivar?.nombre}?</p>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+              <li>Su estado vuelve a <strong>Activo</strong> (queda en el historial).</li>
+              <li>Su usuario se vuelve a activar, con la misma clave.</li>
+              <li>
+                <strong>No se reabre la inscripción ni vuelve a su grupo</strong>: después hay que matricularlo de nuevo
+                (botón "Matricular").
+              </li>
+              <li>Las facturas del retiro quedan como estaban.</li>
+            </ul>
+            <div className="grid gap-1.5 mt-3">
+              <Label>Motivo (opcional)</Label>
+              <Input
+                value={motivoReactivacion}
+                onChange={(e) => setMotivoReactivacion(e.target.value)}
+                placeholder="Ej. El retiro fue un error / vuelve a entrenar"
+                maxLength={200}
+              />
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="secondary" onClick={() => setDeportistaAReactivar(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={reactivarDeportista} disabled={reactivando}>
+                {reactivando ? "Reactivando..." : "Sí, reactivar"}
               </Button>
             </DialogFooter>
           </DialogContent>

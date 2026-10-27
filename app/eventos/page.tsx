@@ -24,15 +24,19 @@ import {
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useUser } from "@/context/UserContext";
 import EventoFormModal, { Evento } from "../components/eventos/EventoFormModal";
 import GruposEventoPanel from "../components/eventos/GruposEventoPanel";
 import ResultadosEventoPanel from "../components/eventos/ResultadosEventoPanel";
 import PremiosEventoPanel from "../components/eventos/PremiosEventoPanel";
+import CobroEventoPanel from "../components/eventos/CobroEventoPanel";
 import React from "react";
 
 type Vista = "proximos" | "historial" | "todos";
 
 export default function EventosPage() {
+  const { permissions } = useUser();
+  const puedeCobrar = permissions.includes("crear_factura");
   const [vista, setVista] = useState<Vista>("proximos");
   const [cargando, setCargando] = useState(true);
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -199,6 +203,7 @@ export default function EventosPage() {
                                       <TabsTrigger value="grupos">Grupos</TabsTrigger>
                                       <TabsTrigger value="resultados">Resultados</TabsTrigger>
                                       <TabsTrigger value="premios">Premios</TabsTrigger>
+                                      {puedeCobrar && <TabsTrigger value="cobro">Cobro</TabsTrigger>}
                                     </TabsList>
                                     <TabsContent value="grupos" className="mt-4">
                                       <GruposEventoPanel eventoId={evento.id} />
@@ -209,6 +214,11 @@ export default function EventosPage() {
                                     <TabsContent value="premios" className="mt-4">
                                       <PremiosEventoPanel eventoId={evento.id} />
                                     </TabsContent>
+                                    {puedeCobrar && (
+                                      <TabsContent value="cobro" className="mt-4">
+                                        <CobroEventoPanel eventoId={evento.id} />
+                                      </TabsContent>
+                                    )}
                                   </Tabs>
                                 </div>
                               </TableCell>

@@ -25,7 +25,7 @@ Consume la API REST del proyecto hermano **CheerManager Backend** (Spring Boot).
 | UI | React 19, Tailwind CSS 3.4, shadcn/ui (Radix UI), lucide-react, `cmdk` |
 | Formularios | react-hook-form + zod |
 | HTTP | axios (instancia única en `lib/api.ts`) |
-| Notificaciones | react-toastify (mayoría de pantallas) y sonner |
+| Notificaciones | react-toastify |
 | Gráficos | recharts 2.15 |
 | Despliegue previsto | Vercel (u otro hosting de Next.js) |
 
@@ -41,23 +41,20 @@ app/
 │   ├── Forms/               # modales y formularios por acción (crear, editar, anular, asignar...)
 │   ├── matricula/           # asistente de matrícula (4 pasos) + useMatriculaState
 │   ├── deportistas/         # paneles: evaluaciones, objetivos, acudientes y consentimientos
-│   ├── eventos/             # formulario, grupos, premios y resultados de un evento
+│   ├── eventos/             # formulario, grupos, premios, resultados y cobro por lote de un evento
 │   ├── inventario/          # categorías, productos y variantes
 │   ├── asistencias/ · categorias-nivel/ · Horarios/ (calendario semanal)
 │   ├── nav-config.ts        # ÚNICA fuente de verdad de la navegación (sidebar + breadcrumbs)
 │   ├── side-bar.tsx · top-bar.tsx · Breadcrumbs.tsx · CommandPalette.tsx (Cmd+K)
 │   ├── OnboardingCard.tsx   # lista de puesta en marcha del club (inicio)
-│   ├── with-permission.tsx · access-denied.tsx · ProtectedRoute.tsx
-│   └── ui/                  # shadcn/ui
 ├── lib/
 │   ├── dashboard.ts         # tipos y llamadas de los 9 dashboards
 │   ├── facturas-pagos.ts    # facturas, pagos, cartera y generación de cobros mensuales
 │   ├── matricula.ts · portal.ts · evaluacion-rutina.ts · rubrica-guia.ts
-│   └── data/                # acceso a datos por módulo (asistencias, categorías)
 ├── layout.tsx · page.tsx    # raíz e inicio (KPIs + pestañas de dashboards)
-components/                  # shadcn/ui, ProtectedRoute y copias de eventos/ y matricula/ (ver deuda técnica)
+components/                  # shadcn/ui (ui/) y ProtectedRoute.tsx (única copia)
 context/UserContext.tsx      # usuario, permisos y bandera de superadmin de plataforma
-hooks/ · lib/                # use-toast, use-mobile · api.ts (axios), auditoria.ts, deportistas-historiales.ts, utils.ts
+hooks/ · lib/                # use-mobile · api.ts (axios), auditoria.ts, deportistas-historiales.ts, utils.ts
 ```
 
 ## Navegación y pantallas
@@ -67,12 +64,12 @@ El sidebar y los breadcrumbs salen de `app/components/nav-config.ts`. Cada secci
 | Sección | Pantallas |
 |---|---|
 | **Inicio** | `/` — KPIs, lista de arranque del club y pestañas de dashboards (Financiero, Deportistas, Organización, Evaluación, Eventos, Tienda, Administración) según permisos |
-| **Mi portal** | `/mi` — facturas, pagos, asistencias, evaluaciones, objetivos, rutinas, solicitud de temporada; descarga CSV e impresión |
+| **Mi portal** | `/mi` — avisos del club, facturas, pagos, asistencias, evaluaciones, objetivos, rutinas, solicitud de temporada; descarga CSV e impresión |
 | **Personas** | Deportistas · Entrenadores · Historial médico · Consentimientos |
-| **Organización** | Niveles · Divisiones · Categorías por nivel (solo lectura) · Temporadas · Grupos · Inscripciones (asistente de matrícula) · **Solicitudes** (ver pendientes) |
+| **Organización** | Niveles · Divisiones · Categorías por nivel (solo lectura) · Temporadas · Grupos · Inscripciones (asistente de matrícula) · Solicitudes de inscripción |
 | **Horarios** | Gestión de horarios · Asistencias |
-| **Eventos** | Eventos y competencias (con grupos, premios y resultados) · Premios *(pronto, redundante)* |
-| **Evaluación** | Evaluaciones · Objetivos · Rutinas (rúbrica FEDECOLCHEER/IASF) · Criterios *(pronto)* |
+| **Eventos** | Eventos y competencias (con grupos, premios y resultados) |
+| **Evaluación** | Evaluaciones · Objetivos · Rutinas (rúbrica FEDECOLCHEER/IASF) · Criterios |
 | **Tienda** | Inventario · Ventas |
 | **Finanzas** | Inscripciones y membresías · Mensualidades y cuotas · Planes de pago · Descuentos · Convenios · Facturas · Pagos |
 | **Administración** | Usuarios · Roles y permisos · Auditoría |
@@ -93,12 +90,12 @@ Leyenda: ✅ vista completa · 🟡 parcial · ❌ falta la vista (el back ya ex
 | Onboarding del club | ✅ | `OnboardingCard` en `/` |
 | Usuarios, roles y permisos | ✅ | `/usuarios`, `/roles` (crear/editar permisos solo con `gestionar_catalogos`) |
 | Deportistas, entrenadores, acudientes, foto, historial de estado | ✅ | `/deportistas`, `/entrenadores`, `AcudientesConsentimientosPanel` |
-| Reactivar deportista retirado | ❌ | Falta en back y front |
+| Retirar y reactivar deportista | ✅ | `/deportistas`: botones **Retirar** (`eliminar_deportista`) y **Reactivar** (`modificar_deportista`, solo para Retirados); tras reactivar hay que matricularlo de nuevo. El formulario de edición no deja poner ni quitar "Retirado" a mano |
 | Consentimientos (Ley 1581) | ✅ | `/consentimientos` y panel del deportista |
 | Temporadas | ✅ | `/temporadas` |
 | Grupos, candidatos, entrenadores asignados, horarios | ✅ | `/grupos`, `/horarios`, `/entrenadores` |
 | Matrícula (deportista → plan → grupo → confirmación) | ✅ | `MatriculaWizard` desde `/inscripciones` o el botón "Matricular" de `/deportistas` |
-| **Aprobar / rechazar solicitudes de inscripción** | ❌ | El link `/solicitudes-inscripcion` está en el menú y `lib/portal.ts` ya tiene `listarSolicitudes`, `aprobarSolicitud` y `rechazarSolicitud`, pero **no existe `app/solicitudes-inscripcion/page.tsx`** (da 404) |
+| Aprobar / rechazar solicitudes de inscripción | ✅ | `/solicitudes-inscripcion`: filtro por estado, aprobar eligiendo plan de inscripción y mensualidad, rechazar con motivo (permiso `gestionar_inscripciones`) |
 | Renovación por el deportista/acudiente | ✅ | `/mi` (solicitar y cancelar) |
 | Facturación mensual y cartera en mora | ✅ | `/facturas` (filtro y días de mora), botón de generar cobros en `/pagos` (la facturación automática la hace el back) |
 | Facturas manuales y anulación con motivo | ✅ | `NuevaFacturaModal`, `AnularDialog` |
@@ -106,12 +103,13 @@ Leyenda: ✅ vista completa · 🟡 parcial · ❌ falta la vista (el back ya ex
 | Planes, descuentos, convenios | ✅ | `/planes-*`, `/tipos-planes-pago`, `/descuentos`, `/convenios` |
 | Asistencia | ✅ | `/asistencias`, `/horarios` |
 | Evaluaciones y objetivos | ✅ | `/evaluaciones`, `/objetivos`, paneles del deportista |
-| Criterios de evaluación (CRUD) | ❌ | Back solo lista; menú "Criterios" en *pronto* |
+| Criterios de evaluación (CRUD) | ✅ | `/criterios-evaluacion`: filtro por categoría, crear/editar/eliminar según permisos; marca los criterios con evaluaciones |
 | Rutinas con rúbrica | 🟡 | `/evaluacion-rutina` captura, vista previa e historial; la configuración de la rúbrica (solo plataforma) no tiene pantalla |
 | Eventos, grupos, premios, resultados | ✅ | `/eventos` con paneles |
-| Cobro de un evento por lote | ❌ | Hoy solo factura manual por deportista |
-| Inventario y ventas | 🟡 | `/inventario`, `/ventas`. Sin anular venta y sin alerta de stock bajo (el endpoint existe). La venta de contado a un miembro deja una factura sin pago: registrar el pago desde `/pagos` |
-| Portal deportista/acudiente | ✅ | `/mi` |
+| Cobro de un evento por lote | ✅ | Pestaña **Cobro** en cada evento (`CobroEventoPanel`): elige grupos y valor, vista previa y confirmación; requiere `crear_factura` |
+| Inventario y ventas | 🟡 | `/inventario`, `/ventas` (con anulación por motivo). Sin alerta de stock bajo (el endpoint existe). Al vender a un miembro, la casilla "Pagada al momento" (por defecto marcada) registra el pago; desmarcada, queda a cuenta |
+| Portal deportista/acudiente | ✅ | `/mi` (con avisos del club: `AvisosPortal`) |
+| Recordatorios de mora | ✅ | Tarjeta en `/pagos` (`RecordatoriosMoraCard`, permiso `gestionar_recordatorios_mora`): canales con casillas (sistema marcado por defecto), vista previa, envío, envío automático y correo de prueba |
 | Dashboards | ✅ | Los 9 conectados en `/` con carga diferida por pestaña |
 | Auditoría | ✅ | `/auditoria` (los `logs-acceso` no tienen pantalla) |
 
@@ -168,12 +166,7 @@ Para probar de punta a punta: entra con el superadmin del backend, crea un club 
 
 ## Deuda técnica y pendientes
 
-1. **Crear `app/solicitudes-inscripcion/page.tsx`** (lista por estado, aprobar eligiendo plan de inscripción y de mensualidad, rechazar con motivo). Es el único flujo con el menú apuntando a una página inexistente.
-2. **Código duplicado**: `components/eventos/` y `components/matricula/` son copias idénticas de las de `app/components/`, y existen dos `ProtectedRoute.tsx` distintos (`components/` y `app/components/`). Dejar uno solo.
-3. **Archivo sin uso**: `app/lib/navetagation.ts` (nombre con errata, nadie lo importa; la navegación vive en `nav-config.ts`).
-4. **Dos librerías de toasts** (`react-toastify` y `sonner`): unificar.
-5. **Páginas muy grandes** (`deportistas` ≈ 2.300 líneas, `page.tsx` ≈ 1.400, `entrenadores`, `evaluaciones`, `evaluacion-rutina`, `usuarios` ≈ 1.000+): dividir en componentes y extraer un hook genérico de CRUD para eliminar el código repetido de carga/modales.
-6. Endpoints sin consumo en el front: `refresh-token`, `facturas/mora`, `producto-variantes/stock-bajo`, `deportistas/{id}/perfil-completo`, `logs-acceso/*`.
-7. Menú "Premios" y "Criterios": quitar "Premios" (ya vive dentro de Eventos) y construir "Criterios" cuando el back tenga CRUD.
-8. `package.json` conserva el nombre `my-v0-project`; renombrarlo.
-9. No hay pruebas automatizadas ni CI en el front.
+1. **Dos `next.config`** (`.mjs` con `ignoreBuildErrors`/`ignoreDuringBuilds`, `.ts` con `NEXT_PUBLIC_API_URL`): unificar en uno y, cuando se pueda, quitar el ocultamiento de errores de tipos.
+2. **Páginas muy grandes** (`deportistas` ≈ 2.300 líneas, `page.tsx` ≈ 1.400, `entrenadores`, `evaluaciones`, `evaluacion-rutina`, `usuarios` ≈ 1.000+): dividir en componentes y extraer un hook genérico de CRUD para eliminar el código repetido de carga/modales.
+3. Endpoints sin consumo en el front: `refresh-token`, `facturas/mora`, `producto-variantes/stock-bajo`, `deportistas/{id}/perfil-completo`, `logs-acceso/*`.
+4. No hay pruebas automatizadas ni CI en el front.

@@ -38,10 +38,12 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, ChevronRight, ChevronsUpDown, Plus, Trash2, Loader2, Printer } from "lucide-react";
+import { Ban, ChevronDown, ChevronRight, ChevronsUpDown, Plus, Trash2, Loader2, Printer } from "lucide-react";
 import { toast } from "react-toastify";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
+import { useUser } from "@/context/UserContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AnularDialog from "@/app/components/Forms/AnularDialog";
 import React from "react";
 
 interface Venta {
@@ -53,6 +55,8 @@ interface Venta {
   nombreComprador: string;
   facturaId: number | null;
   numeroFactura: string | null;
+  anulada?: boolean;
+  motivoAnulacion?: string | null;
   detalles: {
     productoVarianteId: number;
     skuVariante: string;
@@ -102,6 +106,9 @@ const COMPRADOR_INTERNO = "interno";
 const COMPRADOR_EXTERNO = "externo";
 
 export default function VentasPage() {
+  const { permissions } = useUser();
+  const puedeAnular = permissions.includes("anular_venta");
+  const [ventaAAnular, setVentaAAnular] = useState<Venta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [desde, setDesde] = useState(primerDiaDelMes());
@@ -116,6 +123,8 @@ export default function VentasPage() {
   const [nombreExterno, setNombreExterno] = useState("");
   const [contactoExterno, setContactoExterno] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
+  // Solo comprador del club: true = pagada al momento (se registra el pago); false = a cuenta (factura pendiente).
+  const [pagadaAlMomento, setPagadaAlMomento] = useState(true);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [varianteParaAgregar, setVarianteParaAgregar] = useState("");
   const [buscadorProductoAbierto, setBuscadorProductoAbierto] = useState(false);
@@ -135,6 +144,20 @@ export default function VentasPage() {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desde, hasta]);
+
+  // Las ventas no se borran: se anulan con motivo. El servidor devuelve el stock con movimientos de
+  // entrada y anula su pago y su factura de tienda (si la venta la creó).
+  const anularVenta = async (motivo: string) => {
+    if (!ventaAAnular) return;
+    try {
+      await api.patch(`/api/ventas/${ventaAAnular.id}/anular`, { motivo });
+      toast.success(`Venta #${ventaAAnular.id} anulada`);
+      cargar();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo anular la venta"));
+      throw error; // el diálogo se queda abierto para reintentar
+    }
+  };
 
   const toggleExpand = (id: number) => {
     setExpandidas((prev) =>
@@ -239,6 +262,7 @@ export default function VentasPage() {
     setNombreExterno("");
     setContactoExterno("");
     setMetodoPago("Efectivo");
+    setPagadaAlMomento(true);
     setCarrito([]);
     setVarianteParaAgregar("");
     setCantidadParaAgregar("1");
@@ -351,6 +375,8 @@ export default function VentasPage() {
         contactoCompradorExterno:
           tipoComprador === COMPRADOR_EXTERNO ? contactoExterno : null,
         metodoPago,
+        // Solo aplica a compradores del club; el backend la ignora para externos.
+        pagada: tipoComprador === COMPRADOR_INTERNO ? pagadaAlMomento : null,
         items: carrito.map((i) => ({
           productoVarianteId: i.productoVarianteId,
           cantidad: i.cantidad,
@@ -422,7 +448,7 @@ export default function VentasPage() {
                     <TableHead>Método de pago</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Factura</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -440,7 +466,7 @@ export default function VentasPage() {
                       const estaExpandida = expandidas.includes(venta.id);
                       return (
                         <React.Fragment key={venta.id}>
-                          <TableRow>
+                          <TableRow className={venta.anulada ? "opacity-60" : undefined}>
                             <TableCell>
                               <Button
                                 variant="ghost"
@@ -459,9 +485,18 @@ export default function VentasPage() {
                             </TableCell>
                             <TableCell className="font-medium">
                               {venta.nombreComprador}
+                              {venta.anulada && (
+                                <Badge
+                                  variant="destructive"
+                                  className="ml-2"
+                                  title={venta.motivoAnulacion ?? undefined}
+                                >
+                                  Anulada
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell>{venta.metodoPago}</TableCell>
-                            <TableCell>
+                            <TableCell className={venta.anulada ? "line-through" : undefined}>
                               ${Number(venta.total).toLocaleString()}
                             </TableCell>
                             <TableCell>
@@ -482,6 +517,16 @@ export default function VentasPage() {
                               >
                                 <Printer className="h-4 w-4" />
                               </Button>
+                              {puedeAnular && !venta.anulada && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Anular venta"
+                                  onClick={() => setVentaAAnular(venta)}
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                           {estaExpandida && (
@@ -610,6 +655,23 @@ export default function VentasPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {tipoComprador === COMPRADOR_INTERNO && (
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={pagadaAlMomento}
+                  onChange={(e) => setPagadaAlMomento(e.target.checked)}
+                />
+                <span>
+                  Pagada al momento
+                  <span className="block text-muted-foreground">
+                    Desmárcala para dejar la venta a cuenta del deportista (factura pendiente, vence a los 10 días).
+                  </span>
+                </span>
+              </label>
+            )}
 
             <div className="border-t pt-4 space-y-3">
               <Label>Productos</Label>
@@ -751,6 +813,14 @@ export default function VentasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AnularDialog
+        open={ventaAAnular !== null}
+        onOpenChange={(abierto) => !abierto && setVentaAAnular(null)}
+        titulo={`Anular venta #${ventaAAnular?.id ?? ""}`}
+        descripcion="Se devuelve el stock de los productos y se anulan el pago y la factura de tienda de esta venta. No se borra nada: queda el motivo, la fecha y el usuario."
+        onConfirmar={anularVenta}
+      />
     </ProtectedRoute>
   );
 }

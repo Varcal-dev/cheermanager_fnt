@@ -111,6 +111,25 @@ export const portalSolicitar = async (id: number, temporadaId: number, observaci
 export const portalCancelarSolicitud = async (solicitudId: number): Promise<Solicitud> =>
   (await api.patch(`/api/portal/solicitudes/${solicitudId}/cancelar`)).data;
 
+// ---------- Avisos del club (recordatorios de pago, etc.) ----------
+
+export interface AvisoPortal {
+  id: number;
+  mensaje: string;
+  fecha: string;
+  vista: boolean;
+}
+
+export interface ListaAvisos {
+  noVistas: number;
+  items: AvisoPortal[];
+}
+
+export const portalNotificaciones = async (): Promise<ListaAvisos> =>
+  (await api.get("/api/portal/notificaciones")).data;
+export const portalMarcarAvisoVisto = async (id: number) => api.patch(`/api/portal/notificaciones/${id}/vista`);
+export const portalMarcarAvisosVistos = async () => api.post("/api/portal/notificaciones/marcar-todas");
+
 // ---------- Admin: solicitudes ----------
 
 export const listarSolicitudes = async (estado?: string): Promise<Solicitud[]> =>

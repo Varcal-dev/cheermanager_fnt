@@ -126,7 +126,6 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Eventos y Competencias",
         icon: Award,
       },
-      { href: "/premios", label: "Premios", icon: Trophy, status: "soon" },
     ],
   },
   {
@@ -139,7 +138,6 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/criterios-evaluacion",
         label: "Criterios",
         icon: ClipboardList,
-        status: "soon",
       },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
       { href: "/objetivos", label: "Objetivos", icon: Target},

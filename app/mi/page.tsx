@@ -5,6 +5,7 @@ import { Download, Printer, Loader2, Send, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AvisosPortal from "@/app/components/portal/AvisosPortal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -179,6 +180,8 @@ export default function PortalPage() {
             {perfil ? `Hola, ${perfil.nombre}. ` : ""}Consulta de solo lectura. Para cambios, comunícate con el club.
           </p>
         </div>
+
+        <AvisosPortal />
 
         {cargando ? (
           <Loader2 className="h-5 w-5 animate-spin" />
