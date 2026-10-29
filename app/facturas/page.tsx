@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import {
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Plus,
   Filter,
@@ -38,28 +39,57 @@ import NuevaFacturaModal from "@/app/components/Forms/NuevaFacturaModal";
 import AnularDialog from "@/app/components/Forms/AnularDialog";
 import { useUser } from "@/context/UserContext";
 import {
-  Factura,
   FacturaConSaldo,
-  Pago,
+  ResumenCartera,
   anularFactura,
-  calcularFacturasConSaldo,
+  calcularUnaFacturaConSaldo,
   etiquetaTipoFactura,
   formatCOP,
   formatFecha,
   mensajeError,
-  obtenerFacturas,
-  obtenerPagos,
+  obtenerFacturasPagina,
+  obtenerResumenCartera,
   variantEstadoCuenta,
 } from "@/app/lib/facturas-pagos";
 
+const TAMANO_PAGINA = 20;
+
+// Etiqueta que se muestra -> código que entiende el servidor.
+const ESTADOS: { etiqueta: string; codigo: string }[] = [
+  { etiqueta: "Todos", codigo: "TODOS" },
+  { etiqueta: "Pagado", codigo: "PAGADA" },
+  { etiqueta: "Abono parcial", codigo: "ABONO_PARCIAL" },
+  { etiqueta: "Sin pagos", codigo: "PENDIENTE" },
+  { etiqueta: "En mora", codigo: "EN_MORA" },
+  { etiqueta: "Anuladas", codigo: "ANULADA" },
+];
+
+const CONCEPTOS: { etiqueta: string; codigo: string }[] = [
+  { etiqueta: "Todos los conceptos", codigo: "TODOS" },
+  { etiqueta: "Inscripción", codigo: "INSCRIPCION" },
+  { etiqueta: "Mensualidad", codigo: "MENSUALIDAD" },
+  { etiqueta: "Uniforme", codigo: "UNIFORME" },
+  { etiqueta: "Competencia", codigo: "COMPETENCIA" },
+  { etiqueta: "Evento", codigo: "EVENTO" },
+  { etiqueta: "Tienda", codigo: "TIENDA" },
+  { etiqueta: "Otro", codigo: "OTRO" },
+];
+
 export default function FacturasPage() {
   const [expandedFacturas, setExpandedFacturas] = useState<number[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [q, setQ] = useState(""); // búsqueda ya "asentada" (con retraso al escribir)
+  const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
+  const [conceptoFiltro, setConceptoFiltro] = useState("TODOS");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [pagina, setPagina] = useState(0);
   const [cargando, setCargando] = useState(true);
 
-  const [facturas, setFacturas] = useState<Factura[]>([]);
-  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [facturasConSaldo, setFacturasConSaldo] = useState<FacturaConSaldo[]>([]);
+  const [totalElementos, setTotalElementos] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const [resumen, setResumen] = useState<ResumenCartera | null>(null);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [facturaParaPago, setFacturaParaPago] =
@@ -71,33 +101,69 @@ export default function FacturasPage() {
   const [modalNueva, setModalNueva] = useState(false);
   const [facturaAAnular, setFacturaAAnular] = useState<FacturaConSaldo | null>(null);
 
-  const cargarDatos = () => {
+  // Espera 400 ms después de la última tecla antes de consultar al servidor.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQ(busqueda.trim());
+      setPagina(0);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  const cargarDatos = useCallback(() => {
     setCargando(true);
-    Promise.allSettled([obtenerFacturas(), obtenerPagos()]).then(
-      ([resFacturas, resPagos]) => {
-        if (resFacturas.status === "fulfilled") {
-          setFacturas(resFacturas.value);
-        } else {
-          toast.error("No se pudieron cargar las facturas");
-        }
-        if (resPagos.status === "fulfilled") {
-          setPagos(resPagos.value);
-        }
-        setCargando(false);
-      },
-    );
-  };
+    obtenerFacturasPagina({
+      q,
+      estado: estadoFiltro,
+      concepto: conceptoFiltro,
+      desde,
+      hasta,
+      pagina,
+      tamano: TAMANO_PAGINA,
+    })
+      .then((res) => {
+        setFacturasConSaldo(
+          res.contenido.map((f) => calcularUnaFacturaConSaldo(f, [])),
+        );
+        setTotalElementos(res.totalElementos);
+        setTotalPaginas(res.totalPaginas);
+      })
+      .catch((error) =>
+        toast.error(mensajeError(error, "No se pudieron cargar las facturas")),
+      )
+      .finally(() => setCargando(false));
+
+    // Totales de mora: no dependen de la página ni de los filtros.
+    obtenerResumenCartera()
+      .then(setResumen)
+      .catch(() => setResumen(null));
+  }, [q, estadoFiltro, conceptoFiltro, desde, hasta, pagina]);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
-  // Facturas con su estado de cuenta real (calculado contra los pagos, ya
-  // que Factura no guarda su propio estado de pago).
-  const facturasConSaldo = useMemo<FacturaConSaldo[]>(
-    () => calcularFacturasConSaldo(facturas, pagos),
-    [facturas, pagos],
-  );
+  const cambiarFiltro = (fn: () => void) => {
+    fn();
+    setPagina(0);
+  };
+
+  const hayFiltros =
+    busqueda !== "" ||
+    estadoFiltro !== "TODOS" ||
+    conceptoFiltro !== "TODOS" ||
+    desde !== "" ||
+    hasta !== "";
+
+  const limpiarFiltros = () => {
+    setBusqueda("");
+    setQ("");
+    setEstadoFiltro("TODOS");
+    setConceptoFiltro("TODOS");
+    setDesde("");
+    setHasta("");
+    setPagina(0);
+  };
 
   const toggleFacturaExpand = (facturaId: number) => {
     setExpandedFacturas((prev) =>
@@ -112,26 +178,8 @@ export default function FacturasPage() {
     setModalAbierto(true);
   };
 
-  // Filtrar facturas por término de búsqueda y estado de cuenta
-  const filteredFacturas = facturasConSaldo.filter((factura) => {
-    const matchesSearch =
-      factura.numeroFactura.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      factura.persona.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      factura.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
-
-    if (estadoFiltro) {
-      return matchesSearch && factura.estadoCuenta === estadoFiltro;
-    }
-    return matchesSearch;
-  });
-
-  const facturasPendientes = facturasConSaldo.filter(
-    (f) => f.saldoPendiente > 0,
-  );
-
-  // Cartera en mora: vencidas (10 días después de emitidas) con saldo pendiente.
-  const facturasEnMora = facturasConSaldo.filter((f) => f.estadoCuenta === "En mora");
-  const totalEnMora = facturasEnMora.reduce((acc, f) => acc + f.saldoPendiente, 0);
+  // Facturas de esta página con saldo: son las que se pueden elegir en el modal de pago.
+  const facturasPendientes = facturasConSaldo.filter((f) => f.saldoPendiente > 0);
 
   const confirmarAnulacion = async (motivo: string) => {
     if (!facturaAAnular) return;
@@ -166,22 +214,22 @@ export default function FacturasPage() {
         )}
       </div>
 
-      {facturasEnMora.length > 0 && (
+      {resumen && resumen.facturasEnMora > 0 && (
         <Card className="border-destructive/40">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="font-medium">
-                  {facturasEnMora.length} {facturasEnMora.length === 1 ? "factura en mora" : "facturas en mora"} ·{" "}
-                  <span className="font-figures">{formatCOP(totalEnMora)}</span>
+                  {resumen?.facturasEnMora} {resumen?.facturasEnMora === 1 ? "factura en mora" : "facturas en mora"} ·{" "}
+                  <span className="font-figures">{formatCOP(resumen?.totalEnMora ?? 0)}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Vencidas con saldo pendiente (se emiten el primer día hábil y vencen a los 10 días).
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setEstadoFiltro("En mora")}>
+            <Button variant="outline" size="sm" onClick={() => cambiarFiltro(() => setEstadoFiltro("EN_MORA"))}>
               Ver solo en mora
             </Button>
           </CardContent>
@@ -189,48 +237,76 @@ export default function FacturasPage() {
       )}
 
       <div className="space-y-4">
-        <div className="flex justify-between mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <div className="relative flex items-center w-full max-w-sm">
             <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar facturas…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por número, nombre o descripción…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
               className="h-9 pl-9"
             />
           </div>
-          <div className="flex space-x-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="mr-2 h-4 w-4" />
-                  {estadoFiltro || "Filtrar por Estado"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEstadoFiltro(null)}>
-                  Todos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEstadoFiltro("Pagado")}>
-                  Pagado
-                </DropdownMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                {ESTADOS.find((e) => e.codigo === estadoFiltro)?.etiqueta ?? "Estado"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {ESTADOS.map((e) => (
                 <DropdownMenuItem
-                  onClick={() => setEstadoFiltro("Abono parcial")}
+                  key={e.codigo}
+                  onClick={() => cambiarFiltro(() => setEstadoFiltro(e.codigo))}
                 >
-                  Abono parcial
+                  {e.etiqueta}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEstadoFiltro("Sin pagos")}>
-                  Sin pagos
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                {CONCEPTOS.find((c) => c.codigo === conceptoFiltro)?.etiqueta ?? "Concepto"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {CONCEPTOS.map((c) => (
+                <DropdownMenuItem
+                  key={c.codigo}
+                  onClick={() => cambiarFiltro(() => setConceptoFiltro(c.codigo))}
+                >
+                  {c.etiqueta}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEstadoFiltro("En mora")}>
-                  En mora
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEstadoFiltro("Anulada")}>
-                  Anuladas
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <span>Emitidas</span>
+            <Input
+              type="date"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(e) => cambiarFiltro(() => setDesde(e.target.value))}
+              className="h-9 w-[9.5rem]"
+              aria-label="Emitidas desde"
+            />
+            <span>a</span>
+            <Input
+              type="date"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(e) => cambiarFiltro(() => setHasta(e.target.value))}
+              className="h-9 w-[9.5rem]"
+              aria-label="Emitidas hasta"
+            />
           </div>
+          {hayFiltros && (
+            <Button variant="ghost" size="sm" onClick={limpiarFiltros}>
+              Limpiar filtros
+            </Button>
+          )}
         </div>
 
         {cargando ? (
@@ -269,14 +345,14 @@ export default function FacturasPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFacturas.length === 0 ? (
+                  {facturasConSaldo.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                         No se encontraron facturas
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredFacturas.map((factura) => (
+                    facturasConSaldo.map((factura) => (
                       <React.Fragment key={factura.id}>
                         <TableRow>
                           <TableCell>
@@ -464,6 +540,37 @@ export default function FacturasPage() {
               </Table>
             </CardContent>
           </Card>
+        )}
+
+        {totalElementos > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-sm text-muted-foreground">
+            <span>
+              Mostrando {pagina * TAMANO_PAGINA + 1}–
+              {Math.min((pagina + 1) * TAMANO_PAGINA, totalElementos)} de {totalElementos}{" "}
+              {totalElementos === 1 ? "factura" : "facturas"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagina === 0 || cargando}
+                onClick={() => setPagina((p) => Math.max(0, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" /> Anterior
+              </Button>
+              <span>
+                Página {pagina + 1} de {Math.max(totalPaginas, 1)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagina + 1 >= totalPaginas || cargando}
+                onClick={() => setPagina((p) => p + 1)}
+              >
+                Siguiente <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 

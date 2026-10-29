@@ -213,8 +213,58 @@ export async function obtenerFacturas(): Promise<Factura[]> {
   return data;
 }
 
+// ---------- Listados paginados ----------
+
+export interface Pagina<T> {
+  contenido: T[];
+  pagina: number; // base 0
+  tamano: number;
+  totalElementos: number;
+  totalPaginas: number;
+}
+
+export interface FiltrosFacturas {
+  q?: string;
+  /** TODOS | PAGADA | ABONO_PARCIAL | PENDIENTE | EN_MORA | ANULADA */
+  estado?: string;
+  /** TODOS | INSCRIPCION | MENSUALIDAD | UNIFORME | COMPETENCIA | EVENTO | TIENDA | OTRO */
+  concepto?: string;
+  desde?: string; // yyyy-MM-dd
+  hasta?: string; // yyyy-MM-dd
+  pagina?: number;
+  tamano?: number;
+}
+
+export async function obtenerFacturasPagina(
+  filtros: FiltrosFacturas,
+): Promise<Pagina<Factura>> {
+  // Solo se mandan los filtros con valor: el servidor trata lo ausente como "sin filtro".
+  const params: Record<string, string | number> = {};
+  Object.entries(filtros).forEach(([k, v]) => {
+    if (v !== undefined && v !== "" && v !== "TODOS") params[k] = v as string | number;
+  });
+  const { data } = await api.get("/api/facturas/pagina", { params });
+  return data;
+}
+
+export interface ResumenCartera {
+  facturasEnMora: number;
+  totalEnMora: number;
+}
+
+export async function obtenerResumenCartera(): Promise<ResumenCartera> {
+  const { data } = await api.get("/api/facturas/resumen-cartera");
+  return data;
+}
+
 export async function obtenerPagos(): Promise<Pago[]> {
   const { data } = await api.get("/api/pagos");
+  return data;
+}
+
+// Historial de pagos de una persona (todas sus facturas). Permiso: ver_pago.
+export async function obtenerPagosPorPersona(personaId: number): Promise<Pago[]> {
+  const { data } = await api.get(`/api/pagos/persona/${personaId}`);
   return data;
 }
 
