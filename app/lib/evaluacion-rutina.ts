@@ -25,6 +25,11 @@ export interface NivelCompetencia {
   nombre: string;
   modalidad: string;
   activo: boolean;
+  /** Máximo de puntos de la rúbrica del nivel (Prep 42.5, Élite 50, Novice 10 / 18). */
+  puntajeMaximo?: number | null;
+  /** Solo Novice: % desde el que es "Excelente" / "Superior". Sin umbrales el nivel cierra sobre 100. */
+  umbralExcelente?: number | null;
+  umbralSuperior?: number | null;
 }
 
 export interface SubCriterioRubrica {
@@ -57,6 +62,7 @@ export interface TopeSeccionNivel {
   valorPuntaje: number;
   condicionHabilidadesDiferentes: number | null;
   condicionGrupoMinimo: string | null;
+  condicionSincronizadas: number | null;
   descripcionRubrica: string | null;
 }
 
@@ -88,7 +94,17 @@ export interface TopeDriverNivel {
   topeMaximo: number;
   valorNivelBasico: number | null;
   valorNivelAlto: number | null;
+  /** Solo si la 2.ª habilidad vale distinto (Gimnasia Estática Élite: 0.4 / 0.6). */
+  valorBasicoHabilidad2?: number | null;
+  valorAltoHabilidad2?: number | null;
 }
+
+// Todos los escalones de un nivel en una sola llamada: sirve para saber qué sub-criterios aplican al nivel
+// (Prep no tiene lanzamientos; Novice no tiene hojas de dificultad) y qué valor inicial usa cada ejecución.
+export const listarTopesSeccionPorNivel = (nivelId: number) =>
+  api
+    .get(`/api/rubrica-config/topes-seccion/nivel/${nivelId}`)
+    .then((res) => res.data as TopeSeccionNivel[]);
 
 export const listarTopesSeccion = (nivelId: number, subCriterioId: number) =>
   api
@@ -104,7 +120,7 @@ export const obtenerTopeDriver = (driverId: number, nivelId: number) =>
 
 // ───────────────────────── Evaluación de rutina (captura) ─────────────────
 
-export type GrupoMinimo = "MAYORIA" | "GRAN_PARTE" | "MAXIMO";
+export type GrupoMinimo = "NINGUNO" | "MENOS_MAYORIA" | "MAYORIA" | "GRAN_PARTE" | "MAXIMO";
 
 export interface DeduccionDriverInput {
   nombreDriver: string;
@@ -121,10 +137,28 @@ export interface DriverConstruccionInput {
 export interface RegistroSubCriterioInput {
   subCriterioId: number;
   habilidadesDiferentes?: number | null;
+  /** De las habilidades diferentes, cuántas se hicieron sincronizadas / en canon. */
+  habilidadesSincronizadas?: number | null;
   grupoMinimoAlcanzado?: GrupoMinimo | null;
   puntajeFinalManual?: number | null;
+  /** Creatividad y Showmanship: un puntaje por juez (Construcción, Gimnasia, General); el back los promedia. */
+  puntajesJueces?: number[];
   deducciones?: DeduccionDriverInput[];
   driversConstruccion?: DriverConstruccionInput[];
+}
+
+export type TipoDeduccion = "CAIDA" | "SEGURIDAD" | "TIEMPO" | "OTRA";
+
+export interface DeduccionRutinaInput {
+  tipo: TipoDeduccion;
+  descripcion?: string;
+  cantidad: number;
+  /** Puntos que resta cada vez (positivo), sobre la escala de 100. */
+  puntosUnitarios: number;
+}
+
+export interface DeduccionRutinaResultado extends DeduccionRutinaInput {
+  total: number;
 }
 
 export interface EvaluacionRutinaInput {
@@ -135,6 +169,7 @@ export interface EvaluacionRutinaInput {
   cantidadAtletas: number;
   observaciones?: string;
   registros: RegistroSubCriterioInput[];
+  deducciones?: DeduccionRutinaInput[];
 }
 
 export interface RegistroSubCriterioResultado {
@@ -160,6 +195,13 @@ export interface EvaluacionRutinaResultado {
   puntajeTotal: number;
   observaciones: string | null;
   registros: RegistroSubCriterioResultado[];
+  /** Cierre: puntajeTotal es la suma bruta de la rúbrica; puntajeFinal es sobre 100 (o el total en Novice). */
+  puntajeMaximo?: number | null;
+  porcentaje?: number | null;
+  deduccionesTotal?: number | null;
+  puntajeFinal?: number | null;
+  banda?: string | null;
+  deducciones?: DeduccionRutinaResultado[];
 }
 
 // Calcula el desglose completo (con detalleCalculo) SIN guardar nada. Pensado
@@ -191,6 +233,8 @@ export const eliminarEvaluacion = (id: number) =>
 export const SECCIONES: Seccion[] = ["Construcciones", "Gimnasia", "Ejecucion", "General"];
 
 export const ETIQUETA_GRUPO_MINIMO: Record<GrupoMinimo, string> = {
+  NINGUNO: "No alcanza el mínimo",
+  MENOS_MAYORIA: "Menos de la mayoría",
   MAYORIA: "Mayoría",
   GRAN_PARTE: "Gran parte",
   MAXIMO: "Máximo",

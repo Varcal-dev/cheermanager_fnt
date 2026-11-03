@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from "lucide-react";
 import {
   Home,
@@ -23,6 +24,7 @@ import {
   ShieldCheck,
   UserCircle,
   Inbox,
+  FileSpreadsheet,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -80,6 +82,8 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       // Deportistas sin consentimiento vigente (Ley 1581). El permiso lo valida la propia página.
       { href: "/consentimientos", label: "Consentimientos", icon: ShieldCheck },
+      // Importación masiva de deportistas y exportes en CSV (la página valida importar_deportistas / exportar_listados).
+      { href: "/importar-exportar", label: "Importar y exportar", icon: FileSpreadsheet },
     ],
   },
   {

@@ -82,6 +82,13 @@ export interface GuiaRango {
 
 export function guiaGeneral(nombreSubCriterio: string): GuiaRango | null {
   const n = nombreSubCriterio.toLowerCase();
+  if (n.includes("piramide")) {
+    return {
+      rango: "2.0 – 4.0",
+      texto:
+        "El juez asigna el puntaje dentro del rango: DEBAJO 2.0–2.5 · BAJO 2.5–3.0 (2 habilidades Apropiadas y 2 estructuras) · MEDIO 3.0–3.5 (3 habilidades Apropiadas y 2 estructuras por GRAN PARTE) · ALTO 3.5–4.0 (4 habilidades y 2 estructuras por GRAN PARTE; solo Élite, Prep llega hasta 3.5). Lo orientan: maximización de grupos, habilidades hacia las estructuras o en secuencia, combinación, cadencia/ritmo y conexión.",
+    };
+  }
   if (n.includes("formacion")) {
     return {
       rango: "1.0 – 2.0",

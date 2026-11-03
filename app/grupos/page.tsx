@@ -290,7 +290,7 @@ export default function GruposPage() {
   );
 
   return (
-    <ProtectedRoute requiredPermission="ver_roles">
+    <ProtectedRoute requiredPermission="ver_grupo">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -303,7 +303,7 @@ export default function GruposPage() {
           </div>
         </div>
 
-        <ProtectedRoute requiredPermission="ver_roles">
+        <ProtectedRoute requiredPermission="ver_grupo">
           <Tabs defaultValue="grupos" className="w-full">
             {/* Pestaña de Grupos */}
             <TabsContent value="grupos">

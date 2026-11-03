@@ -1,3 +1,4 @@
+
 "use client";
 
 import axios, { type AxiosRequestHeaders, type InternalAxiosRequestConfig } from "axios";
@@ -31,7 +32,60 @@ const setAuthorizationHeader = (token: string | null) => {
 
 setAuthorizationHeader(getStoredToken());
 
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+// --- Renovación silenciosa de la sesión ---------------------------------------------------------------------
+// El token dura 8 h. Mientras el usuario sigue trabajando, cuando le quedan menos de 30 min se pide uno nuevo con
+// POST /api/refresh-token (el back revalida al usuario, recalcula sus permisos y revoca el token anterior). Si
+// falla (red, token ya revocado por otra pestaña) se sigue con el token actual: nunca se cierra la sesión por esto.
+const RENOVAR_CUANDO_QUEDA_MENOS_DE_MS = 30 * 60 * 1000;
+const RUTAS_SIN_RENOVAR = ["/api/login", "/api/logout", "/api/refresh-token", "/api/forgot-password", "/api/reset-password"];
+let renovacionEnCurso: Promise<void> | null = null;
+
+/** Expiración (ms desde 1970) leída del payload del JWT, o null si no se puede leer. */
+export function expiracionDelToken(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
+    const exp = JSON.parse(json).exp;
+    return typeof exp === "number" ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+async function renovarSesionSiHaceFalta(): Promise<void> {
+  const token = getStoredToken();
+  if (!token) return;
+  const exp = expiracionDelToken(token);
+  if (exp === null) return;
+  const queda = exp - Date.now();
+  if (queda <= 0 || queda > RENOVAR_CUANDO_QUEDA_MENOS_DE_MS) return;
+  if (!renovacionEnCurso) {
+    renovacionEnCurso = axios
+      .post(`${API_URL}/api/refresh-token`, null, { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 })
+      .then((resp) => {
+        const nuevo = resp.data?.token;
+        // Otra pestaña pudo renovar antes: solo se guarda si el token guardado sigue siendo el que se renovó.
+        if (typeof nuevo === "string" && getStoredToken() === token) {
+          setAuthToken(nuevo);
+        }
+      })
+      .catch(() => {
+        // se sigue con el token actual
+      })
+      .finally(() => {
+        renovacionEnCurso = null;
+      });
+  }
+  await renovacionEnCurso;
+}
+
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const url = typeof config.url === "string" ? config.url : "";
+  if (typeof window !== "undefined" && !RUTAS_SIN_RENOVAR.some((r) => url.includes(r))) {
+    await renovarSesionSiHaceFalta();
+  }
   if (typeof window !== "undefined") {
     const token = getStoredToken();
     if (token) {

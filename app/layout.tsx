@@ -1,3 +1,4 @@
+
 "use client";
 import type React from "react";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
@@ -10,6 +11,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import { TopBar } from "./components/top-bar";
 import { Breadcrumbs } from "./components/Breadcrumbs";
 import CommandPalette from "./components/CommandPalette";
+import AvisoSuscripcion from "./components/AvisoSuscripcion";
 
 import { UserProvider } from "@/context/UserContext";
 import { usePathname } from "next/navigation";
@@ -61,6 +63,7 @@ export default function RootLayout({
                 )}
                 <main className="flex-1 overflow-y-auto p-6 md:p-8">
                   {!isAuthRoute && <Breadcrumbs />}
+                  {!isAuthRoute && <AvisoSuscripcion />}
                   {children}
                 </main>
               </div>

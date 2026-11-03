@@ -200,7 +200,7 @@ export default function NivelesPage() {
   const filteredNiveles = niveles; // o aplicar filtros según tu lógica
 
   return (
-    <ProtectedRoute requiredPermission="ver_roles">
+    <ProtectedRoute requiredPermission="ver_nivel">
       <div className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Pestaña de Niveles */}
