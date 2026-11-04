@@ -7,6 +7,8 @@ import type { Deportista, Nivel } from "@/app/deportistas/types";
 import ObjetivosPanel from "./ObjetivosPanel";
 import EvaluacionesPanel from "./EvaluacionesPanel";
 import AcudientesConsentimientosPanel from "./AcudientesConsentimientosPanel";
+import ImprimirAutorizacionesButton from "./ImprimirAutorizacionesButton";
+import CopiaDatosButtons from "./CopiaDatosButtons";
 import PagosDeportistaPanel from "./PagosDeportistaPanel";
 import HistorialDeportista from "./historial/HistorialDeportista";
 
@@ -31,6 +33,7 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
   const { permissions } = useUser();
   const verAcudientes = permissions.includes("ver_acudientes") || permissions.includes("ver_consentimientos");
   const verPagos = permissions.includes("ver_pago");
+  const exportarDatos = permissions.includes("exportar_datos_titular");
 
   return (
     <Tabs defaultValue="info" className="w-full">
@@ -44,6 +47,11 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
       </TabsList>
 
       <TabsContent value="info" className="mt-4">
+        {exportarDatos && (
+          <div className="mb-4">
+            <CopiaDatosButtons personaId={deportista.personaId} />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h4 className="font-semibold mb-2">Datos Personales</h4>
@@ -91,7 +99,10 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
       )}
 
       {verAcudientes && (
-        <TabsContent value="acudientes" className="mt-4">
+        <TabsContent value="acudientes" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <ImprimirAutorizacionesButton deportista={deportista} />
+          </div>
           <AcudientesConsentimientosPanel
             deportistaId={deportista.deportistaId}
             personaId={deportista.personaId}

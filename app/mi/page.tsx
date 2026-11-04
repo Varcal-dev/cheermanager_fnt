@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AvisosPortal from "@/app/components/portal/AvisosPortal";
+import AvisoAutorizaciones from "@/app/components/portal/AvisoAutorizaciones";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,6 +183,7 @@ export default function PortalPage() {
         </div>
 
         <AvisosPortal />
+        <AvisoAutorizaciones />
 
         {cargando ? (
           <Loader2 className="h-5 w-5 animate-spin" />
