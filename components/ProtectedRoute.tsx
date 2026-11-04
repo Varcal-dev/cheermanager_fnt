@@ -9,11 +9,13 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) => {
-  const { user, permissions, loading } = useUser()
+  const { user, permissions, loading, legalPendiente } = useUser()
   const router = useRouter()
   const pathname = usePathname()
 
   const debeCambiarPassword = !!user?.requiereCambioPassword && pathname !== "/cambiar-password"
+
+  const debeAceptarTerminos = legalPendiente && !debeCambiarPassword
 
   useEffect(() => {
     if (!loading) {
@@ -24,14 +26,17 @@ const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) =
         // Usuario con contraseña por defecto (ej. "0000"): no lo dejamos
         // entrar a nada del sistema hasta que la cambie.
         router.push("/cambiar-password")
+      } else if (debeAceptarTerminos) {
+        // Club con términos/política sin aceptar: el administrador debe aceptarlos antes de operar.
+        router.push("/terminos")
       } else if (!permissions.includes(requiredPermission)) {
         // Redirigir a una página de error si no tiene el permiso
         router.push("/error-permisos")
       }
     }
-  }, [user, permissions, loading, requiredPermission, debeCambiarPassword, router])
+  }, [user, permissions, loading, requiredPermission, debeCambiarPassword, debeAceptarTerminos, router])
 
-  if (loading || !user || debeCambiarPassword || !permissions.includes(requiredPermission)) {
+  if (loading || !user || debeCambiarPassword || debeAceptarTerminos || !permissions.includes(requiredPermission)) {
     return <p>Cargando...</p> // Mostrar un mensaje de carga mientras se verifica
   }
 

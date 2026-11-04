@@ -23,6 +23,8 @@ interface UserContextType {
   loading: boolean;
   /** true para el superadmin de la plataforma (club 1): tiene el permiso gestionar_clubes. */
   esPlataforma: boolean;
+  /** true si este usuario puede aceptar términos del club y el club aún tiene documentos legales pendientes. */
+  legalPendiente: boolean;
   setUser: (user: User | null) => void;
   refreshUser: () => Promise<void>;
 }
@@ -32,6 +34,7 @@ const UserContext = createContext<UserContextType>({
   permissions: [],
   loading: true,
   esPlataforma: false,
+  legalPendiente: false,
   setUser: () => {},
   refreshUser: async () => {},
 });
@@ -49,6 +52,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [legalPendiente, setLegalPendiente] = useState(false);
 
   const fetchUserData = useCallback(async () => {
     const token = getAuthToken();
@@ -66,7 +70,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       ]);
 
       setUser(mapUsuarioDTO(userResponse.data));
-      setPermissions(permissionsResponse.data ?? []);
+      const permisos: string[] = permissionsResponse.data ?? [];
+      setPermissions(permisos);
+
+      // Bloque legal (L1): solo quien puede aceptar (Administrador del club) es llevado a la pantalla de
+      // términos. Los demás siguen navegando; el backend rechaza sus escrituras (428) hasta que se acepte.
+      let pendiente = false;
+      if (permisos.includes("aceptar_terminos")) {
+        try {
+          const legal = await api.get("/api/legal/estado");
+          pendiente = legal.data?.alDia === false;
+        } catch {
+          pendiente = false;
+        }
+      }
+      setLegalPendiente(pendiente);
     } catch (error) {
       // Token inválido/expirado o el backend no respondió: cerramos sesión local.
       clearAuthToken();
@@ -77,6 +95,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(null);
       setPermissions([]);
+      setLegalPendiente(false);
     } finally {
       setLoading(false);
     }
@@ -93,6 +112,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         permissions,
         loading,
         esPlataforma: permissions.includes("gestionar_clubes"),
+        legalPendiente,
         setUser,
         refreshUser: fetchUserData,
       }}

@@ -25,6 +25,8 @@ import {
   UserCircle,
   Inbox,
   FileSpreadsheet,
+  Wallet,
+  ListChecks,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -146,6 +148,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
       { href: "/objetivos", label: "Objetivos", icon: Target},
       { href: "/evaluacion-rutina", label: "Rutinas", icon: BarChart3 },
+      // Rúbrica global de rutinas: la ven todos los clubes; solo la plataforma (configurar_rubrica) la edita.
+      { href: "/rubrica", label: "Rúbrica", icon: ListChecks },
     ],
   },
   {
@@ -183,6 +187,9 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/convenios", label: "Convenios", icon: FileText },
       { href: "/facturas", label: "Facturas", icon: FileText },
       { href: "/pagos", label: "Pagos", icon: CreditCard },
+      // Cierre de caja diario y conciliación con el extracto del banco (la página valida ver_caja / conciliar_pagos).
+      { href: "/caja", label: "Caja", icon: Wallet },
+      { href: "/conciliacion", label: "Conciliación", icon: ListChecks },
     ],
   },
   {
