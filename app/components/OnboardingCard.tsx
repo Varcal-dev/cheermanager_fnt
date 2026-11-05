@@ -26,6 +26,7 @@ interface Estado {
 const ENLACES: Record<string, string> = {
   niveles: "/niveles",
   divisiones: "/divisiones",
+  tiposPlan: "/tipos-planes-pago",
   planes: "/planes-mensualidad",
   temporada: "/temporadas",
   entrenadores: "/entrenadores",

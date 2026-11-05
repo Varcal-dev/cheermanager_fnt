@@ -72,7 +72,9 @@ function NavButton({
 
 const Sidebar = () => {
   const pathname = usePathname();
-  const { permissions } = useUser();
+  const { permissions, esPlataforma } = useUser();
+  // El superadmin solo ve el menú de plataforma; los usuarios de club, solo el de su club.
+  const secciones = NAV_SECTIONS.filter((s) => (s.ambito === "plataforma") === esPlataforma);
   const [openSections, setOpenSections] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [hidratado, setHidratado] = useState(false);
@@ -93,13 +95,14 @@ const Sidebar = () => {
   // incluida — así si entras directo a /deportistas, "Personas" ya aparece
   // abierta y resaltada en vez de dejarte perdido en un menú colapsado.
   useEffect(() => {
-    const active = findSectionForPath(pathname);
+    const active = secciones.find((s) => s.items.some((i) => pathname.startsWith(i.href))) ?? findSectionForPath(pathname);
     if (active) {
       setOpenSections((prev) =>
         prev.includes(active.id) ? prev : [...prev, active.id]
       );
     }
-  }, [pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, esPlataforma]);
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) =>
@@ -186,7 +189,7 @@ const Sidebar = () => {
               </Link>
             )}
 
-            {NAV_SECTIONS.map((section) => {
+            {secciones.map((section) => {
               if (!permissions.includes(section.permission)) return null;
 
               const sectionActive = section.items.some((i) => isActive(i.href));

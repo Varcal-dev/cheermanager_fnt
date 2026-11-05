@@ -158,6 +158,15 @@ export function PlanPagoModal({
                 </option>
               ))}
             </select>
+            {tiposPlan.length === 0 && (
+              <p className="mt-1 text-sm text-amber-600">
+                Aún no hay tipos de plan de {categoria === "inscripcion" ? "inscripción" : "mensualidad"}. Créalos primero en{" "}
+                <a href="/tipos-planes-pago" className="underline">
+                  Tipos de plan de pago
+                </a>
+                .
+              </p>
+            )}
             {errors.tipoPlanId && (
               <span className="text-sm text-red-500">
                 {errors.tipoPlanId.message}

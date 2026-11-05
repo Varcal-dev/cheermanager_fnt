@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Plus, Power, Settings2 } from "lucide-react";
+import Link from "next/link";
+import { CreditCard, Plus, Power, Settings2, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api, getErrorMessage } from "@/lib/api";
@@ -318,6 +319,11 @@ export default function ClubesPage() {
                         <TableCell>
                           {c.id !== 1 && (
                             <div className="flex flex-wrap gap-2">
+                              <Button size="sm" asChild>
+                                <Link href={`/clubes/${c.id}`}>
+                                  <Users className="mr-1 h-4 w-4" /> Usuarios y acceso
+                                </Link>
+                              </Button>
                               {s && (
                                 <Button size="sm" variant="outline" onClick={() => abrirSuscripcion(s)}>
                                   <CreditCard className="mr-1 h-4 w-4" /> Suscripción

@@ -7,7 +7,7 @@ import { useUser } from "@/context/UserContext";
 import { aUsuario, type PersonaResumen, type Rol, type Usuario } from "./types";
 
 /** Lista de usuarios, roles y (si el usuario puede verlas) personas para asociar. */
-export function useUsuariosData() {
+export function useUsuariosData(incluirInactivos = false) {
   const { permissions } = useUser();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [cargandoInicial, setCargandoInicial] = useState(true);
@@ -16,7 +16,7 @@ export function useUsuariosData() {
 
   const recargar = useCallback(async () => {
     try {
-      const response = await api.get("/api/usuario/listar");
+      const response = await api.get("/api/usuario/listar", { params: { incluirInactivos } });
       setUsuarios(response.data.map(aUsuario));
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
@@ -24,7 +24,7 @@ export function useUsuariosData() {
     } finally {
       setCargandoInicial(false);
     }
-  }, []);
+  }, [incluirInactivos]);
 
   useEffect(() => {
     recargar();

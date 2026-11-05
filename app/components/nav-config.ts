@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from "lucide-react";
 import {
   Home,
@@ -53,6 +52,8 @@ export interface NavSection {
   icon: LucideIcon;
   permission: string;
   items: NavItem[];
+  /** "plataforma": solo para el superadmin (menú de plataforma). Las demás son del club y el superadmin no las ve. */
+  ambito?: "club" | "plataforma";
 }
 
 export const HOME_ITEM: NavItem = {
@@ -168,19 +169,20 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: DollarSign,
     permission: "ver_dash_finanzas",
     items: [
+      // Orden de trabajo: 1) tipos de plan, 2) planes de inscripción / mensualidad (exigen elegir un tipo).
+      {
+        href: "/tipos-planes-pago",
+        label: "1. Tipos de plan de pago",
+        icon: FileText,
+      },
       {
         href: "/planes-inscripcion",
-        label: "Inscripciónes y Membresías",
+        label: "2. Inscripciones y Membresías",
         icon: FileText,
       },
       {
         href: "/planes-mensualidad",
-        label: "Mensualidades y Cuotas",
-        icon: FileText,
-      },
-      {
-        href: "/tipos-planes-pago",
-        label: "Planes de Pago",
+        label: "2. Mensualidades y Cuotas",
         icon: FileText,
       },
       { href: "/descuentos", label: "Descuentos", icon: DollarSign },
@@ -203,13 +205,19 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/auditoria", label: "Auditoría", icon: Shield },
     ],
   },
-  // Solo el superadmin de la plataforma (permiso gestionar_clubes): alta y suspensión de clubes.
+  // Solo el superadmin de la plataforma (permiso gestionar_clubes): es TODO lo que ve. Clubes, sus usuarios,
+  // suscripciones y acceso de soporte; la rúbrica global; y el equipo de la propia plataforma.
   {
     id: "plataforma",
     label: "Plataforma",
     icon: Building2,
     permission: "gestionar_clubes",
-    items: [{ href: "/clubes", label: "Clubes", icon: Building2 }],
+    ambito: "plataforma",
+    items: [
+      { href: "/clubes", label: "Clubes", icon: Building2 },
+      { href: "/rubrica", label: "Rúbrica global", icon: ListChecks },
+      { href: "/usuarios", label: "Equipo de plataforma", icon: Users },
+    ],
   },
 ];
 

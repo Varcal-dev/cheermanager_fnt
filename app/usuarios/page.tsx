@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getErrorMessage } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { useUser } from "@/context/UserContext";
 import { actualizarUsuario, type Usuario } from "./types";
 import { useUsuariosData } from "./useUsuariosData";
@@ -26,11 +26,11 @@ const ENCABEZADOS = ["Usuario", "Email", "Rol", "Último Acceso", "Estado", "Acc
 
 function UsuariosContenido() {
   const { permissions, user } = useUser();
-  const { usuarios, cargandoInicial, roles, personas, recargar } = useUsuariosData();
-
   const [busqueda, setBusqueda] = useState("");
   const [rolFiltro, setRolFiltro] = useState<string | null>(null);
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  // Con el interruptor activo el back también devuelve los desactivados (antes nunca llegaban).
+  const { usuarios, cargandoInicial, roles, personas, recargar } = useUsuariosData(mostrarInactivos);
   const [expandidos, setExpandidos] = useState<number[]>([]);
 
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
@@ -49,7 +49,11 @@ function UsuariosContenido() {
       return;
     }
     try {
-      await actualizarUsuario(usuario, { activo: !usuario.activo });
+      if (usuario.activo) {
+        await actualizarUsuario(usuario, { activo: false });
+      } else {
+        await api.post(`/api/usuario/${usuario.id}/reactivar`); // el PUT no ve a los desactivados
+      }
       toast.success(usuario.activo ? "Usuario desactivado" : "Usuario activado");
       recargar();
     } catch (error) {
