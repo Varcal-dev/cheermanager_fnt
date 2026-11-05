@@ -9,6 +9,7 @@ import EvaluacionesPanel from "./EvaluacionesPanel";
 import AcudientesConsentimientosPanel from "./AcudientesConsentimientosPanel";
 import ImprimirAutorizacionesButton from "./ImprimirAutorizacionesButton";
 import CopiaDatosButtons from "./CopiaDatosButtons";
+import AnonimizarTitularButton from "./AnonimizarTitularButton";
 import PagosDeportistaPanel from "./PagosDeportistaPanel";
 import HistorialDeportista from "./historial/HistorialDeportista";
 
@@ -34,6 +35,7 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
   const verAcudientes = permissions.includes("ver_acudientes") || permissions.includes("ver_consentimientos");
   const verPagos = permissions.includes("ver_pago");
   const exportarDatos = permissions.includes("exportar_datos_titular");
+  const puedeAnonimizar = permissions.includes("anonimizar_titular") && deportista.estadoNombre === "Retirado";
 
   return (
     <Tabs defaultValue="info" className="w-full">
@@ -50,6 +52,15 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
         {exportarDatos && (
           <div className="mb-4">
             <CopiaDatosButtons personaId={deportista.personaId} />
+          </div>
+        )}
+        {puedeAnonimizar && (
+          <div className="mb-4">
+            <AnonimizarTitularButton
+              personaId={deportista.personaId}
+              nombre={`${deportista.nombre} ${deportista.apellidos}`.trim()}
+              onHecho={onNivelCambiado}
+            />
           </div>
         )}
         <div className="grid grid-cols-2 gap-4">
