@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import OnboardingCard from "@/app/components/OnboardingCard";
+import HomePlataforma from "@/app/components/inicio/HomePlataforma";
 import { api } from "@/lib/api";
 import { useUser } from "@/context/UserContext";
 import { formatCOP } from "@/app/lib/facturas-pagos";
@@ -49,7 +50,13 @@ const TABS_EXTRA = [
   { value: "administracion", label: "Administración", permiso: "ver_dash_administracion" },
 ];
 
+/** El superadmin no tiene club: su inicio es un resumen de los clubes, no los KPIs deportivos. */
 export default function Home() {
+  const { esPlataforma } = useUser();
+  return esPlataforma ? <HomePlataforma /> : <HomeClub />;
+}
+
+function HomeClub() {
   const { permissions } = useUser();
 
   // Resumen principal (KPIs + pestaña General)
