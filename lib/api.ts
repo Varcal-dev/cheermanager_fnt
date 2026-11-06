@@ -1,4 +1,3 @@
-
 "use client";
 
 import axios, { type AxiosRequestHeaders, type InternalAxiosRequestConfig } from "axios";
@@ -54,9 +53,29 @@ export function expiracionDelToken(token: string): number | null {
   }
 }
 
+/** Claims del JWT (sin verificar firma: solo para mostrar cosas en la UI), o null. */
+export function leerClaimsToken(token: string | null): Record<string, any> | null {
+  try {
+    const payload = token?.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")))));
+  } catch {
+    return null;
+  }
+}
+
+/** Si la sesión actual es de soporte (superadmin dentro de un club) devuelve el club y quién entró; si no, null. */
+export function datosSoporte(): { club: string; por: string } | null {
+  const c = leerClaimsToken(getStoredToken());
+  return c?.soporte === true ? { club: String(c.soporteClub ?? ""), por: String(c.soportePor ?? "") } : null;
+}
+
 async function renovarSesionSiHaceFalta(): Promise<void> {
   const token = getStoredToken();
   if (!token) return;
+  // La sesión de soporte dura 1 h y el back no la renueva.
+  if (leerClaimsToken(token)?.soporte === true) return;
   const exp = expiracionDelToken(token);
   if (exp === null) return;
   const queda = exp - Date.now();

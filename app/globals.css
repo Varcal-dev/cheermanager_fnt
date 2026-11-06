@@ -3,69 +3,83 @@
 @tailwind utilities;
 
 /* =========================================================================
-   CheerManager · Sistema de diseño Ratels
+   CheerManager · Sistema de diseño (marca vino)
    -------------------------------------------------------------------------
-   Paleta con propósito, no la de shadcn "de fábrica":
-     - Grafito   : superficie de navegación (sidebar), texto de alto contraste
-     - Lienzo    : fondo de trabajo, gris-azulado frío, no blanco puro
-     - Oro Ratels: color de marca / acciones primarias — inspirado en podios
-                   y medallas de competencia
-     - Tejo      : azul profundo de "tapete" — estructura, enlaces secundarios
-     - Verde     : confirmaciones (pagos al día, asistencia, aprobado)
-     - Coral     : alertas y estados destructivos
+   Una sola fuente de verdad para la app y la landing.
+     - Vino      : color de marca / acciones primarias (el del logo)
+     - Tinta     : texto de alto contraste y navegación (sidebar)
+     - Rubor     : fondo de trabajo, blanco rosado muy suave
+     - Semánticos: éxito, advertencia, peligro e info. SEPARADOS de la marca:
+                   el rojo de "mora / error / anulado" es más anaranjado que
+                   el vino para que nunca se confundan.
+   Regla: el estado nunca va solo en color; siempre texto o ícono.
    ========================================================================= */
 
 @layer base {
   :root {
-    --background: 220 18% 97%;
-    --foreground: 224 22% 12%;
+    --background: 350 60% 98%;
+    --foreground: 270 18% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 22% 12%;
+    --card-foreground: 270 18% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 22% 12%;
+    --popover-foreground: 270 18% 9%;
 
-    /* Oro Ratels — acción primaria */
-    --primary: 36 79% 57%;
-    --primary-foreground: 42 100% 8%;
+    /* Vino — marca y acción primaria (#800F2F) */
+    --primary: 343 79% 28%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 343 79% 22%;
+    --primary-soft: 346 58% 94%;
 
-    /* Tejo — estructura / secundario */
-    --secondary: 214 40% 94%;
-    --secondary-foreground: 214 52% 22%;
+    --secondary: 346 30% 95%;
+    --secondary-foreground: 270 18% 9%;
 
-    --muted: 220 14% 92%;
-    --muted-foreground: 217 11% 40%;
+    --muted: 346 25% 94%;
+    --muted-foreground: 275 7% 35%;
 
-    --accent: 214 52% 25%;
-    --accent-foreground: 0 0% 100%;
+    /* Acento = superficie suave de marca (hover de menús, filas activas) */
+    --accent: 346 58% 94%;
+    --accent-foreground: 343 79% 28%;
 
-    --destructive: 5 71% 60%;
+    /* Semánticos */
+    --destructive: 4 74% 49%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 4 85% 94%;
 
-    --success: 158 67% 37%;
+    --success: 154 63% 33%;
     --success-foreground: 0 0% 100%;
+    --success-soft: 154 45% 92%;
 
-    --border: 223 14% 90%;
-    --input: 223 14% 90%;
-    --ring: 36 79% 57%;
+    --warning: 36 71% 42%;
+    --warning-foreground: 270 18% 9%;
+    --warning-soft: 40 80% 91%;
 
-    /* Panel de navegación — deliberadamente oscuro, distinto del lienzo */
-    --sidebar-background: 224 22% 10%;
-    --sidebar-foreground: 220 18% 88%;
-    --sidebar-muted: 224 14% 65%;
-    --sidebar-accent: 224 22% 15%;
+    --info: 211 59% 45%;
+    --info-foreground: 0 0% 100%;
+    --info-soft: 211 70% 94%;
+
+    --border: 346 24% 89%;
+    --input: 346 24% 89%;
+    --ring: 343 79% 28%;
+
+    /* Navegación — tinta oscura; el ítem activo va en vino con texto blanco */
+    --sidebar-background: 270 18% 9%;
+    --sidebar-foreground: 340 15% 88%;
+    --sidebar-muted: 300 6% 62%;
+    --sidebar-accent: 270 16% 14%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-primary: 36 79% 57%;
-    --sidebar-primary-foreground: 42 100% 8%;
-    --sidebar-border: 224 18% 18%;
+    --sidebar-primary: 343 80% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-border: 270 14% 17%;
 
-    /* Series de datos (gráficas) — derivadas de la paleta, no defaults de chart.js */
-    --chart-1: 36 79% 57%;
-    --chart-2: 214 52% 40%;
-    --chart-3: 158 67% 37%;
-    --chart-4: 5 71% 60%;
-    --chart-5: 262 40% 55%;
+    /* Series de gráficas: vino, tinta, rosa, ámbar, verde azulado, gris */
+    --chart-1: 343 79% 28%;
+    --chart-2: 270 18% 9%;
+    --chart-3: 340 62% 61%;
+    --chart-4: 40 66% 55%;
+    --chart-5: 174 54% 36%;
+    --chart-6: 300 5% 58%;
 
     --radius: 0.75rem;
 
@@ -75,51 +89,65 @@
   }
 
   .dark {
-    --background: 223 19% 7%;
-    --foreground: 220 18% 92%;
+    --background: 280 16% 7%;
+    --foreground: 340 23% 95%;
 
-    --card: 224 19% 11%;
-    --card-foreground: 220 18% 92%;
+    --card: 277 14% 11%;
+    --card-foreground: 340 23% 95%;
 
-    --popover: 224 19% 11%;
-    --popover-foreground: 220 18% 92%;
+    --popover: 277 14% 11%;
+    --popover-foreground: 340 23% 95%;
 
-    --primary: 36 79% 57%;
-    --primary-foreground: 42 100% 8%;
+    /* Vino un punto más claro para que se vea sobre fondo oscuro (#A3123B) */
+    --primary: 343 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 343 76% 42%;
+    --primary-soft: 339 45% 11%;
 
-    --secondary: 220 17% 16%;
-    --secondary-foreground: 220 18% 88%;
+    --secondary: 280 12% 17%;
+    --secondary-foreground: 340 23% 95%;
 
-    --muted: 220 17% 14%;
-    --muted-foreground: 218 12% 59%;
+    --muted: 280 12% 14%;
+    --muted-foreground: 318 6% 68%;
 
-    --accent: 214 45% 60%;
-    --accent-foreground: 224 22% 10%;
+    --accent: 339 45% 11%;
+    --accent-foreground: 343 84% 68%;
 
-    --destructive: 5 65% 55%;
+    --destructive: 4 80% 58%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 4 45% 14%;
 
-    --success: 158 55% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 154 50% 45%;
+    --success-foreground: 270 18% 9%;
+    --success-soft: 154 40% 13%;
 
-    --border: 221 17% 18%;
-    --input: 221 17% 18%;
-    --ring: 36 79% 57%;
+    --warning: 38 70% 52%;
+    --warning-foreground: 270 18% 9%;
+    --warning-soft: 38 50% 13%;
 
-    --sidebar-background: 223 24% 5%;
-    --sidebar-foreground: 220 18% 88%;
-    --sidebar-muted: 224 12% 55%;
-    --sidebar-accent: 223 19% 11%;
+    --info: 211 65% 62%;
+    --info-foreground: 270 18% 9%;
+    --info-soft: 211 45% 15%;
+
+    --border: 300 8% 17%;
+    --input: 300 8% 17%;
+    --ring: 343 84% 68%;
+
+    --sidebar-background: 280 16% 5%;
+    --sidebar-foreground: 340 15% 88%;
+    --sidebar-muted: 300 6% 58%;
+    --sidebar-accent: 280 14% 11%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-primary: 36 79% 57%;
-    --sidebar-primary-foreground: 42 100% 8%;
-    --sidebar-border: 223 17% 14%;
+    --sidebar-primary: 343 80% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-border: 280 12% 14%;
 
-    --chart-1: 36 79% 57%;
-    --chart-2: 214 60% 62%;
-    --chart-3: 158 55% 45%;
-    --chart-4: 5 65% 60%;
-    --chart-5: 262 45% 65%;
+    --chart-1: 343 75% 52%;
+    --chart-2: 340 23% 90%;
+    --chart-3: 340 62% 65%;
+    --chart-4: 40 66% 58%;
+    --chart-5: 174 50% 45%;
+    --chart-6: 300 6% 62%;
   }
 }
 
