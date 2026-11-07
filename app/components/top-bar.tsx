@@ -23,7 +23,7 @@ export function TopBar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const { setUser } = useUser()
+  const { setUser, clubNombre } = useUser()
 
   const handleLogout = async () => {
     try {
@@ -62,8 +62,18 @@ export function TopBar() {
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-display font-bold text-primary-foreground">
           C
         </span>
-        <span className="font-display text-lg font-semibold tracking-tight">
-          CheerManager
+        <span className="flex flex-col leading-tight">
+          <span className="font-display text-lg font-semibold tracking-tight">
+            CheerManager
+          </span>
+          {clubNombre && (
+            <span
+              className="max-w-[14rem] truncate text-xs text-muted-foreground"
+              title={clubNombre}
+            >
+              {clubNombre}
+            </span>
+          )}
         </span>
       </Link>
 

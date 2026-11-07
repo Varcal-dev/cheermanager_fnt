@@ -95,6 +95,9 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Layers,
     permission: "ver_dash_organizacion",
     items: [
+      { href: "/temporadas", label: "Temporadas", icon: CalendarRange },
+      { href: "/inscripciones", label: "Inscripciones", icon: FileText },
+      { href: "/solicitudes-inscripcion", label: "Solicitudes", icon: Inbox },
       { href: "/niveles", label: "Niveles", icon: BarChart3 },
       { href: "/divisiones", label: "Divisiones", icon: Layers },
       {
@@ -102,10 +105,10 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Categorías por Nivel",
         icon: Layers
       },
-      { href: "/temporadas", label: "Temporadas", icon: CalendarRange },
-      { href: "/grupos", label: "Grupos", icon: Users },
-      { href: "/inscripciones", label: "Inscripciones", icon: FileText },
-      { href: "/solicitudes-inscripcion", label: "Solicitudes", icon: Inbox },
+      
+      { href: "/grupos", label: "Grupos/Equipos", icon: Users },
+      
+      
     ],
   },
   {
@@ -149,6 +152,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
       { href: "/objetivos", label: "Objetivos", icon: Target},
       { href: "/evaluacion-rutina", label: "Rutinas", icon: BarChart3 },
+      { href: "/habilidades", label: "Habilidades", icon: Award },
       // Rúbrica global de rutinas: la ven todos los clubes; solo la plataforma (configurar_rubrica) la edita.
       { href: "/rubrica", label: "Rúbrica", icon: ListChecks },
     ],

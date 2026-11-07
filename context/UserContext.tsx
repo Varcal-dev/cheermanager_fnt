@@ -21,6 +21,8 @@ interface UserContextType {
   user: User | null;
   permissions: string[];
   loading: boolean;
+  /** Nombre del club del usuario autenticado (null mientras carga o si no se pudo obtener). */
+  clubNombre: string | null;
   /** true para el superadmin de la plataforma (club 1): tiene el permiso gestionar_clubes. */
   esPlataforma: boolean;
   /** true si este usuario puede aceptar términos del club y el club aún tiene documentos legales pendientes. */
@@ -33,6 +35,7 @@ const UserContext = createContext<UserContextType>({
   user: null,
   permissions: [],
   loading: true,
+  clubNombre: null,
   esPlataforma: false,
   legalPendiente: false,
   setUser: () => {},
@@ -53,12 +56,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [legalPendiente, setLegalPendiente] = useState(false);
+  const [clubNombre, setClubNombre] = useState<string | null>(null);
 
   const fetchUserData = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       setUser(null);
       setPermissions([]);
+      setClubNombre(null);
       setLoading(false);
       return;
     }
@@ -85,6 +90,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       setLegalPendiente(pendiente);
+
+      // Nombre del club para mostrarlo en la barra superior. GET /api/suscripcion lo puede llamar
+      // cualquier usuario autenticado; si falla, simplemente no se muestra el nombre.
+      try {
+        const club = await api.get("/api/suscripcion");
+        setClubNombre(club.data?.clubNombre ?? null);
+      } catch {
+        setClubNombre(null);
+      }
     } catch (error) {
       // Token inválido/expirado o el backend no respondió: cerramos sesión local.
       clearAuthToken();
@@ -96,6 +110,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setPermissions([]);
       setLegalPendiente(false);
+      setClubNombre(null);
     } finally {
       setLoading(false);
     }
@@ -111,6 +126,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         permissions,
         loading,
+        // Si no hay usuario (p. ej. tras cerrar sesión) no se arrastra el club anterior.
+        clubNombre: user ? clubNombre : null,
         esPlataforma: permissions.includes("gestionar_clubes"),
         legalPendiente,
         setUser,

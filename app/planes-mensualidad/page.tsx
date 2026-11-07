@@ -190,7 +190,7 @@ export default function PlanesMensualidadPage() {
           <CardContent>
             <div className="text-3xl font-bold">{totalInscritos}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              En todos los planes activos
+              En todos los planes de mensualidad
             </p>
           </CardContent>
         </Card>

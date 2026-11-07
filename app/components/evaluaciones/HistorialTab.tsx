@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useUser } from "@/context/UserContext";
 import { api, getErrorMessage } from "@/lib/api";
@@ -15,6 +15,10 @@ import { PUNTAJE_MAXIMO, claseNota, hoyLocal, type Criterio, type EvaluacionFila
 
 const TAMANO = 25;
 
+// Columnas por las que se puede ordenar (el orden lo aplica el servidor, así vale para todas las páginas).
+type Orden = "fecha" | "deportista" | "categoria" | "criterio" | "puntaje";
+type Direccion = "asc" | "desc";
+
 export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; criterios: Criterio[] }) {
   const { permissions } = useUser();
   const puedeEditar = permissions.includes("modificar_evaluacion");
@@ -27,6 +31,8 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
   const [texto, setTexto] = useState("");
   const [textoAplicado, setTextoAplicado] = useState("");
   const [pagina, setPagina] = useState(0);
+  const [orden, setOrden] = useState<Orden>("fecha");
+  const [direccion, setDireccion] = useState<Direccion>("desc");
   const [datos, setDatos] = useState<Pagina | null>(null);
   const [cargando, setCargando] = useState(false);
   const [editando, setEditando] = useState<EvaluacionFila | null>(null);
@@ -36,7 +42,7 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const params: Record<string, string | number> = { pagina, tamano: TAMANO };
+      const params: Record<string, string | number> = { pagina, tamano: TAMANO, orden, direccion };
       if (grupoId) params.grupoId = grupoId;
       if (criterioId) params.criterioId = criterioId;
       if (desde) params.desde = desde;
@@ -49,7 +55,7 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
     } finally {
       setCargando(false);
     }
-  }, [grupoId, criterioId, desde, hasta, textoAplicado, pagina]);
+  }, [grupoId, criterioId, desde, hasta, textoAplicado, pagina, orden, direccion]);
 
   useEffect(() => {
     cargar();
@@ -58,6 +64,40 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
   function filtrar<T>(set: (v: T) => void, v: T) {
     set(v);
     setPagina(0);
+  }
+
+  // Mismo criterio: invierte la dirección. Otro criterio: fecha empieza por lo más reciente; el resto de A a Z / menor a mayor.
+  function ordenarPor(clave: Orden) {
+    if (clave === orden) {
+      setDireccion(direccion === "asc" ? "desc" : "asc");
+    } else {
+      setOrden(clave);
+      setDireccion(clave === "fecha" ? "desc" : "asc");
+    }
+    setPagina(0);
+  }
+
+  // Función (no componente) para que no se vuelva a montar en cada render y el botón conserve el foco.
+  function encabezado(clave: Orden, titulo: string, derecha?: boolean) {
+    const activo = orden === clave;
+    const Icono = !activo ? ArrowUpDown : direccion === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <TableHead
+        key={clave}
+        className={derecha ? "text-right" : undefined}
+        aria-sort={activo ? (direccion === "asc" ? "ascending" : "descending") : "none"}
+      >
+        <button
+          type="button"
+          onClick={() => ordenarPor(clave)}
+          className={`inline-flex items-center gap-1 hover:text-foreground ${derecha ? "justify-end" : ""} ${activo ? "text-foreground" : ""}`}
+          title={`Ordenar por ${titulo.toLowerCase()}`}
+        >
+          {titulo}
+          <Icono className={`h-3.5 w-3.5 ${activo ? "" : "opacity-40"}`} />
+        </button>
+      </TableHead>
+    );
   }
 
   function abrirEdicion(e: EvaluacionFila) {
@@ -135,11 +175,11 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Deportista</TableHead>
-              <TableHead>Categoría</TableHead>
-              <TableHead>Criterio</TableHead>
-              <TableHead className="text-right">Puntaje</TableHead>
+              {encabezado("fecha", "Fecha")}
+              {encabezado("deportista", "Deportista")}
+              {encabezado("categoria", "Categoría")}
+              {encabezado("criterio", "Criterio")}
+              {encabezado("puntaje", "Puntaje", true)}
               {(puedeEditar || puedeEliminar) && <TableHead className="w-24" />}
             </TableRow>
           </TableHeader>

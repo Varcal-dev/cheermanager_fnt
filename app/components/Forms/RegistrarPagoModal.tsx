@@ -32,6 +32,35 @@ import {
   registrarPago,
 } from "@/app/lib/facturas-pagos";
 
+// El tipo de pago sale del motivo por el que se generó la factura (concepto). Los nombres de
+// tipos_pago son un catálogo ("Mensualidad", "Inscripción", "Uniforme", "Evento/Competencia",
+// "Producto de tienda"), así que se busca por palabra clave sin tildes ni mayúsculas.
+const sinTildes = (t: string) =>
+  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+const PALABRAS_POR_CONCEPTO: Record<string, string[]> = {
+  INSCRIPCION: ["inscripcion"],
+  MENSUALIDAD: ["mensualidad"],
+  TIENDA: ["tienda"],
+  UNIFORME: ["uniforme"],
+  COMPETENCIA: ["competencia", "evento"],
+  EVENTO: ["evento", "competencia"],
+};
+
+/** Tipo de pago que corresponde al motivo de la factura, o null si no hay equivalente (p. ej. "Otro cobro"). */
+function tipoPagoDeFactura(factura: FacturaConSaldo | null, tipos: TipoPago[]): TipoPago | null {
+  if (!factura || tipos.length === 0) return null;
+  // Igual que etiquetaTipoFactura: con periodo es mensualidad; sin concepto es la inscripción.
+  const concepto = factura.periodo ? "MENSUALIDAD" : (factura.concepto ?? "INSCRIPCION");
+  const palabras = PALABRAS_POR_CONCEPTO[concepto];
+  if (!palabras) return null;
+  for (const palabra of palabras) {
+    const tipo = tipos.find((t) => sinTildes(t.tipo).includes(palabra));
+    if (tipo) return tipo;
+  }
+  return null;
+}
+
 export default function RegistrarPagoModal({
   open,
   onOpenChange,
@@ -64,6 +93,17 @@ export default function RegistrarPagoModal({
     () => facturas.find((f) => String(f.id) === facturaId) ?? null,
     [facturas, facturaId],
   );
+
+  // Tipo de pago fijado por el motivo de la factura (null = no hay equivalente y se elige a mano).
+  const tipoPagoDeLaFactura = useMemo(
+    () => tipoPagoDeFactura(facturaSeleccionada, tiposPago),
+    [facturaSeleccionada, tiposPago],
+  );
+
+  useEffect(() => {
+    if (tipoPagoDeLaFactura) setTipoPagoId(String(tipoPagoDeLaFactura.id));
+    else if (facturaSeleccionada) setTipoPagoId("");
+  }, [tipoPagoDeLaFactura, facturaSeleccionada]);
 
   useEffect(() => {
     if (!open) return;
@@ -109,7 +149,16 @@ export default function RegistrarPagoModal({
         setCargandoCatalogos(false);
       },
     );
-  }, [open, facturaPreseleccionada]);
+    // Se reinicia solo al abrir o al cambiar de factura (por id): si el padre pasa un objeto nuevo de
+    // la misma factura no se pisa el valor que el usuario está escribiendo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, facturaPreseleccionada?.id]);
+
+  const saldo = facturaSeleccionada?.saldoPendiente ?? 0;
+  const montoNum = Number(monto);
+  const montoValido = Number.isFinite(montoNum) && montoNum > 0;
+  const excedeSaldo = !!facturaSeleccionada && montoValido && montoNum > saldo;
+  const esAbono = !!facturaSeleccionada && montoValido && montoNum < saldo;
 
   const handleFacturaChange = (value: string) => {
     setFacturaId(value);
@@ -123,9 +172,14 @@ export default function RegistrarPagoModal({
       return;
     }
 
-    const montoNum = Number(monto);
-    if (!montoNum || montoNum <= 0) {
+    if (!montoValido) {
       toast.error("El monto debe ser mayor a cero");
+      return;
+    }
+    if (excedeSaldo) {
+      toast.error(
+        `El monto no puede superar el saldo pendiente de la factura (${formatCOP(saldo)})`,
+      );
       return;
     }
 
@@ -198,7 +252,11 @@ export default function RegistrarPagoModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label>Tipo de pago</Label>
-              <Select value={tipoPagoId} onValueChange={setTipoPagoId}>
+              <Select
+                value={tipoPagoId}
+                onValueChange={setTipoPagoId}
+                disabled={!!tipoPagoDeLaFactura}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={cargandoCatalogos ? "Cargando…" : "Selecciona"}
@@ -212,6 +270,11 @@ export default function RegistrarPagoModal({
                   ))}
                 </SelectContent>
               </Select>
+              {tipoPagoDeLaFactura && (
+                <p className="text-xs text-muted-foreground">
+                  Según el motivo de la factura.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-1.5">
@@ -246,12 +309,45 @@ export default function RegistrarPagoModal({
               <Label>Monto</Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 min={0}
+                max={facturaSeleccionada ? saldo : undefined}
+                step="any"
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
+                aria-invalid={excedeSaldo}
               />
             </div>
           </div>
+
+          {facturaSeleccionada && (
+            <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              {excedeSaldo ? (
+                <span className="text-destructive">
+                  El monto supera el saldo pendiente ({formatCOP(saldo)}).
+                </span>
+              ) : esAbono ? (
+                <span className="text-muted-foreground">
+                  Pago parcial: quedará un saldo de {formatCOP(saldo - montoNum)}.
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Puedes escribir un valor menor para registrar un pago parcial.
+                </span>
+              )}
+              {montoNum !== saldo && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={() => setMonto(String(saldo))}
+                >
+                  Pagar saldo completo
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <Label>Estado</Label>
@@ -275,7 +371,7 @@ export default function RegistrarPagoModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={guardando}>
+          <Button onClick={handleSubmit} disabled={guardando || excedeSaldo}>
             {guardando ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />

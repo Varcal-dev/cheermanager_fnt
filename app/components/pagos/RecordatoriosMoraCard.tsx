@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Eye, Loader2, Save, Send, MessageCircle, Mail, Monitor } from "lucide-react";
+import { BellRing, Eye, Loader2, Save, Send, MessageCircle, Mail, Monitor, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { api, getErrorMessage } from "@/lib/api";
 import { formatCOP } from "@/app/lib/facturas-pagos";
@@ -256,26 +256,39 @@ export default function RecordatoriosMoraCard() {
 
         {resultado && (
           <div className="space-y-3 rounded-md border p-3 bg-muted/30 text-sm">
-            <p>
-              {resultado.simulacion ? "Vista previa: " : "Resultado: "}
-              <strong>{resultado.facturasEnMora}</strong> facturas en mora de <strong>{resultado.personas}</strong>{" "}
-              personas.
-              {!resultado.simulacion && (
-                <>
-                  {" "}
-                  Enviados: <strong>{sumar(resultado.enviados)}</strong>
-                  {sumar(resultado.fallidos) > 0 && (
-                    <>
-                      {" "}
-                      · Fallidos: <strong className="text-destructive">{sumar(resultado.fallidos)}</strong>
-                    </>
-                  )}
-                  .
-                </>
-              )}
-              {resultado.omitidosPorFrecuencia > 0 &&
-                ` ${resultado.omitidosPorFrecuencia} se omitieron porque ya se avisó hace poco.`}
-            </p>
+            <div className="flex items-start justify-between gap-2">
+              <p>
+                {resultado.simulacion ? "Vista previa: " : "Resultado: "}
+                <strong>{resultado.facturasEnMora}</strong> facturas en mora de <strong>{resultado.personas}</strong>{" "}
+                personas.
+                {!resultado.simulacion && (
+                  <>
+                    {" "}
+                    Enviados: <strong>{sumar(resultado.enviados)}</strong>
+                    {sumar(resultado.fallidos) > 0 && (
+                      <>
+                        {" "}
+                        · Fallidos: <strong className="text-destructive">{sumar(resultado.fallidos)}</strong>
+                      </>
+                    )}
+                    .
+                  </>
+                )}
+                {resultado.omitidosPorFrecuencia > 0 &&
+                  ` ${resultado.omitidosPorFrecuencia} se omitieron porque ya se avisó hace poco.`}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setResultado(null)}
+                title="Cerrar"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Cerrar {resultado.simulacion ? "vista previa" : "resultado"}</span>
+              </Button>
+            </div>
 
             {resultado.advertencias.map((a, i) => (
               <p key={i} className="text-amber-600">

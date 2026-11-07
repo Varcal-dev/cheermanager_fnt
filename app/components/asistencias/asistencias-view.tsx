@@ -50,7 +50,23 @@ interface AsistenciaDTO {
   estadoAsistencia: string
 }
 
-const hoyISO = () => new Date().toISOString().slice(0, 10)
+const fechaLocalISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+const hoyISO = () => fechaLocalISO(new Date())
+const haceDias = (n: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return fechaLocalISO(d)
+}
+const inicioDeMes = () => {
+  const d = new Date()
+  return fechaLocalISO(new Date(d.getFullYear(), d.getMonth(), 1))
+}
+const fechaCorta = (iso: string) => {
+  const [y, m, d] = iso.split("-")
+  return y && m && d ? `${d}/${m}/${y}` : iso
+}
+const MAX_DIAS_PERIODO = 366
 const hora = (h: string) => h?.slice(0, 5) ?? ""
 
 function badgeVariant(estado: string): "default" | "secondary" | "destructive" | "outline" {
@@ -338,19 +354,47 @@ function RegistroMasivo({ grupos, horarios, estados }: CatProps) {
 
 function Consulta({ grupos, horarios }: CatProps) {
   const [grupoId, setGrupoId] = React.useState("")
-  const [fecha, setFecha] = React.useState(hoyISO())
+  const [desde, setDesde] = React.useState(inicioDeMes())
+  const [hasta, setHasta] = React.useState(hoyISO())
   const [filas, setFilas] = React.useState<AsistenciaDTO[] | null>(null)
+  const [consultado, setConsultado] = React.useState<{ desde: string; hasta: string } | null>(null)
   const [cargando, setCargando] = React.useState(false)
 
+  const rango = (d: string, h: string) => {
+    setDesde(d)
+    setHasta(h)
+  }
+
   async function consultar() {
-    if (!grupoId || !fecha) {
-      toast.error("Selecciona grupo y fecha")
+    if (!grupoId) {
+      toast.error("Selecciona un grupo")
+      return
+    }
+    if (!desde || !hasta) {
+      toast.error("Indica la fecha de inicio y la fecha de fin")
+      return
+    }
+    if (desde > hasta) {
+      toast.error("La fecha de inicio no puede ser posterior a la fecha de fin")
+      return
+    }
+    const dias = Math.round((Date.parse(hasta) - Date.parse(desde)) / 86_400_000) + 1
+    if (dias > MAX_DIAS_PERIODO) {
+      toast.error(`El periodo no puede superar ${MAX_DIAS_PERIODO} días`)
       return
     }
     setCargando(true)
     try {
-      const res = await api.get<AsistenciaDTO[]>(`/api/asistencias/grupo/${grupoId}`, { params: { fecha } })
-      setFilas(res.data)
+      const res = await api.get<AsistenciaDTO[]>(`/api/asistencias/grupo/${grupoId}/rango`, {
+        params: { desde, hasta },
+      })
+      // Lo más reciente primero y, dentro de un mismo día, por nombre.
+      setFilas(
+        [...res.data].sort(
+          (a, b) => b.fecha.localeCompare(a.fecha) || a.nombreDeportista.localeCompare(b.nombreDeportista),
+        ),
+      )
+      setConsultado({ desde, hasta })
     } catch (err) {
       toast.error(getErrorMessage(err, "No se pudo consultar la asistencia"))
     } finally {
@@ -363,14 +407,22 @@ function Consulta({ grupos, horarios }: CatProps) {
     return h ? `${h.dia} ${hora(h.horaInicio)}–${hora(h.horaFin)}` : `#${id}`
   }
 
+  const resumen = React.useMemo(() => {
+    const porEstado: Record<string, number> = {}
+    for (const f of filas ?? []) porEstado[f.estadoAsistencia] = (porEstado[f.estadoAsistencia] ?? 0) + 1
+    const total = filas?.length ?? 0
+    const presentes = Object.entries(porEstado).find(([k]) => k.toLowerCase() === "presente")?.[1] ?? 0
+    return { porEstado, total, porcentaje: total ? Math.round((presentes * 100) / total) : 0 }
+  }, [filas])
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Asistencia registrada</CardTitle>
-        <CardDescription>Consulta lo guardado para un grupo en una fecha.</CardDescription>
+        <CardDescription>Consulta lo guardado para un grupo en un periodo (fecha de inicio y de fin).</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <div className="flex flex-col gap-2">
             <Label>Grupo</Label>
             <Select value={grupoId} onValueChange={setGrupoId}>
@@ -387,8 +439,12 @@ function Consulta({ grupos, horarios }: CatProps) {
             </Select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Fecha</Label>
-            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            <Label>Desde</Label>
+            <Input type="date" value={desde} max={hasta || hoyISO()} onChange={(e) => setDesde(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Hasta</Label>
+            <Input type="date" value={hasta} min={desde || undefined} max={hoyISO()} onChange={(e) => setHasta(e.target.value)} />
           </div>
           <div className="flex items-end">
             <Button onClick={consultar} disabled={cargando}>
@@ -398,35 +454,67 @@ function Consulta({ grupos, horarios }: CatProps) {
           </div>
         </div>
 
-        {filas && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Deportista</TableHead>
-                <TableHead>Horario</TableHead>
-                <TableHead>Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filas.length === 0 ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => rango(hoyISO(), hoyISO())}>
+            Hoy
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => rango(haceDias(6), hoyISO())}>
+            Últimos 7 días
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => rango(inicioDeMes(), hoyISO())}>
+            Este mes
+          </Button>
+        </div>
+
+        {filas && consultado && (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">
+                {consultado.desde === consultado.hasta
+                  ? fechaCorta(consultado.desde)
+                  : `${fechaCorta(consultado.desde)} al ${fechaCorta(consultado.hasta)}`}
+                {" · "}
+                {resumen.total} registros
+              </span>
+              {Object.entries(resumen.porEstado).map(([estado, n]) => (
+                <Badge key={estado} variant={badgeVariant(estado)}>
+                  {estado}: {n}
+                </Badge>
+              ))}
+              {resumen.total > 0 && <span className="text-muted-foreground">· {resumen.porcentaje}% presente</span>}
+            </div>
+
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    Sin registros para esa fecha.
-                  </TableCell>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Deportista</TableHead>
+                  <TableHead>Horario</TableHead>
+                  <TableHead>Estado</TableHead>
                 </TableRow>
-              ) : (
-                filas.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell className="font-medium">{f.nombreDeportista}</TableCell>
-                    <TableCell>{etiquetaHorario(f.horarioId)}</TableCell>
-                    <TableCell>
-                      <Badge variant={badgeVariant(f.estadoAsistencia)}>{f.estadoAsistencia}</Badge>
+              </TableHeader>
+              <TableBody>
+                {filas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      Sin registros en ese periodo.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filas.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell>{fechaCorta(f.fecha)}</TableCell>
+                      <TableCell className="font-medium">{f.nombreDeportista}</TableCell>
+                      <TableCell>{etiquetaHorario(f.horarioId)}</TableCell>
+                      <TableCell>
+                        <Badge variant={badgeVariant(f.estadoAsistencia)}>{f.estadoAsistencia}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </>
         )}
       </CardContent>
     </Card>
