@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Home,
+  QrCode,
   Users,
   Calendar,
   Award,
@@ -78,6 +79,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/deportistas", label: "Deportistas", icon: UserPlus },
       { href: "/entrenadores", label: "Entrenadores", icon: Users },
+      { href: "/carnet", label: "Carnet", icon: QrCode },
       {
         href: "/historial-medico",
         label: "Historial Médico",
