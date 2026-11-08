@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { VERSION_TEXTO_AUTORIZACION } from "@/app/lib/autorizacion-imprimible";
 import {
   Select,
   SelectContent,
@@ -113,7 +114,7 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
 
   // --- registrar consentimiento ---
   const [consentTipo, setConsentTipo] = useState<string | null>(null);
-  const [versionTexto, setVersionTexto] = useState("");
+  const [versionTexto, setVersionTexto] = useState(VERSION_TEXTO_AUTORIZACION);
   const [canal, setCanal] = useState("PAPEL");
   const [otorgaAcudienteId, setOtorgaAcudienteId] = useState("");
   const [observaciones, setObservaciones] = useState("");
@@ -225,7 +226,7 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
 
   const abrirConsentimiento = (tipo: string) => {
     setConsentTipo(tipo);
-    setVersionTexto("");
+    setVersionTexto(VERSION_TEXTO_AUTORIZACION);
     setCanal("PAPEL");
     setObservaciones("");
     setOtorgaAcudienteId(vinculos.find((v) => v.principal)?.acudienteId?.toString() ?? vinculos[0]?.acudienteId?.toString() ?? "");
@@ -485,7 +486,11 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
           <div className="space-y-4">
             <div>
               <Label>Versión del texto firmado</Label>
-              <Input placeholder="Ej. Política v1 – 2026" value={versionTexto} onChange={(e) => setVersionTexto(e.target.value)} />
+              <Input placeholder={VERSION_TEXTO_AUTORIZACION} value={versionTexto} onChange={(e) => setVersionTexto(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                La versión vigente es {VERSION_TEXTO_AUTORIZACION} (el formato que imprimes desde aquí). Cámbiala solo si
+                lo firmado fue un texto anterior.
+              </p>
             </div>
             <div>
               <Label>Canal</Label>
