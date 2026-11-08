@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { TIPOS_DOCUMENTO, type Genero, type Nivel } from "@/app/deportistas/types";
+import { FICHA_VACIA, catalogoFicha, guardarFicha, type FichaForm } from "@/app/lib/ficha-deportiva";
+import type { Habilidad } from "@/app/lib/habilidades";
+import FichaDeportivaForm from "./FichaDeportivaForm";
 
 const FORM_INICIAL = {
   nombre: "",
@@ -21,7 +24,7 @@ const FORM_INICIAL = {
   estadoId: 1, // el estado inicial lo fija el sistema; no se elige aquí
   altura: 0,
   peso: 0,
-  nivelActualId: 0, // los ids de nivel son por club: se elige en el formulario
+  nivelActualId: 0, // opcional: el nivel del club se asigna tras evaluar (ids de nivel son por club)
   fechaRegistro: "",
   contactoEmergencia: "",
   convenioId: null as number | null,
@@ -33,6 +36,8 @@ export interface DeportistaPreinscrito {
   id: number | null;
   nombreCompleto: string;
   nivelNombre: string;
+  /** false si el deportista quedó guardado pero la ficha (experiencia/tallas) no se pudo guardar. */
+  fichaGuardada: boolean;
 }
 
 interface Props {
@@ -50,6 +55,12 @@ interface Props {
 export default function PreinscripcionForm({ niveles, generos, onGuardado, textoBoton = "Guardar" }: Props) {
   const [form, setForm] = useState(FORM_INICIAL);
   const [guardando, setGuardando] = useState(false);
+  const [ficha, setFicha] = useState<FichaForm>(FICHA_VACIA);
+  const [catalogo, setCatalogo] = useState<Habilidad[]>([]);
+
+  useEffect(() => {
+    catalogoFicha().then(setCatalogo).catch(() => toast.error("No se pudo cargar el glosario de habilidades."));
+  }, []);
 
   // Validación de documento único en vivo (el back expone /api/deportistas/validar-documento).
   const [documentoDisponible, setDocumentoDisponible] = useState<boolean | null>(null);
@@ -87,10 +98,17 @@ export default function PreinscripcionForm({ niveles, generos, onGuardado, texto
       !form.numeroDocumento.trim() ||
       !form.tipoDocumento ||
       !form.fechaNacimiento ||
-      !form.generoId ||
-      !form.nivelActualId
+      !form.generoId
     ) {
-      toast.error("Completa nombre, apellidos, tipo y número de documento, fecha de nacimiento, género y nivel.");
+      toast.error("Completa nombre, apellidos, tipo y número de documento, fecha de nacimiento y género.");
+      return;
+    }
+    if (ficha.tieneExperiencia === null) {
+      toast.error("Indica si el deportista tiene experiencia en cheerleading.");
+      return;
+    }
+    if (ficha.tieneExperiencia && !ficha.nivelDeclarado) {
+      toast.error("Indica el nivel que el deportista cree tener.");
       return;
     }
     if (documentoDisponible === false) {
@@ -108,18 +126,30 @@ export default function PreinscripcionForm({ niveles, generos, onGuardado, texto
           fechaRegistro: String(form.fechaRegistro),
           generoId: Number(form.generoId),
           estadoId: Number(form.estadoId),
-          nivelActualId: Number(form.nivelActualId),
+          nivelActualId: form.nivelActualId ? Number(form.nivelActualId) : null,
           convenioId: form.convenioId ? Number(form.convenioId) : null,
         },
         { withCredentials: true },
       );
+      const nuevoId: number | null = typeof res.data?.id === "number" ? res.data.id : null;
+      let fichaGuardada = false;
+      if (nuevoId !== null) {
+        try {
+          await guardarFicha(nuevoId, ficha);
+          fichaGuardada = true;
+        } catch {
+          toast.warn("El deportista se guardó, pero no se pudo guardar su ficha (experiencia y tallas). Complétala en su detalle.");
+        }
+      }
       toast.success("Deportista guardado exitosamente");
       const resumen: DeportistaPreinscrito = {
-        id: typeof res.data?.id === "number" ? res.data.id : null,
+        fichaGuardada,
+        id: nuevoId,
         nombreCompleto: `${form.nombre.trim()} ${form.apellidos.trim()}`,
         nivelNombre: niveles.find((n) => n.id === Number(form.nivelActualId))?.nombre ?? "",
       };
       setForm(FORM_INICIAL);
+      setFicha(FICHA_VACIA);
       setDocumentoDisponible(null);
       onGuardado(resumen);
     } catch (error: any) {
@@ -211,13 +241,13 @@ export default function PreinscripcionForm({ niveles, generos, onGuardado, texto
           </Select>
         </div>
         <div>
-          <Label htmlFor="nivel-select">Nivel</Label>
+          <Label htmlFor="nivel-select">Nivel en el club (opcional)</Label>
           <Select
             value={form.nivelActualId ? form.nivelActualId.toString() : ""}
             onValueChange={(value) => setForm({ ...form, nivelActualId: Number(value) })}
           >
             <SelectTrigger id="nivel-select" className="w-full">
-              <SelectValue placeholder="Seleccionar nivel" />
+              <SelectValue placeholder="Se define tras evaluar" />
             </SelectTrigger>
             <SelectContent>
               {niveles.map((nivel) => (
@@ -232,6 +262,10 @@ export default function PreinscripcionForm({ niveles, generos, onGuardado, texto
           <Label>Contacto Emergencia</Label>
           <Input name="contactoEmergencia" value={form.contactoEmergencia} onChange={handleInputChange} />
         </div>
+      </div>
+      <div className="rounded-md border p-4 space-y-3">
+        <h3 className="font-semibold">Experiencia y tallas</h3>
+        <FichaDeportivaForm value={ficha} onChange={setFicha} catalogo={catalogo} />
       </div>
       <div className="flex justify-end">
         <Button onClick={guardar} disabled={guardando}>

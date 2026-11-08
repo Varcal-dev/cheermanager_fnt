@@ -19,7 +19,8 @@ export interface Deportista {
   estadoId: number;
   estadoNombre: string;
   nivelActualId: number;
-  nivelNombre: string;
+  /** null si el deportista aún no tiene nivel en el club (se asigna tras evaluar). */
+  nivelNombre: string | null;
   convenioId: number | null;
   convenioNombre: string | null;
   grupos: string[];

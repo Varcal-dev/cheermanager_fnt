@@ -68,7 +68,7 @@ export default function DeportistasPage() {
   const filtrados = deportistas.filter((d) => {
     const coincide =
       d.nombre.toLowerCase().includes(termino) ||
-      d.nivelNombre.toLowerCase().includes(termino) ||
+      (d.nivelNombre ?? "").toLowerCase().includes(termino) ||
       d.grupos.some((g) => g.toLowerCase().includes(termino));
     return selectedEstados.length > 0 ? coincide && selectedEstados.includes(d.estadoId) : coincide;
   });

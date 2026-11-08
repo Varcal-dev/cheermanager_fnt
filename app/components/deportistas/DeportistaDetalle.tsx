@@ -11,6 +11,7 @@ import ImprimirAutorizacionesButton from "./ImprimirAutorizacionesButton";
 import CopiaDatosButtons from "./CopiaDatosButtons";
 import AnonimizarTitularButton from "./AnonimizarTitularButton";
 import PagosDeportistaPanel from "./PagosDeportistaPanel";
+import FichaDeportivaPanel from "./FichaDeportivaPanel";
 import HistorialDeportista from "./historial/HistorialDeportista";
 
 interface Props {
@@ -41,6 +42,7 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
     <Tabs defaultValue="info" className="w-full">
       <TabsList>
         <TabsTrigger value="info">Información Personal</TabsTrigger>
+        <TabsTrigger value="ficha">Ficha deportiva</TabsTrigger>
         <TabsTrigger value="historial">Historial</TabsTrigger>
         <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
         <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
@@ -84,6 +86,10 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
             </div>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="ficha" className="mt-4">
+        <FichaDeportivaPanel deportistaId={deportista.deportistaId} />
       </TabsContent>
 
       <TabsContent value="historial" className="mt-4">

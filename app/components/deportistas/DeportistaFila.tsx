@@ -64,7 +64,7 @@ export default function DeportistaFila({
         </TableCell>
         <TableCell>{calcularEdad(deportista.fechaNacimiento)} años</TableCell>
         <TableCell>{deportista.genero}</TableCell>
-        <TableCell>{deportista.nivelNombre}</TableCell>
+        <TableCell>{deportista.nivelNombre ?? "Sin nivel"}</TableCell>
         <TableCell>
           {deportista.grupos?.map((grupo, index) => (
             <Badge key={index} variant="outline" className="mr-1">
@@ -107,7 +107,7 @@ export default function DeportistaFila({
                   router.push(
                     `/inscripciones?matricular=${deportista.deportistaId}&nombre=${encodeURIComponent(
                       nombreCompleto,
-                    )}&nivel=${encodeURIComponent(deportista.nivelNombre)}`,
+                    )}&nivel=${encodeURIComponent(deportista.nivelNombre ?? "")}`,
                   )
                 }
               >

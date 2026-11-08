@@ -192,6 +192,7 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: FileText,
       },
       { href: "/descuentos", label: "Descuentos", icon: DollarSign },
+      { href: "/uniformes", label: "Uniformes", icon: ShoppingBag },
       { href: "/convenios", label: "Convenios", icon: FileText },
       { href: "/facturas", label: "Facturas", icon: FileText },
       { href: "/pagos", label: "Pagos", icon: CreditCard },
