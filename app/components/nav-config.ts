@@ -89,6 +89,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       // Deportistas sin consentimiento vigente (Ley 1581). El permiso lo valida la propia página.
       { href: "/consentimientos", label: "Consentimientos", icon: ShieldCheck },
+      { href: "/comunicados", label: "Comunicados y calendario", icon: Inbox },
       { href: "/solicitudes-titular", label: "Consultas y reclamos", icon: ShieldCheck },
       // Importación masiva de deportistas y exportes en CSV (la página valida importar_deportistas / exportar_listados).
       { href: "/importar-exportar", label: "Importar y exportar", icon: FileSpreadsheet },
