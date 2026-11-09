@@ -141,6 +141,11 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Eventos y Competencias",
         icon: Award,
       },
+      {
+        href: "/ranking",
+        label: "Ranking e historial",
+        icon: Trophy,
+      },
     ],
   },
   {
