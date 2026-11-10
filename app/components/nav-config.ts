@@ -27,6 +27,7 @@ import {
   FileSpreadsheet,
   Wallet,
   ListChecks,
+  HeartPulse,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -82,6 +83,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/gestion-entrenadores", label: "Certificaciones y horas", icon: ClipboardList },
       { href: "/carnet", label: "Carnet", icon: QrCode },
       { href: "/vencimientos", label: "Vencimientos", icon: ClipboardList },
+      { href: "/lesiones", label: "Lesiones y retorno", icon: HeartPulse },
       {
         href: "/historial-medico",
         label: "Historial Médico",
@@ -147,6 +149,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Ranking e historial",
         icon: Trophy,
       },
+      { href: "/rosters", label: "Rosters de competencia", icon: ListChecks },
     ],
   },
   {
