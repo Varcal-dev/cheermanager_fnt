@@ -228,6 +228,7 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Settings,
     permission: "ver_dash_administracion",
     items: [
+      { href: "/plan-y-datos", label: "Plan y mis datos", icon: CreditCard },
       { href: "/usuarios", label: "Usuarios", icon: Users },
       { href: "/roles", label: "Roles y Permisos", icon: Lock },
       { href: "/auditoria", label: "Auditoría", icon: Shield, funcion: "AUDITORIA" },
