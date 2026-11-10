@@ -32,6 +32,7 @@ export interface ResumenSuscripcion {
   limiteEfectivo: number | null; // null = ilimitado
   deportistasActivos: number;
   notas: string | null;
+  cupoExtraPaquetes: number; // deportistas que suman los paquetes vigentes (ya incluidos en limiteEfectivo)
 }
 
 export interface ActualizarSuscripcion {

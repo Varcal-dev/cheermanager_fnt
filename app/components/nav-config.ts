@@ -12,6 +12,7 @@ import {
   Settings,
   UserPlus,
   MapPin,
+  Package,
   Plane,
   Layers,
   ClipboardList,
@@ -48,6 +49,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   status?: "ready" | "soon";
+  /** Función del plan que la habilita (V39). Si el plan del club no la trae, la entrada se oculta del menú. */
+  funcion?: string;
 }
 
 export interface NavSection {
@@ -82,7 +85,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/deportistas", label: "Deportistas", icon: UserPlus },
       { href: "/entrenadores", label: "Entrenadores", icon: Users },
-      { href: "/gestion-entrenadores", label: "Certificaciones y horas", icon: ClipboardList },
+      { href: "/gestion-entrenadores", label: "Certificaciones y horas", icon: ClipboardList, funcion: "GESTION_ENTRENADORES" },
       { href: "/carnet", label: "Carnet", icon: QrCode },
       { href: "/vencimientos", label: "Vencimientos", icon: ClipboardList },
       { href: "/interesados", label: "Pre-inscripciones", icon: UserPlus },
@@ -134,7 +137,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Asistencias",
         icon: ClipboardList
       },
-      { href: "/sedes", label: "Sedes y espacios", icon: MapPin },
+      { href: "/sedes", label: "Sedes y espacios", icon: MapPin, funcion: "MULTISEDE" },
     ],
   },
   {
@@ -152,9 +155,10 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/ranking",
         label: "Ranking e historial",
         icon: Trophy,
+        funcion: "RANKING",
       },
-      { href: "/rosters", label: "Rosters de competencia", icon: ListChecks },
-      { href: "/viajes", label: "Viajes a competencia", icon: Plane },
+      { href: "/rosters", label: "Rosters de competencia", icon: ListChecks, funcion: "ROSTER" },
+      { href: "/viajes", label: "Viajes a competencia", icon: Plane, funcion: "VIAJES" },
     ],
   },
   {
@@ -170,7 +174,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3 },
       { href: "/objetivos", label: "Objetivos", icon: Target},
-      { href: "/evaluacion-rutina", label: "Rutinas", icon: BarChart3 },
+      { href: "/evaluacion-rutina", label: "Rutinas", icon: BarChart3, funcion: "RUBRICA_RUTINAS" },
       { href: "/habilidades", label: "Habilidades", icon: Award },
       // Rúbrica global de rutinas: la ven todos los clubes; solo la plataforma (configurar_rubrica) la edita.
       { href: "/rubrica", label: "Rúbrica", icon: ListChecks },
@@ -182,8 +186,8 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: ShoppingBag,
     permission: "ver_dash_tienda",
     items: [  
-      { href: "/inventario", label: "Inventario", icon: ClipboardList },
-      { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+      { href: "/inventario", label: "Inventario", icon: ClipboardList, funcion: "TIENDA" },
+      { href: "/ventas", label: "Ventas", icon: ShoppingCart, funcion: "TIENDA" },
     ],
   },
   {
@@ -210,12 +214,12 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { href: "/descuentos", label: "Descuentos", icon: DollarSign },
       { href: "/uniformes", label: "Uniformes", icon: ShoppingBag },
-      { href: "/convenios", label: "Convenios", icon: FileText },
+      { href: "/convenios", label: "Convenios", icon: FileText, funcion: "CONVENIOS" },
       { href: "/facturas", label: "Facturas", icon: FileText },
       { href: "/pagos", label: "Pagos", icon: CreditCard },
       // Cierre de caja diario y conciliación con el extracto del banco (la página valida ver_caja / conciliar_pagos).
       { href: "/caja", label: "Caja", icon: Wallet },
-      { href: "/conciliacion", label: "Conciliación", icon: ListChecks },
+      { href: "/conciliacion", label: "Conciliación", icon: ListChecks, funcion: "CONCILIACION_BANCARIA" },
     ],
   },
   {
@@ -226,7 +230,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/usuarios", label: "Usuarios", icon: Users },
       { href: "/roles", label: "Roles y Permisos", icon: Lock },
-      { href: "/auditoria", label: "Auditoría", icon: Shield },
+      { href: "/auditoria", label: "Auditoría", icon: Shield, funcion: "AUDITORIA" },
     ],
   },
   // Solo el superadmin de la plataforma (permiso gestionar_clubes): es TODO lo que ve. Clubes, sus usuarios,
@@ -239,6 +243,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ambito: "plataforma",
     items: [
       { href: "/clubes", label: "Clubes", icon: Building2 },
+      { href: "/clubes/paquetes", label: "Paquetes de cupo", icon: Package },
       { href: "/rubrica", label: "Rúbrica global", icon: ListChecks },
       { href: "/usuarios", label: "Equipo de plataforma", icon: Users },
     ],
