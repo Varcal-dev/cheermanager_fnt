@@ -11,6 +11,7 @@ import {
   Shield,
   Settings,
   UserPlus,
+  MapPin,
   Layers,
   ClipboardList,
   Trophy,
@@ -132,6 +133,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Asistencias",
         icon: ClipboardList
       },
+      { href: "/sedes", label: "Sedes y espacios", icon: MapPin },
     ],
   },
   {
