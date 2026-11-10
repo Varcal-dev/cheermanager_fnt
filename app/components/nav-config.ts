@@ -12,6 +12,7 @@ import {
   Settings,
   UserPlus,
   MapPin,
+  Plane,
   Layers,
   ClipboardList,
   Trophy,
@@ -153,6 +154,7 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Trophy,
       },
       { href: "/rosters", label: "Rosters de competencia", icon: ListChecks },
+      { href: "/viajes", label: "Viajes a competencia", icon: Plane },
     ],
   },
   {
