@@ -83,6 +83,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/gestion-entrenadores", label: "Certificaciones y horas", icon: ClipboardList },
       { href: "/carnet", label: "Carnet", icon: QrCode },
       { href: "/vencimientos", label: "Vencimientos", icon: ClipboardList },
+      { href: "/interesados", label: "Pre-inscripciones", icon: UserPlus },
       { href: "/lesiones", label: "Lesiones y retorno", icon: HeartPulse },
       {
         href: "/historial-medico",
