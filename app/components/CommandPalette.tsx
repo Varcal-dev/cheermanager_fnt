@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/command";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/lib/api";
-import { HOME_ITEM, NAV_SECTIONS } from "./nav-config";
+import { useFunciones } from "@/app/lib/funciones";
+import { HOME_ITEM, NAV_SECTIONS, visibleItems } from "./nav-config";
 
 interface DeportistaResultado {
   deportistaId: number;
@@ -29,7 +30,8 @@ export default function CommandPalette() {
   const [deportistas, setDeportistas] = useState<DeportistaResultado[]>([]);
   const [buscando, setBuscando] = useState(false);
   const router = useRouter();
-  const { permissions } = useUser();
+  const { permissions, esPlataforma } = useUser();
+  const { incluye } = useFunciones();
 
   // Atajo global: Cmd+K en Mac, Ctrl+K en Windows/Linux. Funciona sin
   // importar en qué página esté parado el usuario.
@@ -74,11 +76,13 @@ export default function CommandPalette() {
     router.push(href);
   };
 
-  const paginasVisibles = NAV_SECTIONS.flatMap((section) =>
-    permissions.includes(section.permission)
-      ? section.items.filter((item) => item.status !== "soon")
-      : [],
-  );
+  // Mismas reglas que el sidebar: ámbito (club / plataforma), permiso de cada entrada y función del plan.
+  const secciones = NAV_SECTIONS.filter((s) => (s.ambito === "plataforma") === esPlataforma)
+    .map((section) => ({
+      section,
+      items: visibleItems(section, permissions, incluye).filter((item) => item.status !== "soon"),
+    }))
+    .filter((s) => s.items.length > 0);
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
@@ -117,22 +121,32 @@ export default function CommandPalette() {
           </>
         )}
 
-        <CommandGroup heading="Páginas">
+        <CommandGroup heading="General">
           <CommandItem value={HOME_ITEM.label} onSelect={() => ir(HOME_ITEM.href)}>
             <HOME_ITEM.icon />
             <span>{HOME_ITEM.label}</span>
           </CommandItem>
-          {paginasVisibles.map((item) => (
-            <CommandItem
-              key={item.href}
-              value={item.label}
-              onSelect={() => ir(item.href)}
-            >
-              <item.icon />
-              <span>{item.label}</span>
-            </CommandItem>
-          ))}
         </CommandGroup>
+
+        {/* Una lista por sección. El texto de búsqueda incluye la sección y las palabras clave
+            ("talla", "mora", "lesión"…), así que se encuentra una página por lo que hace, no solo por su nombre. */}
+        {secciones.map(({ section, items }) => (
+          <CommandGroup key={section.id} heading={section.label}>
+            {items.map((item) => (
+              <CommandItem
+                key={`${section.id}-${item.href}`}
+                value={`${item.label} ${item.grupo ?? ""} ${section.label} ${item.keywords ?? ""}`}
+                onSelect={() => ir(item.href)}
+              >
+                <item.icon />
+                <span>{item.label}</span>
+                {item.grupo && (
+                  <span className="ml-auto text-xs text-muted-foreground">{item.grupo}</span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ))}
       </CommandList>
     </CommandDialog>
   );

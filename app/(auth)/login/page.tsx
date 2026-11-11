@@ -98,7 +98,7 @@ export default function LoginPage() {
             />
           </div>
           <CardTitle className="text-2xl font-bold text-primary">
-            Cheer Gym
+            CheerManager
           </CardTitle>
           <CardDescription>
             Ingrese sus credenciales para acceder al sistema
