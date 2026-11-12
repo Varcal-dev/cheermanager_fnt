@@ -171,6 +171,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/asistencias", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista" },
       { href: "/asistencias/escaneo", label: "Asistencia con carnet", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista" },
+      { href: "/asistencia-personal", label: "Asistencia del personal", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "entrenadores entrada salida horas carnet staff" },
       { href: "/horarios", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana" },
       { href: "/grupos", label: "Grupos y equipos", icon: Users, permission: P_ORG, grupo: "Día a día", keywords: "equipos integrantes" },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3, permission: P_EVAL, grupo: "Progreso", keywords: "puntajes progresión" },
