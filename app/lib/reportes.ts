@@ -58,3 +58,36 @@ export async function descargarExporte(tipo: TipoExporte, desde: string, hasta: 
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+// ── Análisis histórico mensual (permiso ver_dash_organizacion) ──
+export interface MesAnalisis {
+  mes: string;
+  altas: number;
+  sesiones: number;
+  asistidas: number;
+  tasaAsistencia: number | null;
+  deportistasActivos: number;
+  retencion: number | null;
+  promedioEvaluacion: number | null;
+  evaluaciones: number;
+  cobrado: number;
+}
+export interface RiesgoAsistencia {
+  deportistaId: number;
+  nombre: string;
+  sesiones: number;
+  asistidas: number;
+  tasa: number;
+}
+export interface Analisis {
+  desde: string;
+  hasta: string;
+  resumen: { altas: number; tasaAsistencia: number | null; retencionPromedio: number | null; promedioEvaluacion: number | null; cobrado: number };
+  meses: MesAnalisis[];
+  enRiesgo: RiesgoAsistencia[];
+}
+
+export async function obtenerAnalisis(desde: string, hasta: string): Promise<Analisis> {
+  const { data } = await api.get("/api/reportes/analisis", { params: { desde, hasta } });
+  return data;
+}

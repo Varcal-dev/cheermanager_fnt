@@ -249,6 +249,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Configuración",
     icon: Settings,
     items: [
+      { href: "/analisis", label: "Análisis histórico", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva", keywords: "tendencias retención asistencia evolución histórico métricas" },
       { href: "/temporadas", label: "Temporadas", icon: CalendarRange, permission: P_ORG, grupo: "Estructura deportiva" },
       { href: "/estructura-deportiva", label: "Niveles y categorías", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva", keywords: "niveles divisiones categorías por nivel fedecolcheer" },
       { href: "/sedes", label: "Sedes y espacios", icon: MapPin, permission: P_HORARIOS, funcion: "MULTISEDE", grupo: "Estructura deportiva", keywords: "salones ubicación" },
