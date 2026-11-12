@@ -24,8 +24,8 @@ interface Estado {
 
 // A dónde llevar al usuario para resolver cada paso.
 const ENLACES: Record<string, string> = {
-  niveles: "/niveles",
-  divisiones: "/divisiones",
+  niveles: "/estructura-deportiva?tab=niveles",
+  divisiones: "/estructura-deportiva?tab=divisiones",
   tiposPlan: "/tipos-planes-pago",
   planes: "/planes-mensualidad",
   temporada: "/temporadas",

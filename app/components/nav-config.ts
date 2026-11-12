@@ -13,7 +13,6 @@ import {
   MapPin,
   Package,
   Plane,
-  Layers,
   ClipboardList,
   Trophy,
   Target,
@@ -25,7 +24,6 @@ import {
   CalendarRange,
   ShieldCheck,
   UserCircle,
-  Inbox,
   FileSpreadsheet,
   Wallet,
   ListChecks,
@@ -155,13 +153,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: "pre-inscripciones clase de prueba lista de espera prospectos",
       },
       {
-        href: "/solicitudes-inscripcion",
-        label: "Solicitudes de inscripción",
-        icon: Inbox,
+        href: "/inscripciones",
+        label: "Inscripciones y solicitudes",
+        icon: FileText,
         badge: "solicitudesInscripcion",
-        keywords: "renovaciones portal aprobar rechazar",
+        keywords: "matrícula matricular membresías renovaciones portal aprobar rechazar solicitudes",
       },
-      { href: "/inscripciones", label: "Inscripciones", icon: FileText, keywords: "matrícula matricular membresías" },
     ],
   },
 
@@ -173,6 +170,7 @@ export const NAV_SECTIONS: NavSection[] = [
     permission: P_HORARIOS,
     items: [
       { href: "/asistencias", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista" },
+      { href: "/asistencias/escaneo", label: "Asistencia con carnet", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista" },
       { href: "/horarios", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana" },
       { href: "/grupos", label: "Grupos y equipos", icon: Users, permission: P_ORG, grupo: "Día a día", keywords: "equipos integrantes" },
       { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3, permission: P_EVAL, grupo: "Progreso", keywords: "puntajes progresión" },
@@ -238,6 +236,7 @@ export const NAV_SECTIONS: NavSection[] = [
       // Cierre de caja diario y conciliación con el extracto del banco (la página valida ver_caja / conciliar_pagos).
       { href: "/caja", label: "Caja", icon: Wallet, grupo: "Cobros", keywords: "cierre de caja efectivo" },
       { href: "/conciliacion", label: "Conciliación", icon: ListChecks, funcion: "CONCILIACION_BANCARIA", grupo: "Cobros", keywords: "extracto banco" },
+      { href: "/reportes", label: "Reportes", icon: BarChart3, permission: "generar_reporte_financiero", grupo: "Cobros", keywords: "informe exportar csv excel ingresos cartera mora facturado cobrado" },
       { href: "/ventas", label: "Ventas", icon: ShoppingCart, permission: P_TIENDA, funcion: "TIENDA", grupo: "Tienda y uniformes" },
       { href: "/inventario", label: "Inventario", icon: Package, permission: P_TIENDA, funcion: "TIENDA", grupo: "Tienda y uniformes", keywords: "stock productos" },
       { href: "/uniformes", label: "Uniformes", icon: Shirt, grupo: "Tienda y uniformes", keywords: "tallas pedido cuotas" },
@@ -251,9 +250,7 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Settings,
     items: [
       { href: "/temporadas", label: "Temporadas", icon: CalendarRange, permission: P_ORG, grupo: "Estructura deportiva" },
-      { href: "/niveles", label: "Niveles", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva" },
-      { href: "/divisiones", label: "Divisiones", icon: Layers, permission: P_ORG, grupo: "Estructura deportiva" },
-      { href: "/categorias-nivel", label: "Categorías por nivel", icon: Layers, permission: P_ORG, grupo: "Estructura deportiva" },
+      { href: "/estructura-deportiva", label: "Niveles y categorías", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva", keywords: "niveles divisiones categorías por nivel fedecolcheer" },
       { href: "/sedes", label: "Sedes y espacios", icon: MapPin, permission: P_HORARIOS, funcion: "MULTISEDE", grupo: "Estructura deportiva", keywords: "salones ubicación" },
       { href: "/criterios-evaluacion", label: "Criterios de evaluación", icon: ClipboardList, permission: P_EVAL, grupo: "Estructura deportiva" },
       // Rúbrica global de rutinas: la ven todos los clubes; solo la plataforma (configurar_rubrica) la edita.

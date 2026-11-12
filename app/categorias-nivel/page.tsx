@@ -1,4 +1,6 @@
-import { CategoriasView } from "@/app/components/categorias-nivel/categorias-view";
-export default function CategoriasNivelPage() {
-  return <CategoriasView />
+import { redirect } from "next/navigation";
+
+// Ruta anterior: ahora vive en una pantalla con pestañas.
+export default function Redireccion() {
+  redirect("/estructura-deportiva?tab=categorias");
 }
