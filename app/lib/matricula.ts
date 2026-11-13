@@ -17,6 +17,8 @@ export interface GrupoElegible {
   cupoMaximo: number | null;
   elegible: boolean;
   motivo: string | null;
+  sesionesSemanales?: number;
+  sesionesPlan?: number | null;
 }
 
 export interface EstadoMatricula {

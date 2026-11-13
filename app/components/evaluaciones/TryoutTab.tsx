@@ -46,6 +46,7 @@ function PlantillaDialog({
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState("");
   const [nivel, setNivel] = useState("todos");
+  const [categoriaHab, setCategoriaHab] = useState("todas");
   const [guardando, setGuardando] = useState(false);
 
   // Al abrir: precarga la plantilla. Las selecciones previas se reconstruyen por nombre de criterio.
@@ -56,6 +57,7 @@ function PlantillaDialog({
     setModalidad(plantilla?.modalidad ?? SIN);
     setBusca("");
     setNivel("todos");
+    setCategoriaHab("todas");
     setSel(new Set());
   }, [abierto, plantilla]);
 
@@ -96,12 +98,21 @@ function PlantillaDialog({
   }, [catalogo]);
 
   const niveles = useMemo(() => [...new Set((catalogo?.habilidades ?? []).map((h) => h.nivel))], [catalogo]);
+  const categoriasHab = useMemo(
+    () => [...new Set((catalogo?.habilidades ?? []).map((h) => h.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [catalogo],
+  );
   const habilidades = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return (catalogo?.habilidades ?? [])
-      .filter((h) => (nivel === "todos" || h.nivel === nivel) && (!q || `${h.codigo} ${h.nombre}`.toLowerCase().includes(q)))
+      .filter(
+        (h) =>
+          (nivel === "todos" || h.nivel === nivel) &&
+          (categoriaHab === "todas" || h.categoria === categoriaHab) &&
+          (!q || `${h.codigo} ${h.nombre}`.toLowerCase().includes(q)),
+      )
       .slice(0, 150);
-  }, [catalogo, busca, nivel]);
+  }, [catalogo, busca, nivel, categoriaHab]);
 
   // Criterios propios del club, sin los generados desde rúbrica/habilidades.
   const propios = criteriosClub.filter((c) => !c.categoria.startsWith("Rúbrica") && c.categoria !== "Habilidades");
@@ -156,6 +167,9 @@ function PlantillaDialog({
           </div>
         </div>
         <p className="text-xs text-muted-foreground">Novice no aplica: no usa esta rúbrica. Seleccionados: {sel.size}</p>
+        <p className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+          Al evaluar, cada criterio se califica con un número entero de <strong>0</strong> (no lo logra) a <strong>{PUNTAJE_MAXIMO}</strong> (ejecución perfecta).
+        </p>
 
         <Tabs defaultValue="rubrica">
           <TabsList>
@@ -194,7 +208,17 @@ function PlantillaDialog({
                   {niveles.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={categoriaHab} onValueChange={setCategoriaHab}>
+                <SelectTrigger className="w-48" aria-label="Categoría de habilidad"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las categorías</SelectItem>
+                  {categoriasHab.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {habilidades.length} habilidad(es){habilidades.length === 150 ? " (mostrando las primeras 150: afina con la búsqueda o los filtros)" : ""}. Los filtros no quitan lo ya marcado.
+            </p>
             <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-2">
               {habilidades.map((h) => (
                 <label key={h.id} className="flex items-start gap-2 text-sm">
@@ -290,6 +314,10 @@ function EvaluarPlantilla({ plantilla, grupos }: { plantilla: Plantilla; grupos:
           <Input type="date" value={fecha} max={hoyLocal()} onChange={(e) => setFecha(e.target.value)} />
         </div>
       </div>
+      <p className="rounded-md bg-muted/50 p-2 text-sm text-muted-foreground">
+        Cómo calificar: escribe un número entero de <strong>0</strong> (mínimo, no lo logra) a <strong>{PUNTAJE_MAXIMO}</strong> (máximo,
+        ejecución perfecta). Deja la celda vacía si no evalúas ese criterio. El promedio solo cuenta los criterios calificados.
+      </p>
       {miembros.length > 0 && (
         <Card>
           <CardContent className="overflow-x-auto p-0">
@@ -315,6 +343,8 @@ function EvaluarPlantilla({ plantilla, grupos }: { plantilla: Plantilla; grupos:
                         <TableCell key={c.criterioId} className="text-center">
                           <Input
                             inputMode="numeric"
+                            placeholder={`0-${PUNTAJE_MAXIMO}`}
+                            aria-label={`${m.nombre}: ${c.nombre} (0 a ${PUNTAJE_MAXIMO})`}
                             className={`mx-auto h-8 w-16 text-center ${v !== "" && !valido(v) ? "border-destructive" : ""}`}
                             value={v}
                             onChange={(e) => setNotas((p) => ({ ...p, [k]: e.target.value.replace(/[^0-9]/g, "") }))}
@@ -335,7 +365,7 @@ function EvaluarPlantilla({ plantilla, grupos }: { plantilla: Plantilla; grupos:
           <Button onClick={enviar} disabled={enviando || llenas.length === 0 || hayInvalidas || !fecha}>
             {enviando ? "Guardando…" : `Guardar ${llenas.length} nota(s)`}
           </Button>
-          <span className="text-xs text-muted-foreground">Puntaje entero de 0 a {PUNTAJE_MAXIMO}. Las celdas vacías no se guardan.</span>
+          <span className="text-xs text-muted-foreground">Las celdas vacías no se guardan. Un número fuera de 0–{PUNTAJE_MAXIMO} se marca en rojo y bloquea el guardado.</span>
         </div>
       )}
     </div>

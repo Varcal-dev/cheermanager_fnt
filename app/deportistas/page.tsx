@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ const ENCABEZADOS = ["Nombre", "Edad", "Género", "Nivel", "Grupos", "Estado", "
 
 export default function DeportistasPage() {
   const { permissions } = useUser();
+  const router = useRouter();
   const { deportistas, niveles, generos, estados, planesPago, noInscritos, recargar, recargarNoInscritos } =
     useDeportistasData();
 
@@ -32,6 +33,7 @@ export default function DeportistasPage() {
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
+  const [soloSinMatricular, setSoloSinMatricular] = useState(false);
   useEffect(() => {
     const q = searchParams.get("search");
     if (q) setSearchTerm(q);
@@ -64,13 +66,17 @@ export default function DeportistasPage() {
   const toggleEstado = (estadoId: number) =>
     setSelectedEstados((prev) => (prev.includes(estadoId) ? prev.filter((id) => id !== estadoId) : [...prev, estadoId]));
 
+  // Sin matricular = registrado, no retirado y sin inscripción.
+  const sinMatricular = deportistas.filter((d) => noInscritos.has(d.deportistaId) && d.estadoNombre !== "Retirado");
+
   const termino = searchTerm.toLowerCase();
   const filtrados = deportistas.filter((d) => {
     const coincide =
       d.nombre.toLowerCase().includes(termino) ||
       (d.nivelNombre ?? "").toLowerCase().includes(termino) ||
       d.grupos.some((g) => g.toLowerCase().includes(termino));
-    return selectedEstados.length > 0 ? coincide && selectedEstados.includes(d.estadoId) : coincide;
+    const porEstado = selectedEstados.length > 0 ? coincide && selectedEstados.includes(d.estadoId) : coincide;
+    return soloSinMatricular ? porEstado && noInscritos.has(d.deportistaId) && d.estadoNombre !== "Retirado" : porEstado;
   });
 
   return (
@@ -92,6 +98,29 @@ export default function DeportistasPage() {
             </Button>
           )}
         </div>
+
+        {sinMatricular.length > 0 && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm"
+          >
+            <p>
+              <strong>{sinMatricular.length}</strong>{" "}
+              {sinMatricular.length === 1 ? "deportista registrado no está matriculado" : "deportistas registrados no están matriculados"}
+              : sin inscripción no se les factura ni entran a un grupo.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant={soloSinMatricular ? "default" : "outline"} onClick={() => setSoloSinMatricular((v) => !v)}>
+                {soloSinMatricular ? "Ver todos" : "Ver solo sin matricular"}
+              </Button>
+              {permissions.includes("gestionar_inscripciones") && (
+                <Button size="sm" onClick={() => router.push("/inscripciones")}>
+                  Ir a Inscripciones
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-between mb-4">
           <div className="relative flex items-center w-full max-w-sm">

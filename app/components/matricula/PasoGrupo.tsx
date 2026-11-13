@@ -22,6 +22,7 @@ export default function PasoGrupo({
   const [elegibles, setElegibles] = useState<GrupoElegible[]>([]);
   const [noElegibles, setNoElegibles] = useState<GrupoElegible[]>([]);
   const [mostrarNoElegibles, setMostrarNoElegibles] = useState(false);
+  const planSesiones = [...elegibles, ...noElegibles].find((g) => g.sesionesPlan != null)?.sesionesPlan ?? null;
 
   useEffect(() => {
     setCargando(true);
@@ -48,6 +49,12 @@ export default function PasoGrupo({
 
   return (
     <div className="space-y-3">
+      {planSesiones != null && (
+        <p className="rounded-md border bg-muted/40 p-2 text-sm">
+          Matriculado en un plan de <strong>{planSesiones}</strong> {planSesiones === 1 ? "sesión" : "sesiones"} por semana: solo se
+          muestran como elegibles los grupos que entrenan esa cantidad de días.
+        </p>
+      )}
       {elegibles.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center">
           No hay grupos elegibles para el nivel de este deportista todavía.
@@ -66,6 +73,7 @@ export default function PasoGrupo({
                   <p className="text-sm text-gray-600">
                     {g.categoriaNivel}
                     {g.cupoMaximo != null ? ` · cupo ${g.cupoActual}/${g.cupoMaximo}` : ""}
+                    {g.sesionesSemanales ? ` · ${g.sesionesSemanales} ${g.sesionesSemanales === 1 ? "día" : "días"}/semana` : ""}
                   </p>
                 </div>
               </div>

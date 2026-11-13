@@ -64,6 +64,11 @@ interface DeportistaDisponible {
   nombre_completo: string;
   nivel: string;
 }
+interface NoInscrito {
+  deportistaId: number;
+  nombreCompleto: string;
+  nivel: string | null;
+}
 interface InscripcionDetalle {
   inscripcion_id: number;
   deportista_id: number;
@@ -268,6 +273,35 @@ export default function InscripcionesPantalla({ embebido = false }: { embebido?:
     fetchInscripciones();
   }, []);
 
+  // Deportistas registrados que aún no tienen inscripción (para matricularlos desde aquí).
+  const [noInscritos, setNoInscritos] = useState<NoInscrito[]>([]);
+  const [noInscritosAbierto, setNoInscritosAbierto] = useState(true);
+  const [inscritosAbierto, setInscritosAbierto] = useState(true);
+  const fetchNoInscritos = () => {
+    api
+      .get<NoInscrito[]>("/api/inscripciones/no-inscritos")
+      .then((res) => setNoInscritos(res.data))
+      .catch(() => toast.error("No se pudo cargar la lista de deportistas sin inscribir"));
+  };
+  useEffect(() => {
+    fetchNoInscritos();
+  }, []);
+  const alCompletarMatricula = () => {
+    fetchInscripciones();
+    fetchNoInscritos();
+  };
+  const matricularNoInscrito = (d: NoInscrito) => {
+    setEstadoInicialWizard(
+      estadoParaDeportistaPreseleccionado({
+        deportista_id: d.deportistaId,
+        nombre_completo: d.nombreCompleto,
+        nivel: d.nivel ?? "",
+      }),
+    );
+    setWizardKey((k) => k + 1);
+    setWizardOpen(true);
+  };
+
   const sinGrupoCount = inscripciones.filter((i) => !i.grupo_asignado).length;
 
   // Filtrar inscripciones por término de búsqueda, estado y grupo
@@ -351,6 +385,55 @@ export default function InscripcionesPantalla({ embebido = false }: { embebido?:
           </div>
         </div>
 
+        <Card className={noInscritos.length > 0 ? "border-warning/50" : undefined}>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+            aria-expanded={noInscritosAbierto}
+            onClick={() => setNoInscritosAbierto((v) => !v)}
+          >
+            <span className="flex items-center gap-2 font-display font-semibold">
+              {noInscritosAbierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              Sin inscribir
+              <Badge variant={noInscritos.length > 0 ? "warning" : "secondary"}>{noInscritos.length}</Badge>
+            </span>
+            <span className="text-xs text-muted-foreground">Registrados que aún no tienen inscripción</span>
+          </button>
+          {noInscritosAbierto && (
+            <CardContent className="space-y-2 pt-0">
+              {noInscritos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Todos los deportistas registrados están inscritos.</p>
+              ) : (
+                noInscritos
+                  .filter((d) => d.nombreCompleto.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map((d) => (
+                    <div key={d.deportistaId} className="flex items-center justify-between rounded-md border p-2">
+                      <div>
+                        <p className="font-medium">{d.nombreCompleto}</p>
+                        <p className="text-xs text-muted-foreground">{d.nivel ?? "Sin nivel"}</p>
+                      </div>
+                      <Button size="sm" onClick={() => matricularNoInscrito(d)}>
+                        <UserPlus className="mr-1 h-4 w-4" /> Matricular
+                      </Button>
+                    </div>
+                  ))
+              )}
+            </CardContent>
+          )}
+        </Card>
+
+        <button
+          type="button"
+          className="flex items-center gap-2 font-display font-semibold"
+          aria-expanded={inscritosAbierto}
+          onClick={() => setInscritosAbierto((v) => !v)}
+        >
+          {inscritosAbierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          Inscritos
+          <Badge variant="secondary">{inscripciones.length}</Badge>
+        </button>
+
+        {inscritosAbierto && (
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -692,6 +775,7 @@ export default function InscripcionesPantalla({ embebido = false }: { embebido?:
             </Table>
           </CardContent>
         </Card>
+        )}
       </div>
 
       <RegistrarPagoModal
@@ -707,7 +791,7 @@ export default function InscripcionesPantalla({ embebido = false }: { embebido?:
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         estadoInicial={estadoInicialWizard}
-        onCompletado={fetchInscripciones}
+        onCompletado={alCompletarMatricula}
       />
 
       <EditarInscripcionModal

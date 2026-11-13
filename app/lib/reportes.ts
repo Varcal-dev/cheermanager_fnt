@@ -71,6 +71,8 @@ export interface MesAnalisis {
   promedioEvaluacion: number | null;
   evaluaciones: number;
   cobrado: number;
+  bajas: number;
+  reingresos: number;
 }
 export interface RiesgoAsistencia {
   deportistaId: number;
@@ -82,9 +84,10 @@ export interface RiesgoAsistencia {
 export interface Analisis {
   desde: string;
   hasta: string;
-  resumen: { altas: number; tasaAsistencia: number | null; retencionPromedio: number | null; promedioEvaluacion: number | null; cobrado: number };
+  resumen: { altas: number; tasaAsistencia: number | null; retencionPromedio: number | null; promedioEvaluacion: number | null; cobrado: number; bajas: number; reingresos: number };
   meses: MesAnalisis[];
   enRiesgo: RiesgoAsistencia[];
+  motivosBaja: { motivo: string; cantidad: number }[];
 }
 
 export async function obtenerAnalisis(desde: string, hasta: string): Promise<Analisis> {

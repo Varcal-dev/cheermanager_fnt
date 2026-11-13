@@ -73,9 +73,16 @@ export default function DeportistaFila({
           ))}
         </TableCell>
         <TableCell>
-          <Badge variant={deportista.estadoNombre === "Activo" ? "success" : "secondary"}>
-            {deportista.estadoNombre}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant={deportista.estadoNombre === "Activo" ? "success" : "secondary"}>
+              {deportista.estadoNombre}
+            </Badge>
+            {sinInscripcion && !retirado && (
+              <Badge variant="warning" title="Aún no tiene inscripción: no se le factura ni entra a un grupo">
+                Sin matricular
+              </Badge>
+            )}
+          </div>
         </TableCell>
         <TableCell>
           <div className="flex space-x-2">

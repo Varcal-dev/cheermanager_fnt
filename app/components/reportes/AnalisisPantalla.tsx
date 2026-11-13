@@ -94,8 +94,9 @@ export default function AnalisisPantalla() {
         <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>
       ) : datos && r ? (
         <div className={cargando ? "space-y-6 opacity-60" : "space-y-6"} aria-busy={cargando}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Kpi titulo="Deportistas nuevos" valor={String(r.altas)} nota="por fecha de inscripción" />
+            <Kpi titulo="Bajas" valor={String(r.bajas)} nota={`${r.reingresos} reingreso(s)`} />
             <Kpi titulo="Asistencia" valor={pct(r.tasaAsistencia)} nota="Presente + Tarde sobre sesiones registradas" />
             <Kpi titulo="Retención mensual" valor={pct(r.retencionPromedio)} nota="entrenaron el mes anterior y este" />
             <Kpi titulo="Promedio de evaluación" valor={r.promedioEvaluacion === null ? "—" : r.promedioEvaluacion.toFixed(2)} nota="escala 0 a 10" />
@@ -125,7 +126,7 @@ export default function AnalisisPantalla() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Altas y deportistas que entrenan</CardTitle>
+                <CardTitle className="text-base">Altas, bajas y deportistas que entrenan</CardTitle>
                 <CardDescription>Entrenan = asistieron al menos una vez en el mes.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -139,6 +140,7 @@ export default function AnalisisPantalla() {
                       <Legend />
                       <Bar dataKey="deportistasActivos" name="Entrenan" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="altas" name="Altas" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="bajas" name="Bajas" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -154,6 +156,7 @@ export default function AnalisisPantalla() {
                   <TableRow>
                     <TableHead>Mes</TableHead>
                     <TableHead className="text-right">Altas</TableHead>
+                    <TableHead className="text-right">Bajas</TableHead>
                     <TableHead className="text-right">Entrenan</TableHead>
                     <TableHead className="text-right">Sesiones</TableHead>
                     <TableHead className="text-right">Asistencia</TableHead>
@@ -167,6 +170,7 @@ export default function AnalisisPantalla() {
                     <TableRow key={m.mes}>
                       <TableCell>{m.etiqueta}</TableCell>
                       <TableCell className="text-right">{m.altas}</TableCell>
+                      <TableCell className="text-right">{m.bajas}</TableCell>
                       <TableCell className="text-right">{m.deportistasActivos}</TableCell>
                       <TableCell className="text-right">{m.sesiones}</TableCell>
                       <TableCell className="text-right">{pct(m.tasaAsistencia)}</TableCell>
@@ -179,6 +183,27 @@ export default function AnalisisPantalla() {
               </Table>
             </CardContent>
           </Card>
+
+          {datos.motivosBaja.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Motivos de baja</CardTitle>
+                <CardDescription>Motivo escrito al retirar al deportista (máx. 10).</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableBody>
+                    {datos.motivosBaja.map((x) => (
+                      <TableRow key={x.motivo}>
+                        <TableCell>{x.motivo}</TableCell>
+                        <TableCell className="text-right">{x.cantidad}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

@@ -16,11 +16,23 @@ import { CalendarDays, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import { DeportistaDisponible, FECHA_VALIDA, FECHA_MAXIMA } from "@/app/lib/matricula";
+import { formatCOP } from "@/app/lib/facturas-pagos";
 
 interface PlanPago {
   id: number;
   nombre: string;
+  valorMensual?: number | null;
+  descuentoPorcentaje?: number | null;
+  sesionesSemanales?: number | null;
 }
+
+// Valor del plan con su descuento propio aplicado (si lo tiene).
+const valorNeto = (p?: PlanPago) => {
+  if (!p || p.valorMensual == null) return null;
+  const d = p.descuentoPorcentaje ?? 0;
+  return Math.round(p.valorMensual * (1 - d / 100));
+};
+const textoCosto = (p: PlanPago) => (p.valorMensual == null ? "" : ` — ${formatCOP(valorNeto(p) ?? 0)}`);
 interface Convenio {
   id: number;
   nombreEmpresa: string;
@@ -86,6 +98,13 @@ export default function PasoPlanPago({
     [planesInscripcion, planSeleccionado],
   );
 
+  const mensualidadActual = useMemo(
+    () => planesMensualidad.find((p) => String(p.id) === planMensualidadSeleccionado),
+    [planesMensualidad, planMensualidadSeleccionado],
+  );
+  const costoInscripcion = valorNeto(planActual);
+  const costoMensualidad = valorNeto(mensualidadActual);
+
   const handleSubmit = async () => {
     if (!planSeleccionado) {
       toast.error("Selecciona un plan de inscripción");
@@ -130,6 +149,7 @@ export default function PasoPlanPago({
             {planesInscripcion.map((plan) => (
               <SelectItem key={plan.id} value={String(plan.id)}>
                 {plan.nombre}
+                {textoCosto(plan)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -149,6 +169,8 @@ export default function PasoPlanPago({
             {planesMensualidad.map((plan) => (
               <SelectItem key={plan.id} value={String(plan.id)}>
                 {plan.nombre}
+                {textoCosto(plan)}
+                {plan.sesionesSemanales ? ` · ${plan.sesionesSemanales} ses./sem.` : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -190,9 +212,36 @@ export default function PasoPlanPago({
       </div>
 
       {planActual && (
-        <p className="text-xs text-muted-foreground">
-          Se inscribirá con el plan {planActual.nombre}, vigente hasta el {fechaVencimiento}.
-        </p>
+        <div className="space-y-1.5 rounded-md border bg-muted/40 p-3 text-sm" aria-live="polite">
+          <p className="font-medium">Costo</p>
+          <div className="flex justify-between">
+            <span>Inscripción · {planActual.nombre}</span>
+            <span className="font-medium">{costoInscripcion === null ? "Sin valor definido" : formatCOP(costoInscripcion)}</span>
+          </div>
+          {mensualidadActual && (
+            <div className="flex justify-between">
+              <span>
+                Mensualidad · {mensualidadActual.nombre}
+                {mensualidadActual.sesionesSemanales ? ` (${mensualidadActual.sesionesSemanales} sesiones por semana)` : ""}
+              </span>
+              <span className="font-medium">
+                {costoMensualidad === null ? "Sin valor definido" : `${formatCOP(costoMensualidad)} / mes`}
+              </span>
+            </div>
+          )}
+          {[planActual.descuentoPorcentaje, mensualidadActual?.descuentoPorcentaje].some((d) => d) && (
+            <p className="text-xs text-muted-foreground">Los valores ya incluyen el descuento propio de cada plan.</p>
+          )}
+          {convenioSeleccionado && (
+            <p className="text-xs text-muted-foreground">El convenio elegido puede aplicar un descuento adicional al facturar.</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Vigente hasta el {fechaVencimiento}.
+            {mensualidadActual?.sesionesSemanales
+              ? ` En el siguiente paso solo podrás asignarlo a un grupo que entrene ${mensualidadActual.sesionesSemanales} ${mensualidadActual.sesionesSemanales === 1 ? "día" : "días"} por semana.`
+              : ""}
+          </p>
+        </div>
       )}
 
       <div className="flex justify-between pt-2">
