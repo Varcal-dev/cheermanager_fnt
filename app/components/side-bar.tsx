@@ -4,7 +4,7 @@ import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -20,22 +20,38 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/context/UserContext";
-import { useFunciones } from "@/app/lib/funciones";
 import {
   HOME_ITEM,
   PORTAL_ITEM,
-  NAV_SECTIONS,
   findNavItemForPath,
   groupItems,
-  visibleItems,
-  type BadgeKey,
   type NavItem,
   type NavSection,
 } from "./nav-config";
-import { useNavBadges, type Badges, type TonoBadge, type ValorBadge } from "./nav-badges";
+import { sumarBadges, useNav } from "./nav-context";
+import type { TonoBadge, ValorBadge } from "./nav-badges";
 
 const COLLAPSE_STORAGE_KEY = "ratels-sidebar-collapsed";
 const OPEN_STORAGE_KEY = "cheermanager-sidebar-open";
+
+// Tablet (768–1023 px): el menú es un riel de íconos de 64 px y, al tocar el botón de abajo, se expande
+// ENCIMA del contenido (no lo empuja: en una tablet vertical no sobra ancho). En escritorio (≥ 1024 px)
+// se comporta como siempre. En teléfono (< 768 px) no se dibuja: ahí navega la barra inferior.
+const TABLET_QUERY = "(min-width: 768px) and (max-width: 1023px)";
+
+function suscribirTablet(cb: () => void) {
+  const mq = window.matchMedia(TABLET_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function useEsTablet() {
+  return useSyncExternalStore(
+    suscribirTablet,
+    () => window.matchMedia(TABLET_QUERY).matches,
+    () => false,
+  );
+}
 
 // Botón de navegación propio del sidebar: usa los tokens sidebar-* (panel
 // oscuro) en vez del Button genérico con variant="secondary"/"ghost", que
@@ -60,7 +76,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors max-lg:py-3",
         active
           ? "bg-sidebar-accent text-sidebar-primary"
           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
@@ -75,21 +91,6 @@ function NavButton({
       {children}
     </button>
   );
-}
-
-const PRIORIDAD_TONO: Record<TonoBadge, number> = { info: 0, aviso: 1, peligro: 2 };
-
-/** Suma los contadores de varias entradas; el tono es el más urgente. */
-function sumarBadges(items: NavItem[], badges: Badges): ValorBadge | null {
-  let n = 0;
-  let tono: TonoBadge = "info";
-  for (const item of items) {
-    const v = item.badge ? badges[item.badge] : undefined;
-    if (!v) continue;
-    n += v.n;
-    if (PRIORIDAD_TONO[v.tono] > PRIORIDAD_TONO[tono]) tono = v.tono;
-  }
-  return n > 0 ? { n, tono } : null;
 }
 
 const CLASES_TONO: Record<TonoBadge, string> = {
@@ -122,25 +123,16 @@ function Subtitulo({ children }: { children: React.ReactNode }) {
 
 const Sidebar = () => {
   const pathname = usePathname();
-  const { permissions, esPlataforma } = useUser();
-  const { incluye } = useFunciones();
+  const { permissions } = useUser();
+  const { secciones, badges } = useNav();
+  const esTablet = useEsTablet();
   const [openSections, setOpenSections] = useState<string[]>([]);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedPref, setCollapsed] = useState(false);
+  const [tabletAbierto, setTabletAbierto] = useState(false);
   const [hidratado, setHidratado] = useState(false);
 
-  // El superadmin solo ve el menú de plataforma; los usuarios de club, solo el de su club.
-  // Una sección se dibuja si al menos una de sus entradas es visible (permiso + función del plan).
-  const secciones = useMemo(
-    () =>
-      NAV_SECTIONS.filter((s) => (s.ambito === "plataforma") === esPlataforma)
-        .map((section) => ({ section, items: visibleItems(section, permissions, incluye) }))
-        .filter((s) => s.items.length > 0),
-    [permissions, esPlataforma, incluye]
-  );
-
-  // Contadores: solo los de entradas visibles.
-  const clavesBadge = secciones.flatMap((s) => s.items.map((i) => i.badge).filter(Boolean) as BadgeKey[]);
-  const badges = useNavBadges(clavesBadge, pathname);
+  // En tablet manda el riel (se expande solo a pedido); en escritorio, la preferencia guardada del usuario.
+  const collapsed = esTablet ? !tabletAbierto : collapsedPref;
 
   // Recuerda si el usuario prefiere el sidebar colapsado y qué secciones tenía abiertas, entre sesiones.
   useEffect(() => {
@@ -157,12 +149,24 @@ const Sidebar = () => {
   useEffect(() => {
     if (!hidratado) return;
     try {
-      localStorage.setItem(COLLAPSE_STORAGE_KEY, String(collapsed));
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, String(collapsedPref));
       localStorage.setItem(OPEN_STORAGE_KEY, JSON.stringify(openSections));
     } catch {
       // ignorar
     }
-  }, [collapsed, openSections, hidratado]);
+  }, [collapsedPref, openSections, hidratado]);
+
+  // El riel expandido de tablet se cierra al navegar, con Escape, o al salir de tablet.
+  useEffect(() => {
+    setTabletAbierto(false);
+  }, [pathname, esTablet]);
+
+  useEffect(() => {
+    if (!tabletAbierto) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setTabletAbierto(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [tabletAbierto]);
 
   // La entrada activa es la de href más específico: "/clubes/paquetes" no enciende también "/clubes".
   const activo = findNavItemForPath(pathname);
@@ -180,7 +184,7 @@ const Sidebar = () => {
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, esPlataforma, secciones.length]);
+  }, [pathname, secciones.length]);
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) =>
@@ -274,10 +278,21 @@ const Sidebar = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
+      {/* Reserva 64 px en tablet; el aside se superpone al expandirse. */}
+      <div className="relative hidden shrink-0 md:flex md:w-16 lg:w-auto print:hidden">
+      {esTablet && tabletAbierto && (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          onClick={() => setTabletAbierto(false)}
+          className="fixed inset-0 z-30 bg-black/40"
+        />
+      )}
       <aside
         className={cn(
-          "h-screen overflow-y-auto flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200",
-          collapsed ? "w-16" : "w-64"
+          "flex flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:absolute md:inset-y-0 md:left-0 md:z-40 lg:static lg:z-auto",
+          collapsed ? "w-16" : "w-64",
+          esTablet && tabletAbierto && "shadow-2xl"
         )}
       >
         <nav className="px-3 py-4 flex-1" aria-label="Navegación principal">
@@ -362,14 +377,15 @@ const Sidebar = () => {
         <div className="px-3 py-3 border-t border-sidebar-border">
           <NavButton
             icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={() => (esTablet ? setTabletAbierto((v) => !v) : setCollapsed((v) => !v))}
             className={collapsed ? "justify-center" : ""}
             title={collapsed ? "Expandir menú" : "Colapsar menú"}
           >
-            {!collapsed && "Colapsar menú"}
+            {!collapsed && (esTablet ? "Cerrar menú" : "Colapsar menú")}
           </NavButton>
         </div>
       </aside>
+      </div>
     </TooltipProvider>
   );
 };

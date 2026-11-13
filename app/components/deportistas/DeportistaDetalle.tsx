@@ -23,7 +23,7 @@ interface Props {
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2">
+    <div className="grid grid-cols-2 gap-2">
       <span className="text-muted-foreground">{etiqueta}</span>
       <span>{valor}</span>
     </div>
@@ -40,7 +40,9 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
 
   return (
     <Tabs defaultValue="info" className="w-full">
-      <TabsList>
+      {/* En teléfono las 7 pestañas no caben: la lista se desliza de lado. */}
+      <div className="overflow-x-auto pb-1">
+      <TabsList className="w-max justify-start">
         <TabsTrigger value="info">Información Personal</TabsTrigger>
         <TabsTrigger value="ficha">Ficha deportiva</TabsTrigger>
         <TabsTrigger value="historial">Historial</TabsTrigger>
@@ -49,6 +51,7 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
         {verPagos && <TabsTrigger value="pagos">Pagos</TabsTrigger>}
         {verAcudientes && <TabsTrigger value="acudientes">Acudientes y consentimientos</TabsTrigger>}
       </TabsList>
+      </div>
 
       <TabsContent value="info" className="mt-4">
         {exportarDatos && (
@@ -65,7 +68,7 @@ export default function DeportistaDetalle({ deportista, niveles, planesPago, onN
             />
           </div>
         )}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <h4 className="font-semibold mb-2">Datos Personales</h4>
             <div className="space-y-2">

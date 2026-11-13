@@ -126,11 +126,11 @@ export default function EditarDeportistaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none">
+        <DialogHeader className="px-4 pb-2 pt-4 sm:px-6 sm:pt-6 max-sm:pr-12">
           <DialogTitle>Editar Deportista</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-6 py-4 overflow-y-auto flex-1">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <div className="flex items-center gap-2 mb-3">
             <Label className="text-base font-display font-semibold text-foreground">Estado del Deportista</Label>
           </div>

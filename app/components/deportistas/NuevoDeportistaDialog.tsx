@@ -19,12 +19,12 @@ export default function NuevoDeportistaDialog({ open, onOpenChange, niveles, gen
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* El formulario (datos + ficha deportiva) es más alto que muchas pantallas: la cabecera queda fija y el cuerpo
           hace scroll, igual que en EditarDeportistaDialog. */}
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none">
+        <DialogHeader className="px-4 pb-2 pt-4 sm:px-6 sm:pt-6 max-sm:pr-12">
           <DialogTitle>Registrar Nuevo Deportista</DialogTitle>
           <DialogDescription>Completa el formulario para agregar un nuevo deportista al sistema.</DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <PreinscripcionForm
             niveles={niveles}
             generos={generos}

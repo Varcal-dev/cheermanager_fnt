@@ -51,6 +51,9 @@ const PALETA = [
 
 const HOUR_HEIGHT = 56; // px por hora
 
+// getDay(): 0 = domingo. Día que se abre por defecto en la vista de teléfono.
+const KEY_POR_GETDAY = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+
 // Franjas del día: un horario pertenece a la franja en la que EMPIEZA.
 type Franja = "todas" | "manana" | "tarde" | "noche";
 const FRANJAS: { valor: Franja; etiqueta: string; ayuda: string }[] = [
@@ -130,6 +133,8 @@ export default function CalendarioSemanal({
   const [franja, setFranja] = useState<Franja>("todas");
   const [soloDiasConClases, setSoloDiasConClases] = useState(false);
   const [descargando, setDescargando] = useState(false);
+  // Vista de teléfono: un día a la vez (la semana completa no cabe en 360 px).
+  const [diaMovil, setDiaMovil] = useState<string>(() => KEY_POR_GETDAY[new Date().getDay()]);
 
   // Grupos y colores salen de TODOS los horarios: un grupo conserva su color al filtrar
   // y el selector siempre ofrece todas las opciones.
@@ -219,6 +224,16 @@ export default function CalendarioSemanal({
     [soloDiasConClases, eventosPorDia],
   );
 
+  const diaSel = dias.some((d) => d.key === diaMovil) ? diaMovil : dias[0]?.key;
+  const agendaDia = useMemo(
+    () =>
+      [...(eventosPorDia.get(diaSel ?? "") ?? [])].sort(
+        (a, b) => toMinutos(a.horaInicio) - toMinutos(b.horaInicio) || toMinutos(a.horaFin) - toMinutos(b.horaFin),
+      ),
+    [eventosPorDia, diaSel],
+  );
+  const hoyKey = KEY_POR_GETDAY[new Date().getDay()];
+
   // Pulsar un grupo en la leyenda equivale a elegirlo en el selector; volver a pulsarlo lo quita.
   const alternarGrupo = (grupoId: number) =>
     setGrupoFiltro((actual) => (actual === String(grupoId) ? TODOS : String(grupoId)));
@@ -266,12 +281,12 @@ export default function CalendarioSemanal({
     <Card>
       <CardContent className="pt-6 space-y-4">
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-          <div className="space-y-1">
+          <div className="w-full space-y-1 sm:w-auto">
             <Label htmlFor="cal-grupo" className="text-xs text-muted-foreground">
               Grupo
             </Label>
             <Select value={grupoActivo} onValueChange={setGrupoFiltro}>
-              <SelectTrigger id="cal-grupo" className="w-52">
+              <SelectTrigger id="cal-grupo" className="w-full sm:w-52">
                 <SelectValue placeholder="Todos los grupos" />
               </SelectTrigger>
               <SelectContent>
@@ -286,11 +301,12 @@ export default function CalendarioSemanal({
             </Select>
           </div>
 
-          <div className="space-y-1">
+          <div className="w-full space-y-1 sm:w-auto">
             <span className="text-xs text-muted-foreground">Franja del día</span>
             <ToggleGroup
               type="single"
               variant="outline"
+              className="flex-wrap justify-start"
               value={franja}
               onValueChange={(v) => setFranja((v || "todas") as Franja)}
               aria-label="Filtrar por franja del día"
@@ -349,7 +365,60 @@ export default function CalendarioSemanal({
             </Button>
           </div>
         ) : (
-        <div className="overflow-x-auto">
+        <>
+        {/* Teléfono: agenda de un día, con selector de día arriba. */}
+        <div className="space-y-3 md:hidden">
+          <div role="tablist" aria-label="Día de la semana" className="grid gap-1" style={{ gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))` }}>
+            {dias.map((d) => {
+              const n = (eventosPorDia.get(d.key) ?? []).length;
+              const sel = d.key === diaSel;
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={sel}
+                  aria-label={`${d.label}: ${n} ${n === 1 ? "entrenamiento" : "entrenamientos"}`}
+                  onClick={() => setDiaMovil(d.key)}
+                  className={cn(
+                    "flex min-h-12 flex-col items-center justify-center rounded-lg border text-xs font-medium transition-colors",
+                    sel ? "border-primary bg-primary text-primary-foreground" : "bg-background",
+                    !sel && d.key === hoyKey && "border-primary text-primary",
+                  )}
+                >
+                  <span>{d.corto}</span>
+                  <span className={cn("mt-1 h-1.5 w-1.5 rounded-full", n > 0 ? (sel ? "bg-primary-foreground" : "bg-primary") : "bg-transparent")} />
+                </button>
+              );
+            })}
+          </div>
+          {agendaDia.length === 0 ? (
+            <p className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
+              Sin entrenamientos este día.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {agendaDia.map((h) => {
+                const nombres = h.grupos.map((g) => g.nombreGrupo);
+                const color =
+                  h.grupos.length > 0
+                    ? colorPorGrupoId.get(h.grupos[0].grupoId)
+                    : "bg-muted text-muted-foreground border-dashed";
+                return (
+                  <li key={h.id} className={cn("rounded-lg border px-3 py-2.5", color)}>
+                    <div className="text-base font-semibold">
+                      {formatHora(h.horaInicio)} – {formatHora(h.horaFin)}
+                    </div>
+                    <div className="text-sm">{nombres.length > 0 ? nombres.join(", ") : "Sin grupo"}</div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Tablet y escritorio: semana completa. */}
+        <div className="hidden overflow-x-auto md:block">
           <div
             className="grid"
             style={{
@@ -446,6 +515,7 @@ export default function CalendarioSemanal({
             })}
           </div>
         </div>
+        </>
         )}
 
         {/* Leyenda de grupos: pulsar uno filtra por ese grupo */}

@@ -32,6 +32,7 @@ import {
   Megaphone,
   Percent,
   Tags,
+  FileSignature,
 } from "lucide-react";
 
 // -----------------------------------------------------------------------------
@@ -80,6 +81,14 @@ export interface NavItem {
   badge?: BadgeKey;
   /** Palabras extra para que la paleta de comandos (Cmd+K) encuentre la página ("talla", "mora", "lesión"…). */
   keywords?: string;
+  /**
+   * Prioridad en la barra inferior del teléfono (menor = antes). La barra muestra Inicio + las 3 entradas
+   * visibles con menor número + "Más", así que cada rol ve sus accesos propios sin configurar nada:
+   * quien no tiene permiso de una entrada simplemente pasa a la siguiente. Sin `movil` = solo aparece en "Más".
+   */
+  movil?: number;
+  /** Etiqueta abreviada para la barra inferior del teléfono (cabe en ~70 px). */
+  corto?: string;
 }
 
 export interface NavSection {
@@ -123,7 +132,7 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Users,
     permission: P_PERSONAS,
     items: [
-      { href: "/deportistas", label: "Deportistas", icon: UserPlus, keywords: "atletas ficha tallas foto acudientes" },
+      { href: "/deportistas", label: "Deportistas", icon: UserPlus, keywords: "atletas ficha tallas foto acudientes", movil: 3 },
       { href: "/entrenadores", label: "Entrenadores", icon: Users, keywords: "coaches staff" },
       {
         href: "/gestion-entrenadores",
@@ -132,7 +141,7 @@ export const NAV_SECTIONS: NavSection[] = [
         funcion: "GESTION_ENTRENADORES",
         keywords: "entrenadores primeros auxilios seguridad horas dictadas",
       },
-      { href: "/carnet", label: "Carnet", icon: QrCode, keywords: "qr credencial verificar" },
+      { href: "/carnet", label: "Carnet", icon: QrCode, keywords: "qr credencial verificar", movil: 8 },
       { href: "/comunicados", label: "Comunicados", icon: Megaphone, keywords: "avisos correo calendario ics mensajes familias" },
     ],
   },
@@ -169,12 +178,12 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Calendar,
     permission: P_HORARIOS,
     items: [
-      { href: "/asistencias", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista" },
-      { href: "/asistencias/escaneo", label: "Asistencia con carnet", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista" },
+      { href: "/asistencias", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista", movil: 10 },
+      { href: "/asistencias/escaneo", label: "Asistencia con carnet", corto: "Asistencia", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista", movil: 1 },
       { href: "/asistencia-personal", label: "Asistencia del personal", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "entrenadores entrada salida horas carnet staff" },
-      { href: "/horarios", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana" },
-      { href: "/grupos", label: "Grupos y equipos", icon: Users, permission: P_ORG, grupo: "Día a día", keywords: "equipos integrantes" },
-      { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3, permission: P_EVAL, grupo: "Progreso", keywords: "puntajes progresión" },
+      { href: "/horarios", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana", movil: 6 },
+      { href: "/grupos", label: "Grupos y equipos", corto: "Grupos", icon: Users, permission: P_ORG, grupo: "Día a día", keywords: "equipos integrantes", movil: 9 },
+      { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3, permission: P_EVAL, grupo: "Progreso", keywords: "puntajes progresión", movil: 4 },
       { href: "/habilidades", label: "Habilidades", icon: Award, permission: P_EVAL, grupo: "Progreso", keywords: "glosario niveles N1 N2 N3 N4 elevaciones gimnasia" },
       { href: "/objetivos", label: "Objetivos", icon: Target, permission: P_EVAL, grupo: "Progreso", keywords: "metas" },
       {
@@ -232,10 +241,10 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: DollarSign,
     permission: P_FINANZAS,
     items: [
-      { href: "/facturas", label: "Facturas", icon: FileText, grupo: "Cobros", badge: "mora", keywords: "cartera mora cobros mensualidades" },
-      { href: "/pagos", label: "Pagos", icon: CreditCard, grupo: "Cobros", keywords: "abonos recordatorios de mora" },
+      { href: "/facturas", label: "Facturas", icon: FileText, grupo: "Cobros", badge: "mora", keywords: "cartera mora cobros mensualidades", movil: 5 },
+      { href: "/pagos", label: "Pagos", icon: CreditCard, grupo: "Cobros", keywords: "abonos recordatorios de mora", movil: 2 },
       // Cierre de caja diario y conciliación con el extracto del banco (la página valida ver_caja / conciliar_pagos).
-      { href: "/caja", label: "Caja", icon: Wallet, grupo: "Cobros", keywords: "cierre de caja efectivo" },
+      { href: "/caja", label: "Caja", icon: Wallet, grupo: "Cobros", keywords: "cierre de caja efectivo", movil: 7 },
       { href: "/conciliacion", label: "Conciliación", icon: ListChecks, funcion: "CONCILIACION_BANCARIA", grupo: "Cobros", keywords: "extracto banco" },
       { href: "/reportes", label: "Reportes", icon: BarChart3, permission: "generar_reporte_financiero", grupo: "Cobros", keywords: "informe exportar csv excel ingresos cartera mora facturado cobrado" },
       { href: "/ventas", label: "Ventas", icon: ShoppingCart, permission: P_TIENDA, funcion: "TIENDA", grupo: "Tienda y uniformes" },
@@ -355,4 +364,41 @@ export function findSectionForPath(pathname: string): NavSection | undefined {
   const item = findNavItemForPath(pathname);
   if (!item) return undefined;
   return NAV_SECTIONS.find((section) => section.items.some((i) => i.href === item.href));
+}
+
+// ── Barra inferior del teléfono ───────────────────────────────────────────────
+
+/**
+ * Accesos de la barra para quien SOLO usa el portal (acudiente / deportista). El portal (/mi) organiza su
+ * contenido en pestañas enlazables por `?tab=`, así que la barra lleva directo a lo que más se abre desde el
+ * teléfono: el estado de cuenta, los horarios y el carnet que se muestra al llegar a entrenar.
+ */
+export const PORTAL_BARRA_ITEMS: NavItem[] = [
+  { href: "/mi", label: "Inicio", icon: Home },
+  { href: "/mi?tab=facturas", label: "Facturas", icon: FileText },
+  { href: "/mi?tab=horarios", label: "Horarios", icon: Calendar },
+  { href: "/mi?tab=carnet", label: "Carnet", icon: QrCode },
+];
+
+/** Aparece en "Más" para quien tiene portal (el aviso de la pantalla también lleva allí). */
+export const PORTAL_AUTORIZACIONES_ITEM: NavItem = {
+  href: "/mi/autorizaciones",
+  label: "Autorizaciones",
+  icon: FileSignature,
+};
+
+/** Cuántas entradas dinámicas lleva la barra además de Inicio y "Más". */
+export const MAX_BARRA_MOVIL = 3;
+
+/**
+ * Entradas de la barra inferior: las `MAX_BARRA_MOVIL` entradas visibles con menor `movil`.
+ * `visibles` ya viene filtrado por permiso, función del plan y ámbito (club / plataforma).
+ */
+export function itemsBarraMovil(visibles: NavItem[]): NavItem[] {
+  const vistos = new Set<string>();
+  return visibles
+    .filter((i) => i.movil !== undefined && i.status !== "soon")
+    .sort((a, b) => (a.movil as number) - (b.movil as number))
+    .filter((i) => (vistos.has(i.href) ? false : (vistos.add(i.href), true)))
+    .slice(0, MAX_BARRA_MOVIL);
 }

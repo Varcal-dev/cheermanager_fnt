@@ -9,14 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TablaResponsiva } from "@/app/components/TablaResponsiva";
 import {
   Plus,
   Search,
@@ -191,14 +184,14 @@ export default function PagosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight">Pagos</h1>
+          <h1 className="text-2xl font-display font-bold tracking-tight sm:text-3xl">Pagos</h1>
           <p className="text-muted-foreground">
             Registra pagos y consulta el saldo pendiente de cada factura
           </p>
         </div>
-        <Button onClick={abrirModalGeneral}>
+        <Button onClick={abrirModalGeneral} className="max-sm:w-full max-sm:min-h-11">
           <Plus className="mr-2 h-4 w-4" /> Registrar pago
         </Button>
       </div>
@@ -244,7 +237,7 @@ export default function PagosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-end gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <div className="grid gap-1.5">
               <label className="text-xs text-muted-foreground">Período</label>
               <Input
@@ -254,7 +247,7 @@ export default function PagosPage() {
                 className="h-9 w-40"
               />
             </div>
-            <Button onClick={handleGenerarCobros} disabled={generandoCobros}>
+            <Button onClick={handleGenerarCobros} disabled={generandoCobros} className="max-sm:w-full max-sm:min-h-11">
               {generandoCobros ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando…
@@ -287,13 +280,13 @@ export default function PagosPage() {
 
       {puedeRecordar && <RecordatoriosMoraCard />}
 
-      <div className="relative flex items-center max-w-sm">
+      <div className="relative flex w-full max-w-sm items-center">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por número de factura o deportista…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 pl-9"
+          className="h-11 pl-9 md:h-9"
         />
       </div>
 
@@ -318,69 +311,41 @@ export default function PagosPage() {
                   No hay facturas con saldo pendiente
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Factura
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Deportista / Persona
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Total
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Pagado
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Saldo
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Estado
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Acciones
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {facturasPendientesFiltradas.map((f) => (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-medium">
-                          {f.numeroFactura}
-                        </TableCell>
-                        <TableCell>
-                          {f.persona.nombre} {f.persona.apellidos}
-                        </TableCell>
-                        <TableCell className="font-figures">{formatCOP(f.total)}</TableCell>
-                        <TableCell className="font-figures text-success">
-                          {formatCOP(f.totalPagado)}
-                        </TableCell>
-                        <TableCell className="font-semibold font-figures text-destructive">
-                          {formatCOP(f.saldoPendiente)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              f.estadoCuenta === "Abono parcial"
-                                ? "outline"
-                                : "destructive"
-                            }
-                          >
-                            {f.estadoCuenta}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" onClick={() => abrirModalParaFactura(f)}>
-                            <CreditCard className="h-4 w-4 mr-1" /> Registrar
-                            pago
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TablaResponsiva
+                  className="p-3 md:p-0"
+                  filas={facturasPendientesFiltradas}
+                  getKey={(f) => f.id}
+                  columnas={[
+                    { clave: "num", titulo: "Factura", movil: "titulo", celda: (f) => <span className="font-medium">{f.numeroFactura}</span> },
+                    { clave: "per", titulo: "Deportista / Persona", movil: "titulo", celda: (f) => `${f.persona.nombre} ${f.persona.apellidos}` },
+                    { clave: "tot", titulo: "Total", celda: (f) => <span className="font-figures">{formatCOP(f.total)}</span> },
+                    { clave: "pag", titulo: "Pagado", celda: (f) => <span className="font-figures text-success">{formatCOP(f.totalPagado)}</span> },
+                    {
+                      clave: "sal",
+                      titulo: "Saldo",
+                      movil: "destacado",
+                      celda: (f) => <span className="font-semibold font-figures text-destructive">{formatCOP(f.saldoPendiente)}</span>,
+                    },
+                    {
+                      clave: "est",
+                      titulo: "Estado",
+                      movil: "destacado",
+                      celda: (f) => (
+                        <Badge variant={f.estadoCuenta === "Abono parcial" ? "outline" : "destructive"}>{f.estadoCuenta}</Badge>
+                      ),
+                    },
+                    {
+                      clave: "acc",
+                      titulo: "Acciones",
+                      movil: "acciones",
+                      celda: (f) => (
+                        <Button size="sm" onClick={() => abrirModalParaFactura(f)} className="max-md:flex-1">
+                          <CreditCard className="h-4 w-4 mr-1" /> Registrar pago
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
               )}
             </CardContent>
           </Card>
@@ -398,93 +363,65 @@ export default function PagosPage() {
                   No hay pagos registrados todavía
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Factura
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Fecha
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Monto
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Tipo
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Método
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Estado
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Saldo restante
-                      </TableHead>
-                      <TableHead className="font-display text-xs uppercase tracking-wide text-muted-foreground">
-                        Acciones
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagosFiltrados.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">
-                          {p.numeroFactura}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(p.fecha).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="font-figures">{formatCOP(p.monto)}</TableCell>
-                        <TableCell>{p.tipoPago}</TableCell>
-                        <TableCell>{p.metodoPago}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              p.estado === "Pagado"
-                                ? "success"
-                                : p.estado === "Pendiente"
-                                ? "outline"
-                                : "destructive"
-                            }
-                          >
-                            {p.estado}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-figures">
-                          {formatCOP(p.saldoPendienteFactura)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            {p.estado !== "Pagado" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={actualizandoId === p.id}
-                                onClick={() => marcarComoPagado(p)}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-1" />{" "}
-                                Marcar pagado
-                              </Button>
-                            )}
-                            {puedeAnularPago && p.estado !== "Anulado" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                title="Anular pago"
-                                disabled={actualizandoId === p.id}
-                                onClick={() => setPagoAAnular(p)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" /> Anular
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TablaResponsiva
+                  className="p-3 md:p-0"
+                  filas={pagosFiltrados}
+                  getKey={(p) => p.id}
+                  columnas={[
+                    { clave: "fac", titulo: "Factura", movil: "titulo", celda: (p) => <span className="font-medium">{p.numeroFactura}</span> },
+                    { clave: "fec", titulo: "Fecha", movil: "titulo", celda: (p) => new Date(p.fecha).toLocaleDateString() },
+                    { clave: "mon", titulo: "Monto", movil: "destacado", celda: (p) => <span className="font-figures">{formatCOP(p.monto)}</span> },
+                    { clave: "tip", titulo: "Tipo", celda: (p) => p.tipoPago },
+                    { clave: "met", titulo: "Método", celda: (p) => p.metodoPago },
+                    {
+                      clave: "est",
+                      titulo: "Estado",
+                      movil: "destacado",
+                      celda: (p) => (
+                        <Badge variant={p.estado === "Pagado" ? "success" : p.estado === "Pendiente" ? "outline" : "destructive"}>
+                          {p.estado}
+                        </Badge>
+                      ),
+                    },
+                    {
+                      clave: "sal",
+                      titulo: "Saldo restante",
+                      celda: (p) => <span className="font-figures">{formatCOP(p.saldoPendienteFactura)}</span>,
+                    },
+                    {
+                      clave: "acc",
+                      titulo: "Acciones",
+                      movil: "acciones",
+                      celda: (p) => (
+                        <div className="flex flex-wrap gap-2 max-md:contents">
+                          {p.estado !== "Pagado" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="max-md:flex-1"
+                              disabled={actualizandoId === p.id}
+                              onClick={() => marcarComoPagado(p)}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar pagado
+                            </Button>
+                          )}
+                          {puedeAnularPago && p.estado !== "Anulado" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="max-md:flex-1"
+                              title="Anular pago"
+                              disabled={actualizandoId === p.id}
+                              onClick={() => setPagoAAnular(p)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" /> Anular
+                            </Button>
+                          )}
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
               )}
             </CardContent>
           </Card>

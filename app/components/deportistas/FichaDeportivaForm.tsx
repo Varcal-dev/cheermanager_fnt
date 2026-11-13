@@ -22,7 +22,7 @@ function ListaHabilidades({ items, marcadas, alternar }: { items: Habilidad[]; m
   return (
     <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
       {items.map((h) => (
-        <label key={h.id} className="flex items-start gap-2 text-sm cursor-pointer">
+        <label key={h.id} className="flex cursor-pointer items-start gap-2 text-sm max-sm:min-h-10 max-sm:py-1">
           <Checkbox checked={marcadas.has(h.id)} onCheckedChange={() => alternar(h.id)} className="mt-0.5" />
           <span>
             {h.nombre}
@@ -66,7 +66,7 @@ export default function FichaDeportivaForm({ value, onChange, catalogo }: Props)
               key={o.t}
               type="button"
               onClick={() => onChange({ ...value, tieneExperiencia: o.v })}
-              className={`h-9 min-w-20 rounded border px-4 text-sm ${
+              className={`h-9 min-w-20 rounded border px-4 text-sm max-sm:h-11 max-sm:min-w-24 ${
                 value.tieneExperiencia === o.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
@@ -98,7 +98,7 @@ export default function FichaDeportivaForm({ value, onChange, catalogo }: Props)
             <div className="flex flex-wrap gap-1.5">
               {NIVELES.map((n) => (
                 <button key={n} type="button" onClick={() => setNivelVista(n)}
-                  className={`rounded-full border px-3 py-1 text-xs ${nivelVista === n ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                  className={`rounded-full border px-3 py-1 text-xs max-sm:min-h-9 max-sm:px-4 ${nivelVista === n ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
                   {n}{marcadasDe(n) > 0 ? ` · ${marcadasDe(n)}` : ""}
                 </button>
               ))}

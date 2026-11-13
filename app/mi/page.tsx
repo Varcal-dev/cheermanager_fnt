@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Printer, Loader2, Send, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/api";
@@ -16,7 +17,7 @@ import PortalCarnet from "@/app/components/portal/PortalCarnet";
 import PortalHorarios from "@/app/components/portal/PortalHorarios";
 import PortalProgreso from "@/app/components/portal/PortalProgreso";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablaResponsiva } from "@/app/components/TablaResponsiva";
 import { formatCOP, formatFecha, type Factura, type Pago } from "@/app/lib/facturas-pagos";
 import {
   descargarCSV,
@@ -60,9 +61,15 @@ function Vacio({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-muted-foreground py-6 text-center">{children}</p>;
 }
 
+const TABS = [
+  "carnet", "horarios", "progreso", "facturas", "pagos", "asistencias", "evaluaciones", "objetivos", "rutinas", "temporada",
+] as const;
+type Tab = (typeof TABS)[number];
+const TAB_INICIAL: Tab = "facturas";
+
 function Acciones({ onCsv, deshabilitado }: { onCsv: () => void; deshabilitado?: boolean }) {
   return (
-    <div className="flex gap-2 justify-end print:hidden">
+    <div className="flex flex-wrap gap-2 justify-end print:hidden">
       <Button size="sm" variant="outline" onClick={onCsv} disabled={deshabilitado}>
         <Download className="h-4 w-4 mr-1" /> Descargar (Excel/CSV)
       </Button>
@@ -73,7 +80,24 @@ function Acciones({ onCsv, deshabilitado }: { onCsv: () => void; deshabilitado?:
   );
 }
 
+// La pestaña activa vive en la URL (/mi?tab=pagos): así la barra inferior del teléfono y los enlaces
+// pueden llevar directo a Facturas, Horarios o Carnet, y "atrás" del navegador se comporta como se espera.
 export default function PortalPage() {
+  return (
+    <Suspense fallback={<Loader2 className="h-5 w-5 animate-spin" />}>
+      <PortalContenido />
+    </Suspense>
+  );
+}
+
+function PortalContenido() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as Tab) : TAB_INICIAL;
+  const cambiarTab = (v: string) => router.replace(`${pathname}?tab=${v}`, { scroll: false });
+
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<string>("");
@@ -136,6 +160,14 @@ export default function PortalPage() {
   useEffect(() => {
     if (seleccionado) cargarDeportista(Number(seleccionado));
   }, [seleccionado, cargarDeportista]);
+
+  // En teléfono la lista de pestañas se desliza de lado: la activa se centra para no quedar fuera de vista.
+  const listaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    listaRef.current
+      ?.querySelector<HTMLElement>('[role="tab"][data-state="active"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [tab, cargando, seleccionado]);
 
   const dep: DeportistaResumen | undefined = perfil?.deportistas.find((d) => String(d.id) === seleccionado);
   const nombreArchivo = (tipo: string) =>
@@ -244,19 +276,21 @@ export default function PortalPage() {
 
             {cargandoDatos && <Loader2 className="h-5 w-5 animate-spin" />}
 
-            <Tabs defaultValue="facturas">
-              <TabsList className="flex-wrap h-auto print:hidden">
-                <TabsTrigger value="carnet">Carnet</TabsTrigger>
-                <TabsTrigger value="horarios">Horarios</TabsTrigger>
-                <TabsTrigger value="progreso">Progreso</TabsTrigger>
-                <TabsTrigger value="facturas">Facturas</TabsTrigger>
-                <TabsTrigger value="pagos">Pagos</TabsTrigger>
-                <TabsTrigger value="asistencias">Asistencia</TabsTrigger>
-                <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
-                <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
-                <TabsTrigger value="rutinas">Rutinas</TabsTrigger>
-                <TabsTrigger value="temporada">Inscripción</TabsTrigger>
+            <Tabs value={tab} onValueChange={cambiarTab}>
+              <div ref={listaRef} className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 print:hidden">
+              <TabsList className="h-auto w-max justify-start">
+                <TabsTrigger className="shrink-0" value="carnet">Carnet</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="horarios">Horarios</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="progreso">Progreso</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="facturas">Facturas</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="pagos">Pagos</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="asistencias">Asistencia</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="evaluaciones">Evaluaciones</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="objetivos">Objetivos</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="rutinas">Rutinas</TabsTrigger>
+                <TabsTrigger className="shrink-0" value="temporada">Inscripción</TabsTrigger>
               </TabsList>
+              </div>
 
               <TabsContent value="carnet">
                 <PortalCarnet deportistaId={Number(seleccionado)} />
@@ -287,37 +321,29 @@ export default function PortalPage() {
                 {facturas.length === 0 ? (
                   <Vacio>Sin facturas.</Vacio>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Factura</TableHead>
-                        <TableHead>Descripción</TableHead>
-                        <TableHead>Emisión</TableHead>
-                        <TableHead>Vence</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Saldo</TableHead>
-                        <TableHead>Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {facturas.map((f) => (
-                        <TableRow key={f.id}>
-                          <TableCell>{f.numeroFactura}</TableCell>
-                          <TableCell>{f.descripcion}</TableCell>
-                          <TableCell>{formatFecha(f.fechaEmision)}</TableCell>
-                          <TableCell>{formatFecha(f.fechaVencimiento)}</TableCell>
-                          <TableCell className="text-right">{formatCOP(f.total)}</TableCell>
-                          <TableCell className="text-right">{formatCOP(f.saldoPendiente ?? 0)}</TableCell>
-                          <TableCell>
-                            <Badge variant={f.estadoCuenta === "EN_MORA" ? "destructive" : f.estadoCuenta === "PAGADA" ? "success" : "secondary"}>
-                              {ETIQUETA_CUENTA[f.estadoCuenta ?? ""] ?? f.estadoCuenta}
-                              {f.estadoCuenta === "EN_MORA" && f.diasMora ? ` · ${f.diasMora} d` : ""}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TablaResponsiva
+                    filas={facturas}
+                    getKey={(f) => f.id}
+                    columnas={[
+                      { clave: "num", titulo: "Factura", movil: "titulo", celda: (f) => f.numeroFactura },
+                      { clave: "desc", titulo: "Descripción", movil: "titulo", celda: (f) => f.descripcion },
+                      { clave: "emi", titulo: "Emisión", celda: (f) => formatFecha(f.fechaEmision) },
+                      { clave: "ven", titulo: "Vence", celda: (f) => formatFecha(f.fechaVencimiento) },
+                      { clave: "tot", titulo: "Total", alinear: "derecha", celda: (f) => formatCOP(f.total) },
+                      { clave: "sal", titulo: "Saldo", alinear: "derecha", movil: "destacado", celda: (f) => formatCOP(f.saldoPendiente ?? 0) },
+                      {
+                        clave: "est",
+                        titulo: "Estado",
+                        movil: "destacado",
+                        celda: (f) => (
+                          <Badge variant={f.estadoCuenta === "EN_MORA" ? "destructive" : f.estadoCuenta === "PAGADA" ? "success" : "secondary"}>
+                            {ETIQUETA_CUENTA[f.estadoCuenta ?? ""] ?? f.estadoCuenta}
+                            {f.estadoCuenta === "EN_MORA" && f.diasMora ? ` · ${f.diasMora} d` : ""}
+                          </Badge>
+                        ),
+                      },
+                    ]}
+                  />
                 )}
               </TabsContent>
 
@@ -335,30 +361,22 @@ export default function PortalPage() {
                 {pagos.length === 0 ? (
                   <Vacio>Sin pagos registrados.</Vacio>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Factura</TableHead>
-                        <TableHead>Método</TableHead>
-                        <TableHead className="text-right">Monto</TableHead>
-                        <TableHead>Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pagos.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell>{formatFecha(p.fecha)}</TableCell>
-                          <TableCell>{p.numeroFactura}</TableCell>
-                          <TableCell>{p.metodoPago}</TableCell>
-                          <TableCell className="text-right">{formatCOP(p.monto)}</TableCell>
-                          <TableCell>
-                            <Badge variant={p.estado === "Anulado" ? "destructive" : "secondary"}>{p.estado}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TablaResponsiva
+                    filas={pagos}
+                    getKey={(p) => p.id}
+                    columnas={[
+                      { clave: "fec", titulo: "Fecha", movil: "titulo", celda: (p) => formatFecha(p.fecha) },
+                      { clave: "fac", titulo: "Factura", celda: (p) => p.numeroFactura },
+                      { clave: "met", titulo: "Método", celda: (p) => p.metodoPago },
+                      { clave: "mon", titulo: "Monto", alinear: "derecha", movil: "destacado", celda: (p) => formatCOP(p.monto) },
+                      {
+                        clave: "est",
+                        titulo: "Estado",
+                        movil: "destacado",
+                        celda: (p) => <Badge variant={p.estado === "Anulado" ? "destructive" : "secondary"}>{p.estado}</Badge>,
+                      },
+                    ]}
+                  />
                 )}
               </TabsContent>
 
@@ -376,28 +394,23 @@ export default function PortalPage() {
                 {asistencias.length === 0 ? (
                   <Vacio>Sin registros de asistencia en los últimos 90 días.</Vacio>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Horario</TableHead>
-                        <TableHead>Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {asistencias.map((a, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{formatFecha(a.fecha)}</TableCell>
-                          <TableCell>
-                            {[a.dia, a.horaInicio && a.horaFin ? `${a.horaInicio.slice(0, 5)}–${a.horaFin.slice(0, 5)}` : null]
-                              .filter(Boolean)
-                              .join(" ")}
-                          </TableCell>
-                          <TableCell>{a.estado}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TablaResponsiva
+                    filas={asistencias}
+                    getKey={(_, i) => i}
+                    columnas={[
+                      { clave: "fec", titulo: "Fecha", movil: "titulo", celda: (a) => formatFecha(a.fecha) },
+                      {
+                        clave: "hor",
+                        titulo: "Horario",
+                        movil: "titulo",
+                        celda: (a) =>
+                          [a.dia, a.horaInicio && a.horaFin ? `${a.horaInicio.slice(0, 5)}–${a.horaFin.slice(0, 5)}` : null]
+                            .filter(Boolean)
+                            .join(" "),
+                      },
+                      { clave: "est", titulo: "Estado", movil: "destacado", celda: (a) => a.estado },
+                    ]}
+                  />
                 )}
               </TabsContent>
 
@@ -415,26 +428,16 @@ export default function PortalPage() {
                 {evaluaciones.length === 0 ? (
                   <Vacio>Sin evaluaciones.</Vacio>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Categoría</TableHead>
-                        <TableHead>Criterio</TableHead>
-                        <TableHead className="text-right">Puntaje</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {evaluaciones.map((e, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{formatFecha(e.fecha)}</TableCell>
-                          <TableCell>{e.categoria}</TableCell>
-                          <TableCell>{e.criterio}</TableCell>
-                          <TableCell className="text-right">{e.puntaje}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TablaResponsiva
+                    filas={evaluaciones}
+                    getKey={(_, i) => i}
+                    columnas={[
+                      { clave: "fec", titulo: "Fecha", celda: (e) => formatFecha(e.fecha) },
+                      { clave: "cat", titulo: "Categoría", celda: (e) => e.categoria },
+                      { clave: "cri", titulo: "Criterio", movil: "titulo", celda: (e) => e.criterio },
+                      { clave: "pun", titulo: "Puntaje", alinear: "derecha", movil: "destacado", celda: (e) => e.puntaje },
+                    ]}
+                  />
                 )}
               </TabsContent>
 
@@ -479,28 +482,17 @@ export default function PortalPage() {
                 {rutinas.length === 0 ? (
                   <Vacio>Sin evaluaciones de rutina para su grupo actual.</Vacio>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Grupo</TableHead>
-                        <TableHead>Nivel</TableHead>
-                        <TableHead>Evento</TableHead>
-                        <TableHead className="text-right">Puntaje</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rutinas.map((r) => (
-                        <TableRow key={r.id}>
-                          <TableCell>{formatFecha(r.fecha)}</TableCell>
-                          <TableCell>{r.grupo}</TableCell>
-                          <TableCell>{r.nivel}</TableCell>
-                          <TableCell>{r.evento}</TableCell>
-                          <TableCell className="text-right">{r.puntajeTotal}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <TablaResponsiva
+                    filas={rutinas}
+                    getKey={(r) => r.id}
+                    columnas={[
+                      { clave: "fec", titulo: "Fecha", celda: (r) => formatFecha(r.fecha) },
+                      { clave: "gru", titulo: "Grupo", celda: (r) => r.grupo },
+                      { clave: "niv", titulo: "Nivel", celda: (r) => r.nivel },
+                      { clave: "eve", titulo: "Evento", movil: "titulo", celda: (r) => r.evento },
+                      { clave: "pun", titulo: "Puntaje", alinear: "derecha", movil: "destacado", celda: (r) => r.puntajeTotal },
+                    ]}
+                  />
                 )}
               </TabsContent>
 
@@ -559,7 +551,7 @@ export default function PortalPage() {
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Mis solicitudes</p>
                     {solicitudes.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                      <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm">
                         <div>
                           <p className="font-medium">
                             {s.temporada}{" "}

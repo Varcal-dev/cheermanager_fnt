@@ -1,20 +1,19 @@
-"use client";
 import type React from "react";
+import type { Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
 
-import Sidebar from "./components/side-bar";
-import { ThemeProvider } from "./components/theme-provider";
-import { TopBar } from "./components/top-bar";
-import { Breadcrumbs } from "./components/Breadcrumbs";
-import CommandPalette from "./components/CommandPalette";
-import AvisoSuscripcion from "./components/AvisoSuscripcion";
-import SoporteBanner from "./components/SoporteBanner";
+import AppShell from "./components/AppShell";
 
-import { UserProvider } from "@/context/UserContext";
-import { usePathname } from "next/navigation";
+// viewport-fit=cover: sin esto el iPhone ignora env(safe-area-inset-bottom) y la barra inferior
+// quedaría debajo de la línea de inicio. Por eso el layout raíz ahora es de servidor (el `viewport`
+// no se puede exportar desde un componente de cliente); toda la lógica de cliente vive en AppShell.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const spaceGrotesk = Space_Grotesk({
@@ -31,13 +30,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isAuthRoute =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/recuperar-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/cambiar-password");
-
   return (
     <html
       lang="es"
@@ -45,33 +37,7 @@ export default function RootLayout({
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <UserProvider>
-            <div className="flex h-screen bg-background flex-col">
-              {!isAuthRoute && <TopBar />}
-              {!isAuthRoute && <CommandPalette />}
-              <div className="flex flex-1 overflow-hidden">
-                {!isAuthRoute && (
-                  <div className="hidden md:block">
-                    <Sidebar />
-                  </div>
-                )}
-                <main className="flex-1 overflow-y-auto p-6 md:p-8">
-                  {!isAuthRoute && <Breadcrumbs />}
-                  {!isAuthRoute && <SoporteBanner />}
-                  {!isAuthRoute && <AvisoSuscripcion />}
-                  {children}
-                </main>
-              </div>
-            </div>
-          </UserProvider>
-        </ThemeProvider>
-        <ToastContainer position="top-right" autoClose={5000} />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

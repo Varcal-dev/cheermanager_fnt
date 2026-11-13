@@ -15,6 +15,7 @@ import ClaveTemporalDialog, { generarClaveTemporal } from "@/app/components/Form
 import DeportistaFila from "@/app/components/deportistas/DeportistaFila";
 import EditarDeportistaDialog from "@/app/components/deportistas/EditarDeportistaDialog";
 import FiltroEstadosDropdown from "@/app/components/deportistas/FiltroEstadosDropdown";
+import DeportistaTarjeta from "@/app/components/deportistas/DeportistaTarjeta";
 import NuevoDeportistaDialog from "@/app/components/deportistas/NuevoDeportistaDialog";
 import ReactivarDeportistaDialog from "@/app/components/deportistas/ReactivarDeportistaDialog";
 import RetirarDeportistaDialog from "@/app/components/deportistas/RetirarDeportistaDialog";
@@ -87,13 +88,13 @@ export default function DeportistasPage() {
         onClose={() => setClaveDeportista(null)}
       />
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-display font-bold tracking-tight">Deportistas</h1>
+            <h1 className="text-2xl font-display font-bold tracking-tight sm:text-3xl">Deportistas</h1>
             <p className="text-muted-foreground">Gestiona la información de los deportistas registrados</p>
           </div>
           {permissions.includes("crear_deportista") && (
-            <Button onClick={() => setNuevoAbierto(true)}>
+            <Button onClick={() => setNuevoAbierto(true)} className="max-sm:min-h-11 max-sm:w-full">
               <Plus className="mr-2 h-4 w-4" /> Nuevo Deportista
             </Button>
           )}
@@ -109,7 +110,7 @@ export default function DeportistasPage() {
               {sinMatricular.length === 1 ? "deportista registrado no está matriculado" : "deportistas registrados no están matriculados"}
               : sin inscripción no se les factura ni entran a un grupo.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 [&_button]:max-sm:min-h-11">
               <Button size="sm" variant={soloSinMatricular ? "default" : "outline"} onClick={() => setSoloSinMatricular((v) => !v)}>
                 {soloSinMatricular ? "Ver todos" : "Ver solo sin matricular"}
               </Button>
@@ -122,14 +123,14 @@ export default function DeportistasPage() {
           </div>
         )}
 
-        <div className="flex justify-between mb-4">
-          <div className="relative flex items-center w-full max-w-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="relative flex w-full items-center sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar deportistas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 pl-9"
+              className="h-11 pl-9 md:h-9"
             />
           </div>
           <div className="flex space-x-2 items-center">
@@ -142,7 +143,38 @@ export default function DeportistasPage() {
           </div>
         </div>
 
-        <Card>
+        {/* Teléfono: tarjetas. Tablet y escritorio: tabla. */}
+        <ul className="space-y-2 md:hidden">
+          {filtrados.length === 0 ? (
+            <li className="rounded-lg border bg-card py-10 text-center text-sm text-muted-foreground">
+              {deportistas.length === 0
+                ? "No hay deportistas inscritos aún."
+                : "Ningún deportista coincide con la búsqueda o los filtros."}
+            </li>
+          ) : (
+            filtrados.map((d) => (
+              <DeportistaTarjeta
+                key={d.deportistaId}
+                deportista={d}
+                expandido={expandidos.includes(d.deportistaId)}
+                sinInscripcion={noInscritos.has(d.deportistaId)}
+                niveles={niveles}
+                planesPago={planesPago}
+                onToggle={() => toggleExpandido(d.deportistaId)}
+                onEditar={() => {
+                  setEditando(d);
+                  setEditarAbierto(true);
+                }}
+                onClave={() => claveTemporalDeDeportista(d.deportistaId)}
+                onRetirar={() => setARetirar(d.deportistaId)}
+                onReactivar={() => setAReactivar({ id: d.deportistaId, nombre: `${d.nombre} ${d.apellidos}` })}
+                onNivelCambiado={recargar}
+              />
+            ))
+          )}
+        </ul>
+
+        <Card className="hidden md:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>

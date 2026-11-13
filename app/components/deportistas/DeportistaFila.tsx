@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, KeyRound, Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { useUser } from "@/context/UserContext";
 import type { PlanPago } from "@/lib/deportistas-historiales";
 import type { Deportista, Nivel } from "@/app/deportistas/types";
 import { calcularEdad } from "@/app/deportistas/utils";
+import DeportistaAcciones from "./DeportistaAcciones";
 import DeportistaDetalle from "./DeportistaDetalle";
 
 interface Props {
@@ -41,8 +40,6 @@ export default function DeportistaFila({
   onReactivar,
   onNivelCambiado,
 }: Props) {
-  const { permissions } = useUser();
-  const router = useRouter();
   const nombreCompleto = `${deportista.nombre} ${deportista.apellidos}`;
   const retirado = deportista.estadoNombre === "Retirado";
 
@@ -85,53 +82,14 @@ export default function DeportistaFila({
           </div>
         </TableCell>
         <TableCell>
-          <div className="flex space-x-2">
-            {permissions.includes("modificar_deportista") && (
-              <Button variant="outline" size="sm" onClick={onEditar}>
-                <Pencil className="h-4 w-4 mr-1" /> Editar
-              </Button>
-            )}
-            {permissions.includes("restablecer_clave_usuario") && (
-              <Button
-                variant="outline"
-                size="sm"
-                title="Generar clave temporal de acceso"
-                onClick={() => {
-                  if (confirm(`¿Generar una clave temporal para ${nombreCompleto}? Reemplaza la clave actual.`)) {
-                    onClave();
-                  }
-                }}
-              >
-                <KeyRound className="h-4 w-4 mr-1" /> Clave
-              </Button>
-            )}
-            {sinInscripcion && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-accent border-accent/30 bg-accent/10 hover:bg-accent/20"
-                onClick={() =>
-                  router.push(
-                    `/inscripciones?matricular=${deportista.deportistaId}&nombre=${encodeURIComponent(
-                      nombreCompleto,
-                    )}&nivel=${encodeURIComponent(deportista.nivelNombre ?? "")}`,
-                  )
-                }
-              >
-                <UserPlus className="h-4 w-4 mr-1" /> Matricular
-              </Button>
-            )}
-            {permissions.includes("eliminar_deportista") && !retirado && (
-              <Button variant="destructive" size="sm" onClick={onRetirar}>
-                <Trash2 className="h-4 w-4 mr-1" /> Retirar
-              </Button>
-            )}
-            {permissions.includes("modificar_deportista") && retirado && (
-              <Button variant="outline" size="sm" onClick={onReactivar}>
-                <RotateCcw className="h-4 w-4 mr-1" /> Reactivar
-              </Button>
-            )}
-          </div>
+          <DeportistaAcciones
+            deportista={deportista}
+            sinInscripcion={sinInscripcion}
+            onEditar={onEditar}
+            onClave={onClave}
+            onRetirar={onRetirar}
+            onReactivar={onReactivar}
+          />
         </TableCell>
       </TableRow>
 

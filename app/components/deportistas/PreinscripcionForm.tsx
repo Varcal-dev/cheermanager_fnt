@@ -268,7 +268,7 @@ export default function PreinscripcionForm({ niveles, generos, onGuardado, texto
         <FichaDeportivaForm value={ficha} onChange={setFicha} catalogo={catalogo} />
       </div>
       <div className="flex justify-end">
-        <Button onClick={guardar} disabled={guardando}>
+        <Button onClick={guardar} disabled={guardando} className="max-sm:min-h-11 max-sm:w-full">
           {guardando ? "Guardando..." : textoBoton}
         </Button>
       </div>
