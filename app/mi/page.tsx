@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PortalCarnet from "@/app/components/portal/PortalCarnet";
+import PortalHorarios from "@/app/components/portal/PortalHorarios";
+import PortalProgreso from "@/app/components/portal/PortalProgreso";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCOP, formatFecha, type Factura, type Pago } from "@/app/lib/facturas-pagos";
@@ -243,6 +246,9 @@ export default function PortalPage() {
 
             <Tabs defaultValue="facturas">
               <TabsList className="flex-wrap h-auto print:hidden">
+                <TabsTrigger value="carnet">Carnet</TabsTrigger>
+                <TabsTrigger value="horarios">Horarios</TabsTrigger>
+                <TabsTrigger value="progreso">Progreso</TabsTrigger>
                 <TabsTrigger value="facturas">Facturas</TabsTrigger>
                 <TabsTrigger value="pagos">Pagos</TabsTrigger>
                 <TabsTrigger value="asistencias">Asistencia</TabsTrigger>
@@ -251,6 +257,18 @@ export default function PortalPage() {
                 <TabsTrigger value="rutinas">Rutinas</TabsTrigger>
                 <TabsTrigger value="temporada">Inscripción</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="carnet">
+                <PortalCarnet deportistaId={Number(seleccionado)} />
+              </TabsContent>
+
+              <TabsContent value="horarios">
+                <PortalHorarios deportistaId={Number(seleccionado)} />
+              </TabsContent>
+
+              <TabsContent value="progreso">
+                <PortalProgreso deportistaId={Number(seleccionado)} />
+              </TabsContent>
 
               <TabsContent value="facturas" className="space-y-3">
                 <Acciones

@@ -26,3 +26,16 @@ export const subirFotoDeportista = (deportistaId: number, archivo: File) => {
   datos.append("archivo", archivo);
   return api.post(`/api/deportistas/${deportistaId}/foto`, datos);
 };
+
+export interface ResultadoEscaneo {
+  registrado: boolean;
+  yaRegistrado: boolean;
+  nombre: string;
+  grupos: string[];
+  mensaje: string;
+  advertencia: string | null;
+}
+
+/** Marca "Presente" al escanear un carnet en un horario (fecha por defecto: hoy). Exige `registrar_asistencia`. */
+export const escanearAsistencia = (codigo: string, horarioId: number, fecha?: string) =>
+  api.post<ResultadoEscaneo>("/api/asistencias/escaneo", { codigo, horarioId, fecha }).then((r) => r.data);

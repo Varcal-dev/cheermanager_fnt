@@ -2,6 +2,7 @@
 
 import { api } from "@/lib/api";
 import type { Factura, Pago } from "@/app/lib/facturas-pagos";
+import type { Carnet } from "@/app/lib/carnet";
 
 // ---------- Tipos del portal (solo lectura) ----------
 
@@ -95,8 +96,24 @@ const de = (id: number, ruta: string) => `/api/portal/deportistas/${id}/${ruta}`
 
 export const portalFacturas = async (id: number): Promise<Factura[]> => (await api.get(de(id, "facturas"))).data ?? [];
 export const portalPagos = async (id: number): Promise<Pago[]> => (await api.get(de(id, "pagos"))).data ?? [];
-export const portalAsistencias = async (id: number): Promise<AsistenciaItem[]> =>
-  (await api.get(de(id, "asistencias"))).data ?? [];
+// Sin fechas, el back devuelve los últimos 90 días.
+export const portalAsistencias = async (id: number, desde?: string, hasta?: string): Promise<AsistenciaItem[]> =>
+  (await api.get(de(id, "asistencias"), { params: { desde, hasta } })).data ?? [];
+
+export interface HorarioItem {
+  grupoId: number;
+  grupo: string;
+  dia: string | null;
+  horaInicio: string | null; // "HH:mm"
+  horaFin: string | null;
+}
+export const portalHorarios = async (id: number): Promise<HorarioItem[]> =>
+  (await api.get(de(id, "horarios"))).data ?? [];
+
+/** Carnet con el mismo QR firmado que ve el club. */
+export const portalCarnet = async (id: number): Promise<Carnet> => (await api.get<Carnet>(de(id, "carnet"))).data;
+export const portalFoto = (id: number): Promise<Blob> =>
+  api.get<Blob>(de(id, "foto"), { responseType: "blob" }).then((r) => r.data);
 export const portalEvaluaciones = async (id: number): Promise<EvaluacionItem[]> =>
   (await api.get(de(id, "evaluaciones"))).data ?? [];
 export const portalObjetivos = async (id: number): Promise<ObjetivoItem[]> =>
