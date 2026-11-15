@@ -10,6 +10,8 @@ import { BellRing, Eye, Loader2, Save, Send, MessageCircle, Mail, Monitor, X } f
 import { toast } from "react-toastify";
 import { api, getErrorMessage } from "@/lib/api";
 import { formatCOP } from "@/app/lib/facturas-pagos";
+import { useFunciones } from "@/app/lib/funciones";
+import { EtiquetaPlan, descripcionPlan } from "@/app/components/plan-lock";
 
 interface CanalesDisponibles {
   sistema: boolean;
@@ -73,6 +75,10 @@ const sumar = (m: Record<string, number>) => Object.values(m).reduce((a, b) => a
  * se avisaría (vista previa) y envía. También guarda el envío automático diario del club.
  */
 export default function RecordatoriosMoraCard() {
+  // Función del plan (RECORDATORIOS_MORA): sin ella los envíos y la configuración se muestran con candado y desactivados.
+  const { info } = useFunciones();
+  const infoPlan = info("RECORDATORIOS_MORA");
+  const bloqueado = infoPlan?.estado === "BLOQUEADA";
   const [cargando, setCargando] = useState(true);
   const [disponibles, setDisponibles] = useState<CanalesDisponibles>({
     sistema: true,
@@ -178,6 +184,7 @@ export default function RecordatoriosMoraCard() {
         <CardTitle className="text-base font-display flex items-center gap-2">
           <BellRing className="h-4 w-4" />
           Recordatorios de mora
+          {infoPlan && infoPlan.estado !== "PLENA" && <EtiquetaPlan info={infoPlan} />}
         </CardTitle>
         <CardDescription>
           Avisa al deportista y a sus acudientes de las facturas vencidas, un solo mensaje por persona con todas sus
@@ -185,6 +192,11 @@ export default function RecordatoriosMoraCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {infoPlan && infoPlan.estado !== "PLENA" && (
+          <p role="status" className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+            {descripcionPlan(infoPlan)}. {bloqueado ? "Los envíos y la configuración están desactivados." : "Puedes consultar, pero no enviar ni cambiar la configuración."}
+          </p>
+        )}
         <div className="space-y-2">
           <p className="text-sm font-medium">Enviar por</p>
           <label className="flex items-start gap-2 text-sm">
@@ -236,7 +248,7 @@ export default function RecordatoriosMoraCard() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => ejecutar(true)} disabled={trabajando !== "" || sinCanal}>
+          <Button variant="outline" size="sm" onClick={() => ejecutar(true)} disabled={trabajando !== "" || sinCanal || bloqueado}>
             {trabajando === "previa" ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
             ) : (
@@ -244,7 +256,7 @@ export default function RecordatoriosMoraCard() {
             )}
             Vista previa
           </Button>
-          <Button size="sm" onClick={confirmarEnvio} disabled={trabajando !== "" || sinCanal}>
+          <Button size="sm" onClick={confirmarEnvio} disabled={trabajando !== "" || sinCanal || bloqueado}>
             {trabajando === "envio" ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
             ) : (
@@ -358,7 +370,7 @@ export default function RecordatoriosMoraCard() {
                 className="h-9 w-32"
               />
             </div>
-            <Button variant="outline" size="sm" onClick={guardarConfig} disabled={trabajando !== ""}>
+            <Button variant="outline" size="sm" onClick={guardarConfig} disabled={trabajando !== "" || bloqueado}>
               {trabajando === "config" ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
@@ -379,7 +391,7 @@ export default function RecordatoriosMoraCard() {
                   className="h-9 w-64"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={probarCorreo} disabled={trabajando !== "" || !correoPrueba}>
+              <Button variant="outline" size="sm" onClick={probarCorreo} disabled={trabajando !== "" || !correoPrueba || bloqueado}>
                 {trabajando === "prueba" && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                 Enviar correo de prueba
               </Button>

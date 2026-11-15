@@ -30,6 +30,7 @@ import {
 } from "./nav-config";
 import { sumarBadges, useNav } from "./nav-context";
 import type { TonoBadge, ValorBadge } from "./nav-badges";
+import { EtiquetaPlan } from "./plan-lock";
 
 const COLLAPSE_STORAGE_KEY = "ratels-sidebar-collapsed";
 const OPEN_STORAGE_KEY = "cheermanager-sidebar-open";
@@ -124,7 +125,7 @@ function Subtitulo({ children }: { children: React.ReactNode }) {
 const Sidebar = () => {
   const pathname = usePathname();
   const { permissions } = useUser();
-  const { secciones, badges } = useNav();
+  const { secciones, badges, plan } = useNav();
   const esTablet = useEsTablet();
   const [openSections, setOpenSections] = useState<string[]>([]);
   const [collapsedPref, setCollapsed] = useState(false);
@@ -217,12 +218,17 @@ const Sidebar = () => {
     }
 
     const valor = item.badge ? badges[item.badge] : undefined;
+    const candado = plan(item);
 
     return (
       <Link key={item.href} href={item.href} passHref>
-        <NavButton active={isActive(item.href)} icon={item.icon}>
+        <NavButton
+          active={isActive(item.href)}
+          icon={item.icon}
+          className={candado?.estado === "BLOQUEADA" ? "text-sidebar-foreground/55" : undefined}
+        >
           <span className="truncate">{item.label}</span>
-          {valor && <Pill valor={valor} />}
+          {candado ? <EtiquetaPlan info={candado} variante="oscuro" className="ml-auto" /> : valor && <Pill valor={valor} />}
         </NavButton>
       </Link>
     );

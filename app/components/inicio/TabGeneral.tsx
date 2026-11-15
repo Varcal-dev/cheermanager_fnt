@@ -23,11 +23,11 @@ type Alerta = {
 function construirAlertas(resumen: ResumenInicio | null, inscripcionesSinGrupo: number): Alerta[] {
   if (!resumen) return [];
   const alertas: Alerta[] = [];
-  if (resumen.facturasConSaldoPendiente > 0) {
+  if (resumen.facturasConSaldoPendiente != null && resumen.facturasConSaldoPendiente > 0) {
     alertas.push({
       title: "Cartera pendiente",
       description: `${resumen.facturasConSaldoPendiente} facturas con saldo por ${formatCOP(
-        resumen.carteraPendienteTotal,
+        resumen.carteraPendienteTotal ?? 0,
       )}`,
       type: "warning",
     });

@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/command";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/lib/api";
-import { useFunciones } from "@/app/lib/funciones";
+import { useNav } from "./nav-context";
+import { EtiquetaPlan } from "./plan-lock";
 import { HOME_ITEM, NAV_SECTIONS, visibleItems } from "./nav-config";
 
 interface DeportistaResultado {
@@ -31,7 +32,7 @@ export default function CommandPalette() {
   const [buscando, setBuscando] = useState(false);
   const router = useRouter();
   const { permissions, esPlataforma } = useUser();
-  const { incluye } = useFunciones();
+  const { plan } = useNav();
 
   // Atajo global: Cmd+K en Mac, Ctrl+K en Windows/Linux. Funciona sin
   // importar en qué página esté parado el usuario.
@@ -76,11 +77,11 @@ export default function CommandPalette() {
     router.push(href);
   };
 
-  // Mismas reglas que el sidebar: ámbito (club / plataforma), permiso de cada entrada y función del plan.
+  // Mismas reglas que el sidebar: ámbito (club / plataforma), permiso de cada entrada; lo que el plan no trae se marca con candado.
   const secciones = NAV_SECTIONS.filter((s) => (s.ambito === "plataforma") === esPlataforma)
     .map((section) => ({
       section,
-      items: visibleItems(section, permissions, incluye).filter((item) => item.status !== "soon"),
+      items: visibleItems(section, permissions).filter((item) => item.status !== "soon"),
     }))
     .filter((s) => s.items.length > 0);
 
@@ -140,8 +141,10 @@ export default function CommandPalette() {
               >
                 <item.icon />
                 <span>{item.label}</span>
-                {item.grupo && (
-                  <span className="ml-auto text-xs text-muted-foreground">{item.grupo}</span>
+                {plan(item) ? (
+                  <EtiquetaPlan info={plan(item)!} className="ml-auto" />
+                ) : (
+                  item.grupo && <span className="ml-auto text-xs text-muted-foreground">{item.grupo}</span>
                 )}
               </CommandItem>
             ))}

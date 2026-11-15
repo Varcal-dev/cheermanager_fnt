@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-import { useFunciones } from "@/app/lib/funciones";
+import { useFunciones, type InfoFuncion } from "@/app/lib/funciones";
 import {
   HOME_ITEM,
   NAV_SECTIONS,
@@ -38,6 +38,11 @@ interface NavState {
   soloPortal: boolean;
   /** true si el usuario puede abrir el portal. */
   tienePortal: boolean;
+  /**
+   * Candado de plan de una entrada: undefined si el plan la trae completa (o no tiene puerta de plan);
+   * si no, el detalle (estado BLOQUEADA / SOLO_LECTURA, plan que la incluye).
+   */
+  plan: (item: NavItem) => InfoFuncion | undefined;
 }
 
 const NavContext = createContext<NavState>({
@@ -46,17 +51,22 @@ const NavContext = createContext<NavState>({
   barra: [],
   soloPortal: false,
   tienePortal: false,
+  plan: () => undefined,
 });
 
 export function NavProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { permissions, esPlataforma } = useUser();
-  const { incluye } = useFunciones();
+  const { info } = useFunciones();
+  const plan = (item: NavItem) => {
+    const i = info(item.funcion);
+    return i && i.estado !== "PLENA" ? i : undefined;
+  };
 
   // El superadmin solo ve el menú de plataforma; los usuarios de club, solo el de su club.
-  // Una sección se dibuja si al menos una de sus entradas es visible (permiso + función del plan).
+  // Una sección se dibuja si al menos una de sus entradas es visible (permiso). El plan no oculta: marca con candado.
   const secciones = NAV_SECTIONS.filter((s) => (s.ambito === "plataforma") === esPlataforma)
-    .map((section) => ({ section, items: visibleItems(section, permissions, incluye) }))
+    .map((section) => ({ section, items: visibleItems(section, permissions) }))
     .filter((s) => s.items.length > 0);
 
   // Contadores: solo los de entradas visibles.
@@ -66,16 +76,23 @@ export function NavProvider({ children }: { children: React.ReactNode }) {
   const tienePortal = permissions.includes("acceder_portal");
   const soloPortal = tienePortal && secciones.length === 0;
 
-  const clave = secciones.map((s) => s.items.map((i) => i.href).join("|")).join("#") + `/${soloPortal}`;
+  const clave =
+    secciones.map((s) => s.items.map((i) => `${i.href}:${plan(i)?.estado ?? ""}`).join("|")).join("#") + `/${soloPortal}`;
   const barra = useMemo(
-    () => (soloPortal ? PORTAL_BARRA_ITEMS : [HOME_ITEM, ...itemsBarraMovil(secciones.flatMap((s) => s.items))]),
+    () => (soloPortal
+      ? PORTAL_BARRA_ITEMS
+      : [
+          HOME_ITEM,
+          // La barra es de atajos: lo que el plan no incluye (candado) se queda en "Más", no ocupa un hueco.
+          ...itemsBarraMovil(secciones.flatMap((s) => s.items).filter((i) => plan(i)?.estado !== "BLOQUEADA")),
+        ]),
     // `secciones` se recrea en cada render; su contenido se resume en `clave`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clave],
   );
 
   return (
-    <NavContext.Provider value={{ secciones, badges, barra, soloPortal, tienePortal }}>
+    <NavContext.Provider value={{ secciones, badges, barra, soloPortal, tienePortal, plan }}>
       {children}
     </NavContext.Provider>
   );

@@ -76,11 +76,11 @@ export function KpiCard({
   value: string;
   description: string;
   icon: React.ReactNode;
-  link: string;
+  /** Sin `link` la tarjeta es solo informativa (el usuario no tiene permiso para la pantalla de destino). */
+  link?: string;
   tone?: keyof typeof KPI_TONES;
 }) {
-  return (
-    <Link href={link} className="block">
+  const tarjeta = (
       <Card className={cn("lane-accent hover:shadow-md transition-shadow", KPI_TONES[tone])}>
         <CardHeader className="flex flex-row items-center justify-between pb-2 pl-5">
           <CardTitle className="text-sm font-sans font-medium text-muted-foreground">{title}</CardTitle>
@@ -93,7 +93,13 @@ export function KpiCard({
           </div>
         </CardContent>
       </Card>
+  );
+  return link ? (
+    <Link href={link} className="block">
+      {tarjeta}
     </Link>
+  ) : (
+    <div>{tarjeta}</div>
   );
 }
 

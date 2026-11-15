@@ -65,14 +65,12 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   status?: "ready" | "soon";
-  /** Función del plan que la habilita (V39). Si el plan del club no la trae, la entrada se oculta del menú. */
+  /** Función del plan que la habilita (V39). Si el plan del club no la trae, la entrada se muestra con un candado y la etiqueta del plan que la incluye. */
   funcion?: string;
   /**
-   * Permiso que habilita la entrada. Si falta, se usa el de la sección.
-   * Hoy cada entrada conserva el `ver_dash_*` de la sección donde vivía antes
-   * de la reorganización, así que nadie gana ni pierde acceso al menú.
-   * Cuando los permisos finos estén asignados a todos los roles, se pueden
-   * cambiar aquí (p. ej. `ver_lesiones`) sin tocar nada más.
+   * Permiso que habilita la entrada. DEBE ser el mismo que exige la página (@RequiresPermission del back y
+   * ProtectedRoute): así el menú nunca muestra algo que al abrirse rebota, ni esconde algo que sí se puede usar.
+   * Si falta, se usa el de la sección (solo el menú de plataforma).
    */
   permission?: string;
   /** Subtítulo dentro de la sección. Las entradas consecutivas con el mismo `grupo` se agrupan bajo él. */
@@ -115,14 +113,6 @@ export const PORTAL_ITEM: NavItem = {
   icon: UserCircle,
 };
 
-const P_PERSONAS = "ver_dash_personas";
-const P_ORG = "ver_dash_organizacion";
-const P_HORARIOS = "ver_dash_horarios";
-const P_EVENTOS = "ver_dash_eventos";
-const P_EVAL = "ver_dash_evaluacion";
-const P_TIENDA = "ver_dash_tienda";
-const P_FINANZAS = "ver_dash_finanzas";
-const P_ADMIN = "ver_dash_administracion";
 
 export const NAV_SECTIONS: NavSection[] = [
   // ── 1. Las personas del club ────────────────────────────────────────────────
@@ -130,19 +120,18 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "personas",
     label: "Personas",
     icon: Users,
-    permission: P_PERSONAS,
     items: [
-      { href: "/deportistas", label: "Deportistas", icon: UserPlus, keywords: "atletas ficha tallas foto acudientes", movil: 3 },
-      { href: "/entrenadores", label: "Entrenadores", icon: Users, keywords: "coaches staff" },
+      { href: "/deportistas", permission: "ver_deportista", label: "Deportistas", icon: UserPlus, keywords: "atletas ficha tallas foto acudientes", movil: 3 },
+      { href: "/entrenadores", permission: "ver_entrenador", label: "Entrenadores", icon: Users, keywords: "coaches staff" },
       {
-        href: "/gestion-entrenadores",
+        href: "/gestion-entrenadores", permission: "ver_entrenador",
         label: "Certificaciones y horas",
         icon: ClipboardList,
         funcion: "GESTION_ENTRENADORES",
         keywords: "entrenadores primeros auxilios seguridad horas dictadas",
       },
-      { href: "/carnet", label: "Carnet", icon: QrCode, keywords: "qr credencial verificar", movil: 8 },
-      { href: "/comunicados", label: "Comunicados", icon: Megaphone, keywords: "avisos correo calendario ics mensajes familias" },
+      { href: "/carnet", permission: "ver_deportista", label: "Carnet", icon: QrCode, keywords: "qr credencial verificar", movil: 8 },
+      { href: "/comunicados", permission: "ver_comunicados", label: "Comunicados", icon: Megaphone, keywords: "avisos correo calendario ics mensajes familias" },
     ],
   },
 
@@ -151,18 +140,16 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "ingreso",
     label: "Ingreso",
     icon: UserPlus,
-    permission: P_ORG,
     items: [
       {
-        href: "/interesados",
+        href: "/interesados", permission: "ver_interesados",
         label: "Interesados",
         icon: UserPlus,
-        permission: P_PERSONAS,
         badge: "interesados",
         keywords: "pre-inscripciones clase de prueba lista de espera prospectos",
       },
       {
-        href: "/inscripciones",
+        href: "/inscripciones", permission: "gestionar_inscripciones",
         label: "Inscripciones y solicitudes",
         icon: FileText,
         badge: "solicitudesInscripcion",
@@ -176,21 +163,19 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "entrenamiento",
     label: "Entrenamiento",
     icon: Calendar,
-    permission: P_HORARIOS,
     items: [
-      { href: "/asistencias", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista", movil: 10 },
-      { href: "/asistencias/escaneo", label: "Asistencia con carnet", corto: "Asistencia", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista", movil: 1 },
-      { href: "/asistencia-personal", label: "Asistencia del personal", icon: QrCode, permission: "registrar_asistencia", grupo: "Día a día", keywords: "entrenadores entrada salida horas carnet staff" },
-      { href: "/horarios", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana", movil: 6 },
-      { href: "/grupos", label: "Grupos y equipos", corto: "Grupos", icon: Users, permission: P_ORG, grupo: "Día a día", keywords: "equipos integrantes", movil: 9 },
-      { href: "/evaluaciones", label: "Evaluaciones", icon: BarChart3, permission: P_EVAL, grupo: "Progreso", keywords: "puntajes progresión", movil: 4 },
-      { href: "/habilidades", label: "Habilidades", icon: Award, permission: P_EVAL, grupo: "Progreso", keywords: "glosario niveles N1 N2 N3 N4 elevaciones gimnasia" },
-      { href: "/objetivos", label: "Objetivos", icon: Target, permission: P_EVAL, grupo: "Progreso", keywords: "metas" },
+      { href: "/asistencias", permission: "registrar_asistencia", label: "Asistencias", icon: ClipboardList, grupo: "Día a día", keywords: "pasar lista", movil: 10 },
+      { href: "/asistencias/escaneo", permission: "registrar_asistencia", label: "Asistencia con carnet", corto: "Asistencia", icon: QrCode, grupo: "Día a día", keywords: "escanear qr carnet lector cámara pasar lista", movil: 1 },
+      { href: "/asistencia-personal", permission: "registrar_asistencia", label: "Asistencia del personal", icon: QrCode, grupo: "Día a día", keywords: "entrenadores entrada salida horas carnet staff" },
+      { href: "/horarios", permission: "ver_horario", label: "Horarios", icon: Calendar, grupo: "Día a día", keywords: "entrenamientos semana", movil: 6 },
+      { href: "/grupos", permission: "ver_grupo", label: "Grupos y equipos", corto: "Grupos", icon: Users, grupo: "Día a día", keywords: "equipos integrantes", movil: 9 },
+      { href: "/evaluaciones", permission: "ver_evaluacion", label: "Evaluaciones", icon: BarChart3, grupo: "Progreso", keywords: "puntajes progresión", movil: 4 },
+      { href: "/habilidades", permission: "ver_evaluaciones", label: "Habilidades", icon: Award, grupo: "Progreso", keywords: "glosario niveles N1 N2 N3 N4 elevaciones gimnasia" },
+      { href: "/objetivos", permission: "ver_objetivo", label: "Objetivos", icon: Target, grupo: "Progreso", keywords: "metas" },
       {
-        href: "/evaluacion-rutina",
+        href: "/evaluacion-rutina", permission: "ver_evaluacion",
         label: "Rutinas",
         icon: BarChart3,
-        permission: P_EVAL,
         funcion: "RUBRICA_RUTINAS",
         grupo: "Progreso",
         keywords: "rúbrica puntaje deducciones",
@@ -203,12 +188,11 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "competencias",
     label: "Competencias",
     icon: Trophy,
-    permission: P_EVENTOS,
     items: [
-      { href: "/eventos", label: "Eventos", icon: Award, keywords: "competencias premios resultados cobro" },
-      { href: "/rosters", label: "Rosters", icon: ListChecks, funcion: "ROSTER", keywords: "titulares suplentes posiciones" },
-      { href: "/viajes", label: "Viajes", icon: Plane, funcion: "VIAJES", keywords: "delegación autorización de viaje abonos" },
-      { href: "/ranking", label: "Ranking e historial", icon: Trophy, funcion: "RANKING", keywords: "resultados temporada" },
+      { href: "/eventos", permission: "ver_evento", label: "Eventos", icon: Award, keywords: "competencias premios resultados cobro" },
+      { href: "/rosters", permission: "ver_evento", label: "Rosters", icon: ListChecks, funcion: "ROSTER", keywords: "titulares suplentes posiciones" },
+      { href: "/viajes", permission: "ver_viajes", label: "Viajes", icon: Plane, funcion: "VIAJES", keywords: "delegación autorización de viaje abonos" },
+      { href: "/ranking", permission: "ver_evento", label: "Ranking e historial", icon: Trophy, funcion: "RANKING", keywords: "resultados temporada" },
     ],
   },
 
@@ -217,14 +201,13 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "salud",
     label: "Salud y cumplimiento",
     icon: HeartPulse,
-    permission: P_PERSONAS,
     items: [
-      { href: "/lesiones", label: "Lesiones y retorno", icon: HeartPulse, grupo: "Seguridad", badge: "lesiones", keywords: "lesión retorno al juego alta médica" },
-      { href: "/vencimientos", label: "Vencimientos", icon: ClipboardList, grupo: "Seguridad", badge: "vencimientos", keywords: "certificado médico eps seguro licencia" },
-      { href: "/historial-medico", label: "Historial médico", icon: ClipboardList, grupo: "Seguridad", keywords: "salud alergias" },
-      { href: "/consentimientos", label: "Consentimientos", icon: ShieldCheck, grupo: "Datos personales (Ley 1581)", keywords: "autorización datos imagen salud firma" },
+      { href: "/lesiones", permission: "ver_lesiones", label: "Lesiones y retorno", icon: HeartPulse, grupo: "Seguridad", badge: "lesiones", keywords: "lesión retorno al juego alta médica" },
+      { href: "/vencimientos", permission: "ver_deportista", label: "Vencimientos", icon: ClipboardList, grupo: "Seguridad", badge: "vencimientos", keywords: "certificado médico eps seguro licencia" },
+      { href: "/historial-medico", permission: "ver_historial_medico", label: "Historial médico", icon: ClipboardList, grupo: "Seguridad", keywords: "salud alergias" },
+      { href: "/consentimientos", permission: "ver_consentimientos", label: "Consentimientos", icon: ShieldCheck, grupo: "Datos personales (Ley 1581)", keywords: "autorización datos imagen salud firma" },
       {
-        href: "/solicitudes-titular",
+        href: "/solicitudes-titular", permission: "ver_consentimientos",
         label: "Consultas y reclamos",
         icon: ShieldCheck,
         grupo: "Datos personales (Ley 1581)",
@@ -239,17 +222,16 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "finanzas",
     label: "Finanzas",
     icon: DollarSign,
-    permission: P_FINANZAS,
     items: [
-      { href: "/facturas", label: "Facturas", icon: FileText, grupo: "Cobros", badge: "mora", keywords: "cartera mora cobros mensualidades", movil: 5 },
-      { href: "/pagos", label: "Pagos", icon: CreditCard, grupo: "Cobros", keywords: "abonos recordatorios de mora", movil: 2 },
+      { href: "/facturas", permission: "ver_factura", label: "Facturas", icon: FileText, grupo: "Cobros", badge: "mora", keywords: "cartera mora cobros mensualidades", movil: 5 },
+      { href: "/pagos", permission: "ver_pago", label: "Pagos", icon: CreditCard, grupo: "Cobros", keywords: "abonos recordatorios de mora", movil: 2 },
       // Cierre de caja diario y conciliación con el extracto del banco (la página valida ver_caja / conciliar_pagos).
-      { href: "/caja", label: "Caja", icon: Wallet, grupo: "Cobros", keywords: "cierre de caja efectivo", movil: 7 },
-      { href: "/conciliacion", label: "Conciliación", icon: ListChecks, funcion: "CONCILIACION_BANCARIA", grupo: "Cobros", keywords: "extracto banco" },
-      { href: "/reportes", label: "Reportes", icon: BarChart3, permission: "generar_reporte_financiero", grupo: "Cobros", keywords: "informe exportar csv excel ingresos cartera mora facturado cobrado" },
-      { href: "/ventas", label: "Ventas", icon: ShoppingCart, permission: P_TIENDA, funcion: "TIENDA", grupo: "Tienda y uniformes" },
-      { href: "/inventario", label: "Inventario", icon: Package, permission: P_TIENDA, funcion: "TIENDA", grupo: "Tienda y uniformes", keywords: "stock productos" },
-      { href: "/uniformes", label: "Uniformes", icon: Shirt, grupo: "Tienda y uniformes", keywords: "tallas pedido cuotas" },
+      { href: "/caja", permission: "ver_caja", label: "Caja", icon: Wallet, grupo: "Cobros", keywords: "cierre de caja efectivo", movil: 7 },
+      { href: "/conciliacion", permission: "conciliar_pagos", label: "Conciliación", icon: ListChecks, funcion: "CONCILIACION_BANCARIA", grupo: "Cobros", keywords: "extracto banco" },
+      { href: "/reportes", permission: "generar_reporte_financiero", label: "Reportes", icon: BarChart3, grupo: "Cobros", keywords: "informe exportar csv excel ingresos cartera mora facturado cobrado" },
+      { href: "/ventas", permission: "ver_venta", label: "Ventas", icon: ShoppingCart, funcion: "TIENDA", grupo: "Tienda y uniformes" },
+      { href: "/inventario", permission: "ver_producto", label: "Inventario", icon: Package, funcion: "TIENDA", grupo: "Tienda y uniformes", keywords: "stock productos" },
+      { href: "/uniformes", permission: "ver_deportista", label: "Uniformes", icon: Shirt, grupo: "Tienda y uniformes", keywords: "tallas pedido cuotas" },
     ],
   },
 
@@ -259,27 +241,27 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Configuración",
     icon: Settings,
     items: [
-      { href: "/analisis", label: "Análisis histórico", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva", keywords: "tendencias retención asistencia evolución histórico métricas" },
-      { href: "/temporadas", label: "Temporadas", icon: CalendarRange, permission: P_ORG, grupo: "Estructura deportiva" },
-      { href: "/estructura-deportiva", label: "Niveles y categorías", icon: BarChart3, permission: P_ORG, grupo: "Estructura deportiva", keywords: "niveles divisiones categorías por nivel fedecolcheer" },
-      { href: "/sedes", label: "Sedes y espacios", icon: MapPin, permission: P_HORARIOS, funcion: "MULTISEDE", grupo: "Estructura deportiva", keywords: "salones ubicación" },
-      { href: "/criterios-evaluacion", label: "Criterios de evaluación", icon: ClipboardList, permission: P_EVAL, grupo: "Estructura deportiva" },
+      { href: "/analisis", permission: "ver_dash_organizacion", label: "Análisis histórico", icon: BarChart3, grupo: "Estructura deportiva", keywords: "tendencias retención asistencia evolución histórico métricas" },
+      { href: "/temporadas", permission: "ver_temporadas", label: "Temporadas", icon: CalendarRange, grupo: "Estructura deportiva" },
+      { href: "/estructura-deportiva", permission: "ver_dash_organizacion", label: "Niveles y categorías", icon: BarChart3, grupo: "Estructura deportiva", keywords: "niveles divisiones categorías por nivel fedecolcheer" },
+      { href: "/sedes", permission: "ver_sedes", label: "Sedes y espacios", icon: MapPin, funcion: "MULTISEDE", grupo: "Estructura deportiva", keywords: "salones ubicación" },
+      { href: "/criterios-evaluacion", permission: "ver_evaluacion", label: "Criterios de evaluación", icon: ClipboardList, grupo: "Estructura deportiva" },
       // Rúbrica global de rutinas: la ven todos los clubes; solo la plataforma (configurar_rubrica) la edita.
-      { href: "/rubrica", label: "Rúbrica", icon: ListChecks, permission: P_EVAL, grupo: "Estructura deportiva" },
+      { href: "/rubrica", permission: "ver_evaluacion", label: "Rúbrica", icon: ListChecks, grupo: "Estructura deportiva" },
 
       // Orden de trabajo: primero el tipo de plan, después los planes que lo usan.
-      { href: "/tipos-planes-pago", label: "Tipos de plan de pago", icon: Tags, permission: P_FINANZAS, grupo: "Precios y planes (en este orden)" },
-      { href: "/planes-inscripcion", label: "Planes de inscripción", icon: FileText, permission: P_FINANZAS, grupo: "Precios y planes (en este orden)", keywords: "membresías" },
-      { href: "/planes-mensualidad", label: "Planes de mensualidad", icon: FileText, permission: P_FINANZAS, grupo: "Precios y planes (en este orden)", keywords: "cuotas" },
-      { href: "/descuentos", label: "Descuentos", icon: Percent, permission: P_FINANZAS, grupo: "Precios y planes (en este orden)" },
-      { href: "/convenios", label: "Convenios", icon: FileText, permission: P_FINANZAS, funcion: "CONVENIOS", grupo: "Precios y planes (en este orden)" },
+      { href: "/tipos-planes-pago", permission: "ver_plan_pago", label: "Tipos de plan de pago", icon: Tags, grupo: "Precios y planes (en este orden)" },
+      { href: "/planes-inscripcion", permission: "ver_plan_pago", label: "Planes de inscripción", icon: FileText, grupo: "Precios y planes (en este orden)", keywords: "membresías" },
+      { href: "/planes-mensualidad", permission: "ver_plan_pago", label: "Planes de mensualidad", icon: FileText, grupo: "Precios y planes (en este orden)", keywords: "cuotas" },
+      { href: "/descuentos", permission: "ver_descuento", label: "Descuentos", icon: Percent, grupo: "Precios y planes (en este orden)" },
+      { href: "/convenios", permission: "ver_convenio", label: "Convenios", icon: FileText, funcion: "CONVENIOS", grupo: "Precios y planes (en este orden)" },
 
-      { href: "/usuarios", label: "Usuarios", icon: Users, permission: P_ADMIN, grupo: "Club y datos" },
-      { href: "/roles", label: "Roles y permisos", icon: Lock, permission: P_ADMIN, grupo: "Club y datos" },
-      { href: "/auditoria", label: "Auditoría", icon: Shield, permission: P_ADMIN, funcion: "AUDITORIA", grupo: "Club y datos", keywords: "registro de cambios" },
-      { href: "/plan-y-datos", label: "Plan y mis datos", icon: CreditCard, permission: P_ADMIN, grupo: "Club y datos", keywords: "suscripción cupo paquetes descargar" },
+      { href: "/usuarios", permission: "ver_usuarios", label: "Usuarios", icon: Users, grupo: "Club y datos" },
+      { href: "/roles", permission: "ver_roles", funcion: "ROLES_PERSONALIZADOS", label: "Roles y permisos", icon: Lock, grupo: "Club y datos" },
+      { href: "/auditoria", permission: "ver_dash_administracion", label: "Auditoría", icon: Shield, funcion: "AUDITORIA", grupo: "Club y datos", keywords: "registro de cambios" },
+      { href: "/plan-y-datos", permission: "ver_dash_administracion", label: "Plan y mis datos", icon: CreditCard, grupo: "Club y datos", keywords: "suscripción cupo paquetes descargar" },
       // Importación masiva de deportistas y exportes en CSV (la página valida importar_deportistas / exportar_listados).
-      { href: "/importar-exportar", label: "Importar y exportar", icon: FileSpreadsheet, permission: P_PERSONAS, grupo: "Club y datos", keywords: "csv excel cargar deportistas" },
+      { href: "/importar-exportar", permission: "ver_dash_personas", label: "Importar y exportar", icon: FileSpreadsheet, grupo: "Club y datos", keywords: "csv excel cargar deportistas" },
     ],
   },
 
@@ -309,29 +291,51 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   ...NAV_SECTIONS.flatMap((s) => s.items),
 ];
 
+/** Permiso que exige una entrada: el propio o el de su sección. */
+export function permisoDeItem(item: NavItem, section: NavSection): string | undefined {
+  return item.permission ?? section.permission;
+}
+
 /**
- * ¿Debe verse esta entrada? Permiso (el propio o el de la sección) y función del plan.
- * `incluye` viene de useFunciones(): mientras no se sepa el plan no se oculta nada (el back decide).
+ * ¿Debe verse esta entrada? Solo depende del permiso. El plan NO oculta nada: una función que el plan no trae
+ * se dibuja con candado (ver useNav().plan) y la pantalla explica qué plan la habilita.
  */
-export function itemVisible(
-  item: NavItem,
-  section: NavSection,
-  permissions: string[],
-  incluye?: (funcion?: string) => boolean,
-): boolean {
-  const permiso = item.permission ?? section.permission;
-  if (permiso && !permissions.includes(permiso)) return false;
-  if (incluye && !incluye(item.funcion)) return false;
-  return true;
+export function itemVisible(item: NavItem, section: NavSection, permissions: string[]): boolean {
+  const permiso = permisoDeItem(item, section);
+  return !permiso || permissions.includes(permiso);
 }
 
 /** Entradas visibles de una sección. Una sección sin entradas visibles no se dibuja. */
-export function visibleItems(
-  section: NavSection,
-  permissions: string[],
-  incluye?: (funcion?: string) => boolean,
-): NavItem[] {
-  return section.items.filter((i) => itemVisible(i, section, permissions, incluye));
+export function visibleItems(section: NavSection, permissions: string[]): NavItem[] {
+  return section.items.filter((i) => itemVisible(i, section, permissions));
+}
+
+export interface RutaResuelta {
+  item: NavItem;
+  section: NavSection;
+  permiso?: string;
+  funcion?: string;
+}
+
+/**
+ * Qué permiso y qué función de plan exige una ruta, según el menú. Es la base de la puerta central
+ * (RouteGuard): cualquier pantalla que figure en el menú queda protegida aunque no tenga ProtectedRoute propio.
+ * Es consciente del ámbito: "/usuarios" y "/rubrica" existen en el menú del club y en el de la plataforma con
+ * permisos distintos. Rutas fuera del menú (p. ej. "/mi", "/perfil") devuelven undefined.
+ */
+export function resolverRuta(pathname: string, esPlataforma: boolean): RutaResuelta | undefined {
+  let mejor: RutaResuelta | undefined;
+  for (const section of NAV_SECTIONS) {
+    if ((section.ambito === "plataforma") !== esPlataforma) continue;
+    for (const item of section.items) {
+      const coincide = pathname === item.href || pathname.startsWith(item.href + "/");
+      if (!coincide) continue;
+      if (!mejor || item.href.length > mejor.item.href.length) {
+        mejor = { item, section, permiso: permisoDeItem(item, section), funcion: item.funcion };
+      }
+    }
+  }
+  return mejor;
 }
 
 export interface NavGroup {

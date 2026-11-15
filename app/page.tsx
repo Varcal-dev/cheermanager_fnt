@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus, DollarSign, CheckCircle } from "lucide-react";
+import { UserPlus, DollarSign, CheckCircle, Lock } from "lucide-react";
 import { toast } from "react-toastify";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -10,6 +10,9 @@ import HomePlataforma from "@/app/components/inicio/HomePlataforma";
 import { api } from "@/lib/api";
 import { useUser } from "@/context/UserContext";
 import { formatCOP } from "@/app/lib/facturas-pagos";
+import { useFunciones } from "@/app/lib/funciones";
+import { FuncionNoIncluida } from "@/app/components/RouteGuard";
+import { textoPlan } from "@/app/components/plan-lock";
 import {
   obtenerResumenInicio,
   ResumenInicio,
@@ -39,15 +42,16 @@ import TabAdministracion from "@/app/components/inicio/TabAdministracion";
 
 // Pestañas adicionales: cada una solo se muestra si el usuario tiene el permiso del dashboard
 // correspondiente (mismo criterio que usa el backend con @RequiresPermission en DashboardController).
-const TABS_EXTRA = [
-  { value: "financiero", label: "Financiero", permiso: "ver_dash_finanzas" },
+// `funcion`: la pestaña requiere esa función del plan; sin ella se muestra con candado y no consulta al back.
+const TABS_EXTRA: { value: string; label: string; permiso: string; funcion?: string }[] = [
+  { value: "financiero", label: "Financiero", permiso: "ver_dash_finanzas", funcion: "DASHBOARDS_AVANZADOS" },
   { value: "deportistas", label: "Deportistas", permiso: "ver_dash_personas" },
   { value: "organizacion", label: "Organización", permiso: "ver_dash_organizacion" },
   { value: "horarios", label: "Horarios", permiso: "ver_dash_horarios" },
   { value: "evaluacion", label: "Evaluación", permiso: "ver_dash_evaluacion" },
   { value: "eventos", label: "Eventos", permiso: "ver_evento" },
   { value: "tienda", label: "Tienda", permiso: "ver_dash_tienda" },
-  { value: "administracion", label: "Administración", permiso: "ver_dash_administracion" },
+  { value: "administracion", label: "Administración", permiso: "ver_dash_administracion", funcion: "DASHBOARDS_AVANZADOS" },
 ];
 
 /** El superadmin no tiene club: su inicio es un resumen de los clubes, no los KPIs deportivos. */
@@ -58,6 +62,10 @@ export default function Home() {
 
 function HomeClub() {
   const { permissions } = useUser();
+  const { info } = useFunciones();
+  const puede = (p: string) => permissions.includes(p);
+  const puedeInscripciones = puede("gestionar_inscripciones");
+  const bloqueada = (funcion?: string) => info(funcion)?.estado === "BLOQUEADA";
 
   // Resumen principal (KPIs + pestaña General)
   const [resumen, setResumen] = useState<ResumenInicio | null>(null);
@@ -66,7 +74,11 @@ function HomeClub() {
 
   useEffect(() => {
     setCargandoResumen(true);
-    Promise.allSettled([obtenerResumenInicio(), api.get("/api/inscripciones/detalle")])
+    // /api/inscripciones/detalle exige gestionar_inscripciones: sin ese permiso ni se pide ni se muestra el KPI.
+    Promise.allSettled([
+      obtenerResumenInicio(),
+      puedeInscripciones ? api.get("/api/inscripciones/detalle") : Promise.reject(new Error("sin permiso")),
+    ])
       .then(([resResumen, resInscripciones]) => {
         if (resResumen.status === "fulfilled") {
           setResumen(resResumen.value);
@@ -82,6 +94,7 @@ function HomeClub() {
         }
       })
       .finally(() => setCargandoResumen(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Pestañas que se cargan al abrirse (una sola vez)
@@ -124,6 +137,8 @@ function HomeClub() {
   };
 
   const alAbrirPestana = (v: string) => {
+    // Pestaña con candado de plan: no se consulta (el back respondería 403 FUNCION_NO_INCLUIDA).
+    if (bloqueada(TABS_EXTRA.find((t) => t.value === v)?.funcion)) return;
     if (v === "eventos") eventosTab.cargar();
     if (v === "financiero") financieroTab.cargar();
     if (v === "deportistas") personasTab.cargar();
@@ -155,16 +170,19 @@ function HomeClub() {
             description={`${resumen?.totalGrupos ?? 0} grupos activos`}
             icon={<UserPlus className="h-5 w-5" />}
             tone="primary"
-            link="/deportistas"
+            link={puede("ver_deportista") ? "/deportistas" : undefined}
           />
-          <KpiCard
-            title="Cartera Pendiente"
-            value={cargandoResumen ? "…" : formatCOP(resumen?.carteraPendienteTotal ?? 0)}
-            description={`${resumen?.facturasConSaldoPendiente ?? 0} facturas con saldo`}
-            icon={<DollarSign className="h-5 w-5" />}
-            tone="success"
-            link="/facturas"
-          />
+          {/* La cartera solo la calcula el back para roles con finanzas: sin ella el KPI no se dibuja. */}
+          {(cargandoResumen || resumen?.carteraPendienteTotal != null) && (
+            <KpiCard
+              title="Cartera Pendiente"
+              value={cargandoResumen ? "…" : formatCOP(resumen?.carteraPendienteTotal ?? 0)}
+              description={`${resumen?.facturasConSaldoPendiente ?? 0} facturas con saldo`}
+              icon={<DollarSign className="h-5 w-5" />}
+              tone="success"
+              link={puede("ver_factura") ? "/facturas" : undefined}
+            />
+          )}
           <KpiCard
             title="Asistencia (7 días)"
             value={
@@ -177,33 +195,51 @@ function HomeClub() {
             description="promedio de todos los grupos"
             icon={<CheckCircle className="h-5 w-5" />}
             tone="accent"
-            link="/asistencias"
+            link={puede("registrar_asistencia") ? "/asistencias" : undefined}
           />
-          <KpiCard
-            title="Sin grupo asignado"
-            value={cargandoResumen ? "…" : String(inscripcionesSinGrupo)}
-            description="inscripciones esperando grupo"
-            icon={<UserPlus className="h-5 w-5" />}
-            tone="destructive"
-            link="/inscripciones"
-          />
+          {puedeInscripciones && (
+            <KpiCard
+              title="Sin grupo asignado"
+              value={cargandoResumen ? "…" : String(inscripcionesSinGrupo)}
+              description="inscripciones esperando grupo"
+              icon={<UserPlus className="h-5 w-5" />}
+              tone="destructive"
+              link="/inscripciones"
+            />
+          )}
         </div>
 
         <Tabs defaultValue="general" className="space-y-4" onValueChange={alAbrirPestana}>
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="general">General</TabsTrigger>
-            {tabsVisibles.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
+            {tabsVisibles.map((t) => {
+              const candado = info(t.funcion);
+              return (
+                <TabsTrigger key={t.value} value={t.value} className="gap-1.5">
+                  {t.label}
+                  {candado?.estado === "BLOQUEADA" && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
+                      title={`${candado.nombre}: disponible desde el plan ${candado.planMinimo ?? "superior"}`}
+                    >
+                      <Lock className="h-3 w-3" aria-hidden />
+                      {textoPlan(candado)}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
           <TabsContent value="general" className="space-y-4">
             <TabGeneral resumen={resumen} cargando={cargandoResumen} inscripcionesSinGrupo={inscripcionesSinGrupo} />
           </TabsContent>
           <TabsContent value="financiero" className="space-y-4">
-            <TabFinanciero estado={financieroTab.estado} />
+            {bloqueada("DASHBOARDS_AVANZADOS") ? (
+              <FuncionNoIncluida info={info("DASHBOARDS_AVANZADOS")!} puedeVerPlan={puede("ver_dash_administracion")} />
+            ) : (
+              <TabFinanciero estado={financieroTab.estado} />
+            )}
           </TabsContent>
           <TabsContent value="deportistas" className="space-y-4">
             <TabDeportistas estado={personasTab.estado} />
@@ -238,7 +274,11 @@ function HomeClub() {
             <TabTienda estado={tiendaTab.estado} />
           </TabsContent>
           <TabsContent value="administracion" className="space-y-4">
-            <TabAdministracion estado={administracionTab.estado} />
+            {bloqueada("DASHBOARDS_AVANZADOS") ? (
+              <FuncionNoIncluida info={info("DASHBOARDS_AVANZADOS")!} puedeVerPlan={puede("ver_dash_administracion")} />
+            ) : (
+              <TabAdministracion estado={administracionTab.estado} />
+            )}
           </TabsContent>
         </Tabs>
       </div>

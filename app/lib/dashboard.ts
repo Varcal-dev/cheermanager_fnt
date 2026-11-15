@@ -17,8 +17,9 @@ export interface ResumenInicio {
   deportistasActivos: number;
   totalGrupos: number;
   proximoEvento: ProximoEventoResumen | null;
-  carteraPendienteTotal: number;
-  facturasConSaldoPendiente: number;
+  /** null si el rol no puede ver finanzas (ver_dash_finanzas / ver_factura): el back no calcula la cartera. */
+  carteraPendienteTotal: number | null;
+  facturasConSaldoPendiente: number | null;
   porcentajeAsistenciaUltimos7Dias: number | null;
   alertasCondicionMedicaActiva: number;
 }

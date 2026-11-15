@@ -18,6 +18,8 @@ import { useLogout } from "./use-logout";
 import { PORTAL_AUTORIZACIONES_ITEM, PORTAL_ITEM, groupItems, type NavItem } from "./nav-config";
 import { sumarBadges, useNav } from "./nav-context";
 import type { TonoBadge, ValorBadge } from "./nav-badges";
+import { EtiquetaPlan } from "./plan-lock";
+import type { InfoFuncion } from "@/app/lib/funciones";
 
 // -----------------------------------------------------------------------------
 // Navegación del teléfono (< md): barra inferior fija con Inicio + 3 accesos del
@@ -65,7 +67,7 @@ export default function BottomNav() {
   const tabActual = useSearchParams().get("tab");
   const { user, clubNombre } = useUser();
   const logout = useLogout();
-  const { secciones, badges, barra, soloPortal, tienePortal } = useNav();
+  const { secciones, badges, barra, soloPortal, tienePortal, plan } = useNav();
   // La barra depende de la sesión y de la URL (cliente): se dibuja solo tras montar, para que el primer
   // render del cliente coincida con el HTML del servidor (que no la trae) y no falle la hidratación.
   const [montado, setMontado] = useState(false);
@@ -255,6 +257,7 @@ export default function BottomNav() {
                             item={item}
                             activo={coincide(pathname, tabActual, item.href)}
                             valor={item.badge ? badges[item.badge] : undefined}
+                            candado={plan(item)}
                           />
                         ))}
                       </div>
@@ -291,7 +294,17 @@ export default function BottomNav() {
   );
 }
 
-function FilaLink({ item, activo, valor }: { item: NavItem; activo: boolean; valor?: ValorBadge }) {
+function FilaLink({
+  item,
+  activo,
+  valor,
+  candado,
+}: {
+  item: NavItem;
+  activo: boolean;
+  valor?: ValorBadge;
+  candado?: InfoFuncion;
+}) {
   return (
     <Link
       href={item.href}
@@ -302,8 +315,8 @@ function FilaLink({ item, activo, valor }: { item: NavItem; activo: boolean; val
       )}
     >
       <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="flex-1 truncate">{item.label}</span>
-      {valor && <Pill valor={valor} />}
+      <span className={cn("flex-1 truncate", candado?.estado === "BLOQUEADA" && "text-muted-foreground")}>{item.label}</span>
+      {candado ? <EtiquetaPlan info={candado} /> : valor && <Pill valor={valor} />}
     </Link>
   );
 }

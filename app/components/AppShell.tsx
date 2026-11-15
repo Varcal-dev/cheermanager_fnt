@@ -14,6 +14,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import CommandPalette from "./CommandPalette";
 import AvisoSuscripcion from "./AvisoSuscripcion";
 import SoporteBanner from "./SoporteBanner";
+import RouteGuard from "./RouteGuard";
 
 import { UserProvider } from "@/context/UserContext";
 
@@ -51,7 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   {!isAuthRoute && <Breadcrumbs />}
                   {!isAuthRoute && <SoporteBanner />}
                   {!isAuthRoute && <AvisoSuscripcion />}
-                  {children}
+                  {isAuthRoute ? children : <RouteGuard>{children}</RouteGuard>}
                 </main>
               </div>
               {/* useSearchParams (pestaña activa del portal) exige Suspense; sin él Next intentaría prerender y fallaría. */}
