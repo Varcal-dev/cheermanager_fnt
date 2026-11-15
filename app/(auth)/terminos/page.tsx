@@ -18,6 +18,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthFondo } from "@/app/components/brand/AuthFondo";
+import { Logo } from "@/app/components/brand/Logo";
 
 // Enlaces públicos a los documentos vigentes (se configuran en el front, ver .env.example).
 const URL_TERMINOS = process.env.NEXT_PUBLIC_URL_TERMINOS ?? "";
@@ -85,9 +87,10 @@ export default function TerminosPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-600 p-4">
+    <AuthFondo>
       <Card className="w-full max-w-lg shadow-lg">
         <CardHeader className="space-y-2 items-center text-center">
+          <Logo variante="vertical" tono="color" alto={72} className="mb-2" />
           <CardTitle className="text-2xl font-bold text-primary">Términos y datos personales</CardTitle>
           <CardDescription>
             Para usar CheerManager, el administrador del club debe aceptar los siguientes documentos en nombre del
@@ -160,6 +163,6 @@ export default function TerminosPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </AuthFondo>
   );
 }

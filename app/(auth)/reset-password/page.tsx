@@ -3,7 +3,8 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Image from "next/image"
+import { AuthFondo } from "@/app/components/brand/AuthFondo";
+import { Logo } from "@/app/components/brand/Logo";
 import { ArrowLeft, KeyRound } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -58,18 +59,10 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <AuthFondo>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-2 items-center text-center">
-          <div className="w-16 h-16 mb-2 relative">
-            <Image
-              src="/placeholder.svg?height=64&width=64"
-              alt="Cheer Gym Logo"
-              width={64}
-              height={64}
-              className="rounded-full"
-            />
-          </div>
+          <Logo variante="vertical" tono="color" alto={72} className="mb-2" />
           <CardTitle className="text-2xl font-bold text-primary">Restablecer Contraseña</CardTitle>
           <CardDescription>Ingrese su nueva contraseña</CardDescription>
         </CardHeader>
@@ -135,6 +128,6 @@ export default function ResetPasswordPage() {
           </form>
         )}
       </Card>
-    </div>
+    </AuthFondo>
   )
 }

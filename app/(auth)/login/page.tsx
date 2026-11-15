@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
+import { AuthFondo } from "@/app/components/brand/AuthFondo";
+import { Logo } from "@/app/components/brand/Logo";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
@@ -86,35 +87,15 @@ export default function LoginPage() {
 
 
 return (
-<main className="relative isolate h-[100dvh] w-full overflow-hidden bg-[#12091f]">
-    {/* Imagen de fondo */}
-    <div className="absolute inset-0 z-0">
-  <Image
-    src="/brand/background.png"
-    alt=""
-    fill
-    priority
-    sizes="100vw"
-    className="object-cover object-center"
-  />
-</div>
-
-    {/* Overlay para mejorar la legibilidad */}
-    <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/70 via-black/40 to-purple-950/20" />
-
-    {/* Capa adicional para móviles */}
-    <div className="absolute inset-0 z-10 bg-black/10 md:bg-transparent" />
-
-    {/* Contenido */}
-    <div className="relative z-20 flex min-h-screen items-center justify-center p-4 md:justify-start md:pl-[8vw]">
+<AuthFondo alinear="izquierda">
 
       <Card className="w-full max-w-md border border-white/10 bg-[#19151e]/95 text-white shadow-2xl shadow-black/40 backdrop-blur-md">
 
         <CardHeader className="items-center space-y-2 text-center">
 
-          <CardTitle className="text-3xl font-bold tracking-tight text-[#ff477e]">
-            CheerManager
-          </CardTitle>
+          {/* Fondo oscuro: logo vertical en blanco (el h1 queda solo para lectores de pantalla) */}
+          <h1 className="sr-only">CheerManager</h1>
+          <Logo variante="vertical" tono="blanco" alto={92} prioridad />
 
           <CardDescription className="text-gray-300">
             Ingrese sus credenciales para acceder al sistema
@@ -270,8 +251,7 @@ return (
         </form>
 
       </Card>
-    </div>
-  </main>
+</AuthFondo>
 );
 
 }

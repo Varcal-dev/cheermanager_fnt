@@ -18,6 +18,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthFondo } from "@/app/components/brand/AuthFondo";
+import { Logo } from "@/app/components/brand/Logo";
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -76,9 +78,10 @@ export default function CambiarPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-600 p-4">
+    <AuthFondo>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-2 items-center text-center">
+          <Logo variante="vertical" tono="color" alto={72} className="mb-2" />
           <CardTitle className="text-2xl font-bold text-primary">
             Cambio de contraseña requerido
           </CardTitle>
@@ -135,6 +138,6 @@ export default function CambiarPasswordPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </AuthFondo>
   );
 }
