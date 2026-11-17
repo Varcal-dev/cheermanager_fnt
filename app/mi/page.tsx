@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PortalCarnet from "@/app/components/portal/PortalCarnet";
 import PortalHorarios from "@/app/components/portal/PortalHorarios";
 import PortalProgreso from "@/app/components/portal/PortalProgreso";
+import PortalResumen from "@/app/components/portal/PortalResumen";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TablaResponsiva } from "@/app/components/TablaResponsiva";
 import { formatCOP, formatFecha, type Factura, type Pago } from "@/app/lib/facturas-pagos";
@@ -62,10 +63,10 @@ function Vacio({ children }: { children: React.ReactNode }) {
 }
 
 const TABS = [
-  "carnet", "horarios", "progreso", "facturas", "pagos", "asistencias", "evaluaciones", "objetivos", "rutinas", "temporada",
+  "resumen", "carnet", "horarios", "progreso", "facturas", "pagos", "asistencias", "evaluaciones", "objetivos", "rutinas", "temporada",
 ] as const;
 type Tab = (typeof TABS)[number];
-const TAB_INICIAL: Tab = "facturas";
+const TAB_INICIAL: Tab = "resumen";
 
 function Acciones({ onCsv, deshabilitado }: { onCsv: () => void; deshabilitado?: boolean }) {
   return (
@@ -279,6 +280,7 @@ function PortalContenido() {
             <Tabs value={tab} onValueChange={cambiarTab}>
               <div ref={listaRef} className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 print:hidden">
               <TabsList className="h-auto w-max justify-start">
+                <TabsTrigger className="shrink-0" value="resumen">Resumen</TabsTrigger>
                 <TabsTrigger className="shrink-0" value="carnet">Carnet</TabsTrigger>
                 <TabsTrigger className="shrink-0" value="horarios">Horarios</TabsTrigger>
                 <TabsTrigger className="shrink-0" value="progreso">Progreso</TabsTrigger>
@@ -291,6 +293,10 @@ function PortalContenido() {
                 <TabsTrigger className="shrink-0" value="temporada">Inscripción</TabsTrigger>
               </TabsList>
               </div>
+
+              <TabsContent value="resumen">
+                <PortalResumen deportistaId={Number(seleccionado)} />
+              </TabsContent>
 
               <TabsContent value="carnet">
                 <PortalCarnet deportistaId={Number(seleccionado)} />

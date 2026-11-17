@@ -41,7 +41,7 @@ import {
   ETIQUETA_ACCION,
   type AccionAuditoria,
   type RegistroAuditoria,
-} from "@/lib/auditoria";
+} from "@/app/lib/auditoria";
 import { cn } from "@/lib/utils";
 
 const ACCION_BADGE: Record<AccionAuditoria, "success" | "outline" | "destructive" | "secondary" | "default"> = {
