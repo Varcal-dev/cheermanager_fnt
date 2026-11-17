@@ -4,7 +4,10 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Too
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useUser } from "@/context/UserContext";
 import { formatCOP, formatFecha } from "@/app/lib/facturas-pagos";
+import SeccionCompetencia from "./SeccionCompetencia";
+import SeccionSalud from "./SeccionSalud";
 import type { EstadoVencimiento, PerfilDeportista as Perfil, VencimientoPerfil } from "@/app/lib/perfil-deportista";
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -61,6 +64,10 @@ function antiguedad(meses: number | null) {
 export default function PerfilDeportista({ perfil, modo }: { perfil: Perfil; modo: "club" | "portal" }) {
   const { estado, facturacion, asistencia, evolucion, notaFacturacion } = perfil;
   const portal = modo === "portal";
+  const { permissions } = useUser();
+  // Cada sección se pide aparte y exige su propio permiso (el portal siempre las pide: el back valida que sea suyo).
+  const verCompetencia = portal || permissions.includes("ver_evento");
+  const verSalud = portal || permissions.includes("ver_lesiones");
   const activo = estado.estado === "Activo";
 
   return (
@@ -360,6 +367,10 @@ export default function PerfilDeportista({ perfil, modo }: { perfil: Perfil; mod
           </div>
         </>
       )}
+
+      {/* ---------- Competencia y salud ---------- */}
+      {verCompetencia && <SeccionCompetencia deportistaId={estado.deportistaId} modo={modo} />}
+      {verSalud && <SeccionSalud deportistaId={estado.deportistaId} modo={modo} />}
     </div>
   );
 }

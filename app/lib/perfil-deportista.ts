@@ -119,3 +119,95 @@ export const perfilClub = (deportistaId: number) =>
 
 export const perfilPortal = (deportistaId: number) =>
   api.get<PerfilDeportista>(`/api/portal/deportistas/${deportistaId}/resumen`).then((r) => r.data);
+
+// ---------- Segunda entrega: Competencia y Salud (cada una con su endpoint y su permiso) ----------
+
+export interface ProblemaAptitud {
+  tipo: string;
+  bloquea: boolean;
+  detalle: string;
+}
+
+export interface ParticipacionPerfil {
+  eventoId: number;
+  evento: string;
+  fecha: string | null;
+  grupoId: number;
+  grupo: string | null;
+  rol: "TITULAR" | "SUPLENTE";
+  posicion: string | null;
+  rosterEstado: "BORRADOR" | "CONFIRMADO";
+  /** Posición del GRUPO en el evento (el resultado es del equipo, no del atleta). */
+  posicionGrupo: number | null;
+  puntaje: number | null;
+  premio: string | null;
+}
+
+export interface ProximoEventoPerfil {
+  eventoId: number;
+  evento: string;
+  fecha: string | null;
+  grupo: string | null;
+  rol: "TITULAR" | "SUPLENTE";
+  posicion: string | null;
+  rosterEstado: "BORRADOR" | "CONFIRMADO";
+  apto: boolean;
+  problemas: ProblemaAptitud[];
+}
+
+export interface DatosCompetencia {
+  /** Eventos ya realizados en que fue titular de un roster confirmado. */
+  eventos: number;
+  podios: number;
+  proximo: ProximoEventoPerfil | null;
+  participaciones: ParticipacionPerfil[];
+}
+
+export type RestriccionSalud = "SIN_ENTRENAR" | "MODIFICADO" | "SIN_RESTRICCION";
+
+export interface NotaSalud {
+  fecha: string;
+  nota: string;
+  estado: string | null;
+  restriccion: string | null;
+}
+
+export interface LesionVigentePerfil {
+  id: number;
+  zona: string;
+  descripcion: string;
+  gravedad: "LEVE" | "MODERADA" | "GRAVE";
+  restriccion: RestriccionSalud;
+  estado: "ACTIVA" | "EN_RETORNO";
+  fechaLesion: string;
+  fechaEstimadaRetorno: string | null;
+  retornoAtrasado: boolean;
+  /** null para la familia. */
+  seguimientos: NotaSalud[] | null;
+}
+
+export interface LesionCerradaPerfil {
+  id: number;
+  zona: string;
+  descripcion: string;
+  gravedad: string;
+  fechaLesion: string;
+  fechaAlta: string | null;
+  dias: number;
+}
+
+export interface DatosSalud {
+  restriccion: RestriccionSalud;
+  vigentes: LesionVigentePerfil[];
+  /** null para la familia. */
+  historial: LesionCerradaPerfil[] | null;
+}
+
+export const competenciaClub = (id: number) =>
+  api.get<DatosCompetencia>(`/api/deportistas/${id}/resumen/competencia`).then((r) => r.data);
+export const saludClub = (id: number) =>
+  api.get<DatosSalud>(`/api/deportistas/${id}/resumen/salud`).then((r) => r.data);
+export const competenciaPortal = (id: number) =>
+  api.get<DatosCompetencia>(`/api/portal/deportistas/${id}/resumen/competencia`).then((r) => r.data);
+export const saludPortal = (id: number) =>
+  api.get<DatosSalud>(`/api/portal/deportistas/${id}/resumen/salud`).then((r) => r.data);
