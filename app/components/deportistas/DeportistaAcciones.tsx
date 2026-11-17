@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { KeyRound, Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
+import { Eye, KeyRound, Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
 import type { Deportista } from "@/app/deportistas/types";
@@ -25,6 +25,9 @@ export default function DeportistaAcciones({ deportista, sinInscripcion, onEdita
 
   return (
     <div className="flex flex-wrap gap-2">
+      <Button variant="outline" size="sm" onClick={() => router.push(`/deportistas/${deportista.deportistaId}`)}>
+        <Eye className="h-4 w-4 mr-1" /> Perfil
+      </Button>
       {permissions.includes("modificar_deportista") && (
         <Button variant="outline" size="sm" onClick={onEditar}>
           <Pencil className="h-4 w-4 mr-1" /> Editar

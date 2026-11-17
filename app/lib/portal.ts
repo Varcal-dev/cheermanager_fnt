@@ -12,6 +12,8 @@ export interface InscripcionResumen {
   estado: string | null;
   fechaInscripcion: string;
   fechaVencimiento: string | null;
+  planInscripcion: string | null;
+  planMensualidad: string | null;
 }
 
 export interface DeportistaResumen {
