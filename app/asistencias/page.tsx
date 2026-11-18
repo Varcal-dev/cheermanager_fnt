@@ -1,13 +1,14 @@
 "use client";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
-import EscaneoAsistencia from "@/app/components/asistencias/EscaneoAsistencia";
+import { AsistenciasView } from "@/app/components/asistencias/asistencias-view";
 
-// Pasar lista escaneando el carnet de cada deportista. Permiso: registrar_asistencia.
-export default function EscaneoPage() {
+// Registro manual de asistencia, consulta por periodo y métricas. Permiso: registrar_asistencia.
+// El pase de lista con carnet vive en /asistencias/escaneo.
+export default function AsistenciasPage() {
   return (
     <ProtectedRoute requiredPermission="registrar_asistencia">
-      <EscaneoAsistencia />
+      <AsistenciasView />
     </ProtectedRoute>
   );
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarClock, CheckCheck, History, ListChecks, Loader2, Save, Users } from "lucide-react"
+import { BarChart3, CalendarClock, CheckCheck, History, ListChecks, Loader2, Save, Users } from "lucide-react"
 import { toast } from "react-toastify"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, getErrorMessage } from "@/lib/api"
+import MetricasAsistencia from "./MetricasAsistencia"
 
 // Vista de asistencias conectada al backend (antes usaba datos de ejemplo en memoria).
 // Endpoints: /api/grupos/con-deportistas, /api/horarios, /api/estados-asistencia,
@@ -146,12 +147,19 @@ export function AsistenciasView() {
               <History data-icon="inline-start" />
               Consulta
             </TabsTrigger>
+            <TabsTrigger value="metricas">
+              <BarChart3 data-icon="inline-start" />
+              Métricas
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="registro">
             <RegistroMasivo {...cat} />
           </TabsContent>
           <TabsContent value="historial">
             <Consulta {...cat} />
+          </TabsContent>
+          <TabsContent value="metricas">
+            <MetricasAsistencia grupos={cat.grupos} />
           </TabsContent>
         </Tabs>
       )}
