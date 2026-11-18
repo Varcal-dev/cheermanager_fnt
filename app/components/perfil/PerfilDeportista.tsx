@@ -93,8 +93,12 @@ export default function PerfilDeportista({ perfil, modo }: { perfil: Perfil; mod
               {estado.fechaRegistro ? ` (desde ${formatFecha(estado.fechaRegistro)})` : ""}
             </p>
             <p>
-              <span className="text-muted-foreground">Plan de pago: </span>
+              <span className="text-muted-foreground">Plan de inscripción: </span>
               {estado.planPago ?? "—"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Plan de mensualidad: </span>
+              {estado.planMensualidad ?? "—"}
             </p>
           </div>
           <div className="space-y-1 text-sm">

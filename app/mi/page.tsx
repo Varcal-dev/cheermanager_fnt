@@ -510,6 +510,7 @@ function PortalContenido() {
                       <p key={i.id} className="text-muted-foreground">
                         {i.temporada ?? "Sin temporada"} · {i.estado} · desde {formatFecha(i.fechaInscripcion)}
                         {i.fechaVencimiento ? ` hasta ${formatFecha(i.fechaVencimiento)}` : ""}
+                        {` · Inscripción: ${i.planInscripcion ?? "—"} · Mensualidad: ${i.planMensualidad ?? "—"}`}
                       </p>
                     ))}
                   </div>

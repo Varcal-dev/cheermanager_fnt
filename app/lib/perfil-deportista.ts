@@ -19,7 +19,9 @@ export interface DatosEstado {
   estado: string | null;
   nivel: string | null;
   grupos: string[];
+  /** Plan de inscripción (cobro único). */
   planPago: string | null;
+  planMensualidad: string | null;
   fechaRegistro: string | null;
   antiguedadMeses: number | null;
   edad: number | null;
