@@ -28,7 +28,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/recuperar-password") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/cambiar-password");
+    pathname.startsWith("/cambiar-password") ||
+    // Página pública "Únete" (sin sesión): sin menús ni guardas de permisos.
+    pathname === "/unete" ||
+    pathname.startsWith("/unete/");
 
   return (
     <>

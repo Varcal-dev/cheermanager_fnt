@@ -1,5 +1,7 @@
 "use client";
 
+import NombreCriterio from "@/app/components/evaluaciones/NombreCriterio";
+import { partirNombreCriterio } from "@/app/lib/nombre-criterio";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { api, getErrorMessage } from "@/lib/api";
@@ -43,7 +45,7 @@ export default function EvaluarTab({ grupos, criterios }: { grupos: Grupo[]; cri
   }, [modo, criterioId, deportistaId]);
 
   const nombrePorId = useMemo(() => new Map(miembros.map((m) => [String(m.deportistaId), m.nombre])), [miembros]);
-  const nombreCriterio = useMemo(() => new Map(criterios.map((c) => [String(c.id), c.nombre])), [criterios]);
+  const nombreCriterio = useMemo(() => new Map(criterios.map((c) => [String(c.id), partirNombreCriterio(c.nombre).texto])), [criterios]);
   const llenas = Object.entries(notas).filter(([, v]) => v !== "");
   const hayInvalidas = llenas.some(([, v]) => !valido(v));
   const listo = llenas.length > 0 && !hayInvalidas && !!fecha && (modo === "criterio" ? !!criterioId : !!deportistaId);
@@ -121,7 +123,7 @@ export default function EvaluarTab({ grupos, criterios }: { grupos: Grupo[]; cri
                 <option value="">Elige un criterio</option>
                 {porCategoria(criterios).map(([cat, lista]) => (
                   <optgroup key={cat} label={cat}>
-                    {lista.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
+                    {lista.map((c) => (<option key={c.id} value={c.id}>{partirNombreCriterio(c.nombre).texto}</option>))}
                   </optgroup>
                 ))}
               </select>
@@ -164,7 +166,7 @@ export default function EvaluarTab({ grupos, criterios }: { grupos: Grupo[]; cri
                 <TableRow><TableCell colSpan={2} className="bg-muted/50 text-xs font-semibold uppercase">{cat}</TableCell></TableRow>
                 {lista.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell>{c.nombre}</TableCell>
+                    <TableCell><NombreCriterio nombre={c.nombre} /></TableCell>
                     <TableCell>{campo(String(c.id))}</TableCell>
                   </TableRow>
                 ))}

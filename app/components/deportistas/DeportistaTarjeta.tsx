@@ -64,6 +64,7 @@ export default function DeportistaTarjeta({
 
         <div className="flex flex-wrap items-center gap-1">
           <Badge variant={deportista.estadoNombre === "Activo" ? "success" : "secondary"}>{deportista.estadoNombre}</Badge>
+          {deportista.tieneAcudiente === false && !retirado && <Badge variant="warning">Sin acudiente</Badge>}
           {sinInscripcion && !retirado && <Badge variant="warning">Sin matricular</Badge>}
           {deportista.grupos?.map((grupo, i) => (
             <Badge key={i} variant="outline">

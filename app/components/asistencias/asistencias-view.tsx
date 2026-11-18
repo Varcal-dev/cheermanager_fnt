@@ -53,6 +53,24 @@ interface AsistenciaDTO {
 const fechaLocalISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 const hoyISO = () => fechaLocalISO(new Date())
+
+// Día de la semana (0 = domingo … 6 = sábado, como Date.getDay) a partir del nombre del catálogo ("Miércoles", "Sabado"…).
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
+const indiceDia = (nombre?: string) => {
+  const limpio = (nombre ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()
+  const i = DIAS_SEMANA.indexOf(limpio)
+  return i >= 0 ? i : null
+}
+const diaDeFechaISO = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number)
+  return new Date(y, m - 1, d).getDay()
+}
+// Fecha más reciente (hoy o antes) que cae en el día pedido.
+const ultimaFechaDelDia = (dia: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() - ((d.getDay() - dia + 7) % 7))
+  return fechaLocalISO(d)
+}
 const haceDias = (n: number) => {
   const d = new Date()
   d.setDate(d.getDate() - n)
@@ -165,9 +183,25 @@ function RegistroMasivo({ grupos, horarios, estados }: CatProps) {
     setRoster([])
   }, [grupoId])
 
+  // La fecha debe caer en el día del horario elegido: al elegir un horario se salta al último día que le corresponde.
+  const horarioSel = horariosDelGrupo.find((h) => String(h.id) === horarioId)
+  const diaHorario = indiceDia(horarioSel?.dia)
+  const fechaNoCoincide = !!horarioSel && diaHorario !== null && !!fecha && diaDeFechaISO(fecha) !== diaHorario
+  React.useEffect(() => {
+    if (diaHorario !== null) {
+      setFecha((actual) => (actual && diaDeFechaISO(actual) === diaHorario ? actual : ultimaFechaDelDia(diaHorario)))
+    }
+    setCargada(false)
+    setRoster([])
+  }, [diaHorario, horarioId])
+
   const estadoPorDefecto = () => (estados.find((e) => e.estado.toLowerCase() === "presente") ?? estados[0])?.id.toString() ?? ""
 
   async function cargarLista() {
+    if (fechaNoCoincide) {
+      toast.error(`La fecha no coincide con el horario: ese entrenamiento es los ${horarioSel?.dia}.`)
+      return
+    }
     if (!grupoId || !horarioId || !fecha) {
       toast.error("Selecciona grupo, horario y fecha")
       return
@@ -272,10 +306,23 @@ function RegistroMasivo({ grupos, horarios, estados }: CatProps) {
             </div>
             <div className="flex flex-col gap-2">
               <Label>Fecha</Label>
-              <Input type="date" value={fecha} max={hoyISO()} onChange={(e) => setFecha(e.target.value)} />
+              <Input
+                type="date"
+                value={fecha}
+                max={hoyISO()}
+                aria-invalid={fechaNoCoincide}
+                onChange={(e) => setFecha(e.target.value)}
+              />
+              {horarioSel && (
+                <p className={fechaNoCoincide ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+                  {fechaNoCoincide
+                    ? `Este horario es los ${horarioSel.dia}: elige una fecha que caiga en ese día.`
+                    : `Entrenamiento de los ${horarioSel.dia}.`}
+                </p>
+              )}
             </div>
           </div>
-          <Button className="mt-4" onClick={cargarLista} disabled={cargando || !grupoId || !horarioId}>
+          <Button className="mt-4" onClick={cargarLista} disabled={cargando || !grupoId || !horarioId || fechaNoCoincide}>
             {cargando ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Users className="mr-2 size-4" />}
             Cargar lista
           </Button>

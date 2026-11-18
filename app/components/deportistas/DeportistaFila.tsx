@@ -63,17 +63,26 @@ export default function DeportistaFila({
         <TableCell>{deportista.genero}</TableCell>
         <TableCell>{deportista.nivelNombre ?? "Sin nivel"}</TableCell>
         <TableCell>
-          {deportista.grupos?.map((grupo, index) => (
-            <Badge key={index} variant="outline" className="mr-1">
-              {grupo}
-            </Badge>
-          ))}
+          {deportista.grupos && deportista.grupos.length > 0 ? (
+            deportista.grupos.map((grupo, index) => (
+              <Badge key={index} variant="outline" className="mr-1">
+                {grupo}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground">Sin grupo</span>
+          )}
         </TableCell>
         <TableCell>
           <div className="flex flex-wrap items-center gap-1">
             <Badge variant={deportista.estadoNombre === "Activo" ? "success" : "secondary"}>
               {deportista.estadoNombre}
             </Badge>
+            {deportista.tieneAcudiente === false && !retirado && (
+              <Badge variant="warning" title="No tiene acudiente vinculado: no hay a quién contactar ni quién firme consentimientos">
+                Sin acudiente
+              </Badge>
+            )}
             {sinInscripcion && !retirado && (
               <Badge variant="warning" title="Aún no tiene inscripción: no se le factura ni entra a un grupo">
                 Sin matricular

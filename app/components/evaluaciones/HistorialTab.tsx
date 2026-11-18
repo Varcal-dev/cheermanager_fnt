@@ -1,5 +1,6 @@
 "use client";
 
+import NombreCriterio from "@/app/components/evaluaciones/NombreCriterio";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -189,7 +190,7 @@ export default function HistorialTab({ grupos, criterios }: { grupos: Grupo[]; c
                 <TableCell>{e.fecha}</TableCell>
                 <TableCell>{e.nombreDeportista}</TableCell>
                 <TableCell>{e.categoria}</TableCell>
-                <TableCell>{e.nombreCriterio}</TableCell>
+                <TableCell><NombreCriterio nombre={e.nombreCriterio} /></TableCell>
                 <TableCell className={`text-right font-medium ${claseNota(e.puntajeObtenido)}`}>{e.puntajeObtenido}/{PUNTAJE_MAXIMO}</TableCell>
                 {(puedeEditar || puedeEliminar) && (
                   <TableCell className="flex gap-1">

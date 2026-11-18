@@ -1,5 +1,6 @@
 "use client";
 
+import NombreCriterio from "@/app/components/evaluaciones/NombreCriterio";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -234,7 +235,7 @@ function PlantillaDialog({
               {propios.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm">
                   <Checkbox checked={sel.has(clave("CLUB", c.id))} onCheckedChange={() => alternar(clave("CLUB", c.id))} />
-                  {c.nombre} <span className="text-xs text-muted-foreground">· {c.categoria}</span>
+                  <span><NombreCriterio nombre={c.nombre} /></span> <span className="text-xs text-muted-foreground">· {c.categoria}</span>
                 </label>
               ))}
               {propios.length === 0 && <p className="text-sm text-muted-foreground">No hay criterios propios.</p>}
