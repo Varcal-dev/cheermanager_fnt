@@ -30,6 +30,8 @@ import {
 // Acudientes (padres/tutores) y consentimientos de datos (Ley 1581) de un deportista.
 // Esto es registro de EVIDENCIA, no asesoría legal: el texto que se firma lo debe validar un abogado.
 
+const PARENTESCOS_BASE = ["Madre", "Padre", "Abuelo/a", "Tío/a", "Hermano/a", "Tutor legal", "Otro"];
+
 interface Props {
   deportistaId: number;
   personaId: number;
@@ -109,6 +111,14 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
     email: "",
   });
   const [parentesco, setParentesco] = useState("");
+  // Catálogo de parentescos (el back lo valida); si no responde se usa esta lista base.
+  const [parentescos, setParentescos] = useState<string[]>(PARENTESCOS_BASE);
+  useEffect(() => {
+    api
+      .get<string[]>("/api/acudientes/parentescos")
+      .then((res) => Array.isArray(res.data) && res.data.length > 0 && setParentescos(res.data))
+      .catch(() => undefined);
+  }, []);
   const [autorizaRecoger, setAutorizaRecoger] = useState(true);
   const [guardandoVinculo, setGuardandoVinculo] = useState(false);
 
@@ -455,7 +465,18 @@ export default function AcudientesConsentimientosPanel({ deportistaId, personaId
             )}
             <div>
               <Label>Parentesco</Label>
-              <Input placeholder="Madre, padre, tutor…" value={parentesco} onChange={(e) => setParentesco(e.target.value)} />
+              <Select value={parentesco} onValueChange={setParentesco}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona el parentesco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parentescos.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={autorizaRecoger} onCheckedChange={(c) => setAutorizaRecoger(c === true)} />

@@ -98,6 +98,8 @@ export interface MovimientoEstado {
   estadoNuevo: string;
   fechaCambio: string;
   esAlta: boolean;
+  /** ALTA (registro o reingreso), BAJA (retiro) o CAMBIO (otro cambio de estado). */
+  tipo?: "ALTA" | "BAJA" | "CAMBIO";
   motivo: string;
 }
 

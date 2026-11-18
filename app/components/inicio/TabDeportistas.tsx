@@ -128,7 +128,9 @@ export default function TabDeportistas({ estado }: { estado: CargaPerezosa<Resum
                           {m.motivo ? ` · ${m.motivo}` : ""}
                         </p>
                       </div>
-                      <Badge variant={m.esAlta ? "success" : "destructive"}>{m.estadoNuevo}</Badge>
+                      <Badge variant={m.tipo === "CAMBIO" ? "secondary" : m.esAlta ? "success" : "destructive"}>
+                        {m.tipo === "ALTA" ? "Alta" : m.tipo === "BAJA" ? "Baja" : m.estadoNuevo}
+                      </Badge>
                     </div>
                   ))
                 )}

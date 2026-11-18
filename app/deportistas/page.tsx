@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,6 +48,44 @@ const ENCABEZADOS = [
   "Acciones",
 ];
 
+type Orden =
+  | "nombre-asc"
+  | "nombre-desc"
+  | "reciente"
+  | "antiguo"
+  | "edad-asc"
+  | "edad-desc";
+
+const OPCIONES_ORDEN: { value: Orden; label: string }[] = [
+  { value: "nombre-asc", label: "Nombre (A-Z)" },
+  { value: "nombre-desc", label: "Nombre (Z-A)" },
+  { value: "reciente", label: "Más recientes" },
+  { value: "antiguo", label: "Más antiguos" },
+  { value: "edad-asc", label: "Edad (menor a mayor)" },
+  { value: "edad-desc", label: "Edad (mayor a menor)" },
+];
+
+function ordenar(lista: Deportista[], orden: Orden): Deportista[] {
+  const nombre = (d: Deportista) => `${d.nombre ?? ""} ${d.apellidos ?? ""}`.trim();
+  const tiempo = (v?: string) => (v ? new Date(v).getTime() || 0 : 0);
+  const copia = [...lista];
+  switch (orden) {
+    case "nombre-asc":
+      return copia.sort((a, b) => nombre(a).localeCompare(nombre(b), "es", { sensitivity: "base" }));
+    case "nombre-desc":
+      return copia.sort((a, b) => nombre(b).localeCompare(nombre(a), "es", { sensitivity: "base" }));
+    case "reciente":
+      return copia.sort((a, b) => tiempo(b.fechaRegistro) - tiempo(a.fechaRegistro) || b.deportistaId - a.deportistaId);
+    case "antiguo":
+      return copia.sort((a, b) => tiempo(a.fechaRegistro) - tiempo(b.fechaRegistro) || a.deportistaId - b.deportistaId);
+    // Edad: fecha de nacimiento más reciente = más joven.
+    case "edad-asc":
+      return copia.sort((a, b) => tiempo(b.fechaNacimiento) - tiempo(a.fechaNacimiento));
+    case "edad-desc":
+      return copia.sort((a, b) => tiempo(a.fechaNacimiento) - tiempo(b.fechaNacimiento));
+  }
+}
+
 export default function DeportistasPage() {
   const { permissions } = useUser();
   const router = useRouter();
@@ -60,6 +105,8 @@ export default function DeportistasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
   const [soloSinMatricular, setSoloSinMatricular] = useState(false);
+  const [soloSinAcudiente, setSoloSinAcudiente] = useState(false);
+  const [orden, setOrden] = useState<Orden>("nombre-asc");
   useEffect(() => {
     const q = searchParams.get("search");
     if (q) setSearchTerm(q);
@@ -111,9 +158,14 @@ export default function DeportistasPage() {
     (d) => noInscritos.has(d.deportistaId) && d.estadoNombre !== "Retirado",
   );
 
+  // Sin acudiente = no retirado y sin ningún acudiente vinculado.
+  const sinAcudiente = deportistas.filter(
+    (d) => d.tieneAcudiente === false && d.estadoNombre !== "Retirado",
+  );
+
   const termino = searchTerm.toLowerCase();
 
-  const filtrados = deportistas.filter((d) => {
+  const filtradosSinOrden = deportistas.filter((d) => {
     const grupos = Array.isArray(d.grupos) ? d.grupos : [];
 
     const coincide =
@@ -126,13 +178,17 @@ export default function DeportistasPage() {
         ? coincide && selectedEstados.includes(d.estadoId)
         : coincide;
 
+    if (soloSinAcudiente && !(d.tieneAcudiente === false && d.estadoNombre !== "Retirado")) {
+      return false;
+    }
     return soloSinMatricular
       ? porEstado &&
           noInscritos.has(d.deportistaId) &&
           d.estadoNombre !== "Retirado"
       : porEstado;
   });
-  
+  const filtrados = ordenar(filtradosSinOrden, orden);
+
   return (
     <ProtectedRoute requiredPermission="ver_deportista">
       <ClaveTemporalDialog
@@ -189,6 +245,29 @@ export default function DeportistasPage() {
           </div>
         )}
 
+        {sinAcudiente.length > 0 && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm"
+          >
+            <p>
+              <strong>{sinAcudiente.length}</strong>{" "}
+              {sinAcudiente.length === 1
+                ? "deportista no tiene acudiente"
+                : "deportistas no tienen acudiente"}
+              : sin acudiente no hay a quién contactar ni quién firme los consentimientos.
+            </p>
+            <Button
+              size="sm"
+              variant={soloSinAcudiente ? "default" : "outline"}
+              className="max-sm:min-h-11"
+              onClick={() => setSoloSinAcudiente((v) => !v)}
+            >
+              {soloSinAcudiente ? "Ver todos" : "Ver solo sin acudiente"}
+            </Button>
+          </div>
+        )}
+
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="relative flex w-full items-center sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
@@ -199,7 +278,19 @@ export default function DeportistasPage() {
               className="h-11 pl-9 md:h-9"
             />
           </div>
-          <div className="flex space-x-2 items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={orden} onValueChange={(v) => setOrden(v as Orden)}>
+              <SelectTrigger className="h-11 w-[200px] md:h-9" aria-label="Ordenar por">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                {OPCIONES_ORDEN.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FiltroEstadosDropdown
               estados={estados}
               seleccionados={selectedEstados}

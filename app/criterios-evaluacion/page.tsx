@@ -1,5 +1,6 @@
 "use client";
 
+import NombreCriterio from "@/app/components/evaluaciones/NombreCriterio";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -225,7 +226,7 @@ export default function CriteriosEvaluacionPage() {
                   ) : (
                     visibles.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.nombre}</TableCell>
+                        <TableCell className="font-medium"><NombreCriterio nombre={c.nombre} /></TableCell>
                         <TableCell>{c.categoria}</TableCell>
                         <TableCell>
                           {c.enUso ? (

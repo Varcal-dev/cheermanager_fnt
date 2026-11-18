@@ -1,5 +1,6 @@
 "use client";
 
+import NombreCriterio from "@/app/components/evaluaciones/NombreCriterio";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -172,7 +173,7 @@ export default function EvaluacionesPanel({
                   <TableCell>
                     {new Date(evaluacion.fecha).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{evaluacion.nombreCriterio}</TableCell>
+                  <TableCell><NombreCriterio nombre={evaluacion.nombreCriterio} /></TableCell>
                   <TableCell>{evaluacion.categoria}</TableCell>
                   <TableCell>{evaluacion.puntajeObtenido}/10</TableCell>
                   <TableCell>

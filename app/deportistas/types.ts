@@ -24,6 +24,8 @@ export interface Deportista {
   convenioId: number | null;
   convenioNombre: string | null;
   grupos: string[];
+  /** false si no tiene ningún acudiente vinculado. */
+  tieneAcudiente?: boolean;
 }
 
 export interface Nivel {
