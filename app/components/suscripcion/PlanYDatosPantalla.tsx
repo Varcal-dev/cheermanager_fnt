@@ -8,11 +8,13 @@ import { useUser } from "@/context/UserContext";
 import { getErrorMessage } from "@/lib/api";
 import { funcionesApi, type FuncionPerdida } from "@/app/lib/funciones";
 import { paquetesApi, moneda, type VistaPaquetes } from "@/app/lib/paquetes";
+import PagarSuscripcion from "@/app/components/suscripcion/PagarSuscripcion";
 import { ETIQUETA_VIGENCIA, fechaCorta, suscripcionApi, type ResumenSuscripcion } from "@/app/lib/suscripcion";
 
 export default function PlanYDatosPantalla() {
   const { permissions } = useUser();
   const puedeExportar = permissions.includes("exportar_listados");
+  const puedePagar = permissions.includes("pagar_suscripcion");
   const [resumen, setResumen] = useState<ResumenSuscripcion | null>(null);
   const [perdidas, setPerdidas] = useState<FuncionPerdida[] | null>(null);
   const [paquetes, setPaquetes] = useState<VistaPaquetes | null>(null);
@@ -54,6 +56,8 @@ export default function PlanYDatosPantalla() {
           )}
         </div>
       )}
+
+      {puedePagar && <PagarSuscripcion onPagado={() => suscripcionApi.propia().then(setResumen).catch(() => {})} />}
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Funciones que ya no están en tu plan</h2>

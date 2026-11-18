@@ -259,6 +259,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/usuarios", permission: "ver_usuarios", label: "Usuarios", icon: Users, grupo: "Club y datos" },
       { href: "/roles", permission: "ver_roles", funcion: "ROLES_PERSONALIZADOS", label: "Roles y permisos", icon: Lock, grupo: "Club y datos" },
       { href: "/auditoria", permission: "ver_dash_administracion", label: "Auditoría", icon: Shield, funcion: "AUDITORIA", grupo: "Club y datos", keywords: "registro de cambios" },
+      { href: "/facturacion-electronica", permission: "gestionar_facturacion_electronica", label: "Facturación electrónica", icon: FileText, grupo: "Club y datos", keywords: "dian factura electrónica nit resolución factus" },
       { href: "/plan-y-datos", permission: "ver_dash_administracion", label: "Plan y mis datos", icon: CreditCard, grupo: "Club y datos", keywords: "suscripción cupo paquetes descargar" },
       // Importación masiva de deportistas y exportes en CSV (la página valida importar_deportistas / exportar_listados).
       { href: "/importar-exportar", permission: "ver_dash_personas", label: "Importar y exportar", icon: FileSpreadsheet, grupo: "Club y datos", keywords: "csv excel cargar deportistas" },
