@@ -32,7 +32,7 @@ const setAuthorizationHeader = (token: string | null) => {
 setAuthorizationHeader(getStoredToken());
 
 // --- Renovación silenciosa de la sesión ---------------------------------------------------------------------
-// El token dura 8 h. Mientras el usuario sigue trabajando, cuando le quedan menos de 30 min se pide uno nuevo con
+// El token dura 60 min. Mientras el usuario sigue trabajando, cuando le quedan menos de 30 min se pide uno nuevo con
 // POST /api/refresh-token (el back revalida al usuario, recalcula sus permisos y revoca el token anterior). Si
 // falla (red, token ya revocado por otra pestaña) se sigue con el token actual: nunca se cierra la sesión por esto.
 const RENOVAR_CUANDO_QUEDA_MENOS_DE_MS = 30 * 60 * 1000;
