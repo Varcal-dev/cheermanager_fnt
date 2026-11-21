@@ -44,6 +44,7 @@ import { api, getErrorMessage } from "@/lib/api";
 import { useUser } from "@/context/UserContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AnularDialog from "@/app/components/Forms/AnularDialog";
+import { esc } from "@/app/lib/html";
 import React from "react";
 
 interface Venta {
@@ -175,21 +176,22 @@ export default function VentasPage() {
       .map(
         (d) => `
         <tr>
-          <td>${d.nombreProducto}${
+          <td>${esc(d.nombreProducto)}${
             [d.talla, d.color].filter(Boolean).length
-              ? ` (${[d.talla, d.color].filter(Boolean).join(" / ")})`
+              ? ` (${esc([d.talla, d.color].filter(Boolean).join(" / "))})`
               : ""
           }</td>
-          <td class="num">${d.cantidad}</td>
+          <td class="num">${esc(d.cantidad)}</td>
           <td class="num">$${Number(d.precioUnitario).toLocaleString()}</td>
           <td class="num">$${Number(d.subtotal).toLocaleString()}</td>
         </tr>`,
       )
       .join("");
 
-    const referencia = venta.numeroFactura
-      ? `Factura ${venta.numeroFactura}`
-      : `Comprobante de venta #${venta.id}`;
+    // Escapado aquí porque solo se usa dentro del HTML del comprobante (título y subtítulo).
+    const referencia = esc(
+      venta.numeroFactura ? `Factura ${venta.numeroFactura}` : `Comprobante de venta #${venta.id}`,
+    );
 
     const html = `
       <!DOCTYPE html>
@@ -225,8 +227,8 @@ export default function VentasPage() {
           <div class="sub">${referencia}</div>
 
           <div class="linea"><span>Fecha</span><span>${new Date(venta.fecha).toLocaleDateString()}</span></div>
-          <div class="linea"><span>Comprador</span><span>${venta.nombreComprador}</span></div>
-          <div class="linea"><span>Método de pago</span><span>${venta.metodoPago}</span></div>
+          <div class="linea"><span>Comprador</span><span>${esc(venta.nombreComprador)}</span></div>
+          <div class="linea"><span>Método de pago</span><span>${esc(venta.metodoPago)}</span></div>
 
           <table>
             <thead>
