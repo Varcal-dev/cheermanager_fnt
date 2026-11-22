@@ -107,7 +107,7 @@ const COMPRADOR_INTERNO = "interno";
 const COMPRADOR_EXTERNO = "externo";
 
 export default function VentasPage() {
-  const { permissions } = useUser();
+  const { permissions, clubNombre } = useUser();
   const puedeAnular = permissions.includes("anular_venta");
   const [ventaAAnular, setVentaAAnular] = useState<Venta | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -223,7 +223,7 @@ export default function VentasPage() {
           </style>
         </head>
         <body>
-          <h1>Ratels All Stars</h1>
+          <h1>${esc(clubNombre || "CheerManager")}</h1>
           <div class="sub">${referencia}</div>
 
           <div class="linea"><span>Fecha</span><span>${new Date(venta.fecha).toLocaleDateString()}</span></div>
