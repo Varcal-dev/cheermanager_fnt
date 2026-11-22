@@ -171,7 +171,11 @@ Para probar de punta a punta: entra con el superadmin del backend, crea un club 
 
 ## Integración continua
 
-GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, `npx tsc --noEmit` y `npm run build`.
+GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, auditoría de dependencias (`npm audit`: bloquea solo las críticas de producción; el resto se lista), `npx tsc --noEmit` y `npm run build`. Dependabot (`.github/dependabot.yml`) abre cada semana un PR agrupado con las actualizaciones de npm y de GitHub Actions.
+
+**Gestor y versiones:** el proyecto usa **npm** y un solo lockfile (`package-lock.json`); no agregues `pnpm-lock.yaml` ni `yarn.lock`, porque cambiaría el gestor con el que se instala en el despliegue. Las dependencias llevan versión fija o rango `^` (nada de `latest`): una instalación sin lock podría traer una versión nueva y romper producción.
+
+**Pendiente conocido:** `zod` 3 tiene un aviso de memoria (alta) cuyo arreglo exige pasar a zod 4 y a `@hookform/resolvers` 5; está planeado como tarea aparte. `next` 15 arrastra un `postcss` con avisos de compilación; se resuelve al subir a Next 16.
 
 ## Convenciones
 

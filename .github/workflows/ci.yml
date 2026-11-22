@@ -26,6 +26,12 @@ jobs:
       # El repo trae .npmrc con legacy-peer-deps=true (React 19).
       - name: Instalar dependencias
         run: npm ci
+      - name: Auditoria de dependencias (bloquea solo criticas)
+        run: |
+          # Las criticas de las dependencias de produccion bloquean el CI.
+          npm audit --omit=dev --audit-level=critical
+      - name: Auditoria de dependencias (informe completo, no bloquea)
+        run: npm audit || true
       - name: Revisar tipos
         run: npx tsc --noEmit
       - name: Build de produccion
