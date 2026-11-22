@@ -208,6 +208,7 @@ export function formatFecha(iso?: string | null): string {
 
 // ---------- Llamadas a la API ----------
 
+/** @deprecated Descarga TODAS las facturas. Usa obtenerFacturasPagina u obtenerFacturasConSaldo. */
 export async function obtenerFacturas(): Promise<Factura[]> {
   const { data } = await api.get("/api/facturas");
   return data;
@@ -257,6 +258,49 @@ export async function obtenerResumenCartera(): Promise<ResumenCartera> {
   return data;
 }
 
+export interface FiltrosPagos {
+  q?: string;
+  /** TODOS | PAGADO | PENDIENTE | VENCIDO | ANULADO */
+  estado?: string;
+  desde?: string; // yyyy-MM-dd
+  hasta?: string; // yyyy-MM-dd
+  pagina?: number;
+  tamano?: number;
+}
+
+/** Historial de pagos paginado en el servidor (más recientes primero). */
+export async function obtenerPagosPagina(
+  filtros: FiltrosPagos,
+): Promise<Pagina<Pago>> {
+  const params: Record<string, string | number> = {};
+  Object.entries(filtros).forEach(([k, v]) => {
+    if (v !== undefined && v !== "" && v !== "TODOS") params[k] = v as string | number;
+  });
+  const { data } = await api.get("/api/pagos/pagina", { params });
+  return data;
+}
+
+export interface ResumenPagos {
+  totalRecaudado: number;
+  totalPendiente: number;
+}
+
+/** Tarjetas de Pagos: no dependen de la página ni de la búsqueda. */
+export async function obtenerResumenPagos(): Promise<ResumenPagos> {
+  const { data } = await api.get("/api/pagos/resumen");
+  return data;
+}
+
+/**
+ * Facturas vigentes con saldo pendiente (tope de seguridad en el servidor: `totalElementos` dice cuántas hay en
+ * realidad). Se pide aparte porque esta lista la acota la deuda, no el historial.
+ */
+export async function obtenerFacturasConSaldo(): Promise<Pagina<Factura>> {
+  const { data } = await api.get("/api/facturas/con-saldo");
+  return data;
+}
+
+/** @deprecated Descarga TODOS los pagos. La pantalla de Pagos usa obtenerPagosPagina. */
 export async function obtenerPagos(): Promise<Pago[]> {
   const { data } = await api.get("/api/pagos");
   return data;

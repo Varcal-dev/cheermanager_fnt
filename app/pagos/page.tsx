@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   Loader2,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,29 +29,44 @@ import AnularDialog from "@/app/components/Forms/AnularDialog";
 import RecordatoriosMoraCard from "@/app/components/pagos/RecordatoriosMoraCard";
 import { useUser } from "@/context/UserContext";
 import {
-  Factura,
   FacturaConSaldo,
   Pago,
   ResumenGeneracionCobros,
-  calcularFacturasConSaldo,
+  ResumenPagos,
+  calcularUnaFacturaConSaldo,
   anularPago,
   cambiarEstadoPago,
   formatCOP,
   generarCobrosMensualidad,
   mensajeError,
-  obtenerFacturas,
-  obtenerPagos,
+  obtenerFacturasConSaldo,
+  obtenerPagosPagina,
+  obtenerResumenPagos,
 } from "@/app/lib/facturas-pagos";
+
+// Filas por página del historial de pagos (el servidor admite hasta 100).
+const TAMANO_PAGINA = 20;
 
 export default function PagosPage() {
   const { permissions } = useUser();
   const puedeRecordar = permissions.includes("gestionar_recordatorios_mora");
   const puedeAnularPago = permissions.includes("anular_pago");
   const [pagoAAnular, setPagoAAnular] = useState<Pago | null>(null);
+  // Cartera (facturas con saldo + tarjetas): se carga completa porque la acota la deuda real, no el historial.
   const [cargando, setCargando] = useState(true);
-  const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [facturasPendientes, setFacturasPendientes] = useState<FacturaConSaldo[]>([]);
+  const [totalFacturasPendientes, setTotalFacturasPendientes] = useState(0);
+  const [resumen, setResumen] = useState<ResumenPagos | null>(null);
+
+  // Historial de pagos: paginado y filtrado en el servidor.
   const [pagos, setPagos] = useState<Pago[]>([]);
+  const [cargandoPagos, setCargandoPagos] = useState(true);
+  const [pagina, setPagina] = useState(0);
+  const [totalPagos, setTotalPagos] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState("");
+  const [q, setQ] = useState(""); // búsqueda ya "asentada" (con retraso al escribir) que se manda al servidor
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [facturaParaPago, setFacturaParaPago] =
@@ -90,59 +107,81 @@ export default function PagosPage() {
     }
   };
 
-  const cargarDatos = () => {
-    setCargando(true);
-    Promise.allSettled([obtenerFacturas(), obtenerPagos()]).then(
-      ([resFacturas, resPagos]) => {
+  // Espera 400 ms después de la última tecla antes de consultar el historial al servidor.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQ(searchTerm.trim());
+      setPagina(0);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  const cargarCartera = useCallback(() => {
+    Promise.allSettled([obtenerFacturasConSaldo(), obtenerResumenPagos()]).then(
+      ([resFacturas, resResumen]) => {
         if (resFacturas.status === "fulfilled") {
-          setFacturas(resFacturas.value);
+          setFacturasPendientes(
+            resFacturas.value.contenido
+              .map((f) => calcularUnaFacturaConSaldo(f, []))
+              .filter((f) => f.saldoPendiente > 0),
+          );
+          setTotalFacturasPendientes(resFacturas.value.totalElementos);
         } else {
-          toast.error("No se pudieron cargar las facturas");
+          toast.error("No se pudieron cargar las facturas con saldo");
         }
-
-        if (resPagos.status === "fulfilled") {
-          setPagos(resPagos.value);
+        if (resResumen.status === "fulfilled") {
+          setResumen(resResumen.value);
         } else {
-          toast.error("No se pudieron cargar los pagos");
+          setResumen(null);
+          toast.error("No se pudieron cargar los totales de pagos");
         }
-
         setCargando(false);
       },
     );
-  };
-
-  useEffect(() => {
-    cargarDatos();
   }, []);
 
-  const facturasConSaldo = useMemo(
-    () => calcularFacturasConSaldo(facturas, pagos),
-    [facturas, pagos],
-  );
+  const cargarPagos = useCallback(() => {
+    setCargandoPagos(true);
+    obtenerPagosPagina({ q, pagina, tamano: TAMANO_PAGINA })
+      .then((res) => {
+        // Si tras anular/borrar la página actual quedó vacía, se vuelve a la última que existe.
+        if (res.contenido.length === 0 && pagina > 0 && res.totalPaginas > 0) {
+          setPagina(res.totalPaginas - 1);
+          return;
+        }
+        setPagos(res.contenido);
+        setTotalPagos(res.totalElementos);
+        setTotalPaginas(res.totalPaginas);
+      })
+      .catch((error) =>
+        toast.error(mensajeError(error, "No se pudieron cargar los pagos")),
+      )
+      .finally(() => setCargandoPagos(false));
+  }, [q, pagina]);
 
-  const facturasPendientes = useMemo(
-    () => facturasConSaldo.filter((f) => f.saldoPendiente > 0),
-    [facturasConSaldo],
-  );
+  useEffect(() => {
+    cargarCartera();
+  }, [cargarCartera]);
 
+  useEffect(() => {
+    cargarPagos();
+  }, [cargarPagos]);
+
+  // Tras cualquier cambio (pago, anulación, cobros generados) se refresca todo, conservando la página.
+  const cargarDatos = () => {
+    cargarCartera();
+    cargarPagos();
+  };
+
+  // La búsqueda de facturas con saldo es inmediata y local (la lista está acotada por la deuda).
   const facturasPendientesFiltradas = facturasPendientes.filter((f) => {
     const texto =
       `${f.numeroFactura} ${f.persona.nombre} ${f.persona.apellidos}`.toLowerCase();
     return texto.includes(searchTerm.toLowerCase());
   });
 
-  const pagosFiltrados = pagos
-    .filter((p) => p.numeroFactura.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-
-  const totalRecaudado = pagos
-    .filter((p) => p.estado === "Pagado")
-    .reduce((acc, p) => acc + p.monto, 0);
-
-  const totalPendiente = facturasPendientes.reduce(
-    (acc, f) => acc + f.saldoPendiente,
-    0,
-  );
+  const totalRecaudado = resumen?.totalRecaudado ?? 0;
+  const totalPendiente = resumen?.totalPendiente ?? 0;
 
   const abrirModalParaFactura = (factura: FacturaConSaldo) => {
     setFacturaParaPago(factura);
@@ -212,7 +251,7 @@ export default function PagosPage() {
         <Card className="lane-accent text-destructive">
           <CardHeader className="pb-2 pl-5">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Cartera pendiente ({facturasPendientes.length} facturas)
+              Cartera pendiente ({totalFacturasPendientes} facturas)
             </CardTitle>
           </CardHeader>
           <CardContent className="pl-5">
@@ -347,6 +386,12 @@ export default function PagosPage() {
                   ]}
                 />
               )}
+              {totalFacturasPendientes > facturasPendientes.length && (
+                <p className="px-4 py-3 text-sm text-muted-foreground">
+                  Se muestran las {facturasPendientes.length} facturas con saldo más recientes
+                  de {totalFacturasPendientes}. Usa la pantalla de Facturas para ver el resto.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -358,14 +403,18 @@ export default function PagosPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {pagosFiltrados.length === 0 ? (
+              {pagos.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
-                  No hay pagos registrados todavía
+                  {cargandoPagos
+                    ? "Cargando pagos…"
+                    : q
+                      ? "Ningún pago coincide con la búsqueda"
+                      : "No hay pagos registrados todavía"}
                 </div>
               ) : (
                 <TablaResponsiva
                   className="p-3 md:p-0"
-                  filas={pagosFiltrados}
+                  filas={pagos}
                   getKey={(p) => p.id}
                   columnas={[
                     { clave: "fac", titulo: "Factura", movil: "titulo", celda: (p) => <span className="font-medium">{p.numeroFactura}</span> },
@@ -425,6 +474,37 @@ export default function PagosPage() {
               )}
             </CardContent>
           </Card>
+
+          {totalPagos > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-sm text-muted-foreground">
+              <span>
+                Mostrando {pagina * TAMANO_PAGINA + 1}–
+                {Math.min((pagina + 1) * TAMANO_PAGINA, totalPagos)} de {totalPagos}{" "}
+                {totalPagos === 1 ? "pago" : "pagos"}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pagina === 0 || cargandoPagos}
+                  onClick={() => setPagina((p) => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" /> Anterior
+                </Button>
+                <span>
+                  Página {pagina + 1} de {Math.max(totalPaginas, 1)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pagina + 1 >= totalPaginas || cargandoPagos}
+                  onClick={() => setPagina((p) => p + 1)}
+                >
+                  Siguiente <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
