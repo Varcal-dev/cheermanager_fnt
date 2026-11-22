@@ -1,0 +1,25 @@
+# Actualizaciones semanales agrupadas: un PR por ecosistema, no uno por paquete.
+# Las versiones mayores (zod 4, next 16...) llegan como PR aparte; se revisan con plan, no se unen a ciegas.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    groups:
+      menores-y-parches:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Bogota
+    groups:
+      acciones:
+        patterns: ["*"]

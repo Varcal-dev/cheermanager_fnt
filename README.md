@@ -171,7 +171,11 @@ Para probar de punta a punta: entra con el superadmin del backend, crea un club 
 
 ## Integración continua
 
-GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, `npx tsc --noEmit` y `npm run build`.
+GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, auditoría de dependencias (`npm audit`: bloquea solo las críticas de producción; el resto se lista), `npx tsc --noEmit` y `npm run build`. Dependabot (`.github/dependabot.yml`) abre cada semana un PR agrupado con las actualizaciones de npm y de GitHub Actions.
+
+**Gestor y versiones:** el proyecto usa **npm** y un solo lockfile (`package-lock.json`); no agregues `pnpm-lock.yaml` ni `yarn.lock`, porque cambiaría el gestor con el que se instala en el despliegue. Las dependencias llevan versión fija o rango `^` (nada de `latest`): una instalación sin lock podría traer una versión nueva y romper producción.
+
+**Pendiente conocido:** `zod` 3 tiene un aviso de memoria (alta) cuyo arreglo exige pasar a zod 4 y a `@hookform/resolvers` 5; está planeado como tarea aparte. `next` 15 arrastra un `postcss` con avisos de compilación; se resuelve al subir a Next 16.
 
 ## Convenciones
 
@@ -189,3 +193,12 @@ GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, `npx tsc --noEmi
 3. **No hay pruebas automatizadas** en el front (el CI solo revisa tipos y build).
 4. Hay un `Dockerfile` en `app/uploads/` que parece fuera de lugar: revisar si debe estar ahí.
 5. Alerta de stock bajo en inventario y pantalla para `logs-acceso`.
+
+## Seguridad de cabeceras (CSP)
+
+`next.config.ts` envía una **Content-Security-Policy que bloquea** (desde SEC-04): solo se carga lo del mismo origen y la API (`NEXT_PUBLIC_API_URL`). `Permissions-Policy` permite la cámara solo a esta app (lector de QR de asistencia) y cierra micrófono, geolocalización y pagos.
+
+- **Si una pantalla se rompe por la CSP** (consola: «Content Security Policy»): define `CSP_ENFORCE=false` en Vercel y redespliega; vuelve a modo «solo informar». Luego añade el origen que falte a la política y quita la variable.
+- Si agregas analítica, CAPTCHA o una pasarela embebida, añade su dominio a `script-src`/`connect-src`/`frame-src`.
+- `NEXT_PUBLIC_API_URL` debe ser `https://` en producción (la política incluye `upgrade-insecure-requests`), y `public/unete.html` debe usar ese mismo origen en `API_BASE`.
+- Limitación conocida: la política mantiene `'unsafe-inline'` en scripts y estilos (Next hidrata con scripts en línea). Un nonce y sacar el token de `localStorage` son mejoras futuras.
