@@ -193,3 +193,12 @@ GitHub Actions (`.github/workflows/ci.yml`): Node 20, `npm ci`, auditoría de de
 3. **No hay pruebas automatizadas** en el front (el CI solo revisa tipos y build).
 4. Hay un `Dockerfile` en `app/uploads/` que parece fuera de lugar: revisar si debe estar ahí.
 5. Alerta de stock bajo en inventario y pantalla para `logs-acceso`.
+
+## Seguridad de cabeceras (CSP)
+
+`next.config.ts` envía una **Content-Security-Policy que bloquea** (desde SEC-04): solo se carga lo del mismo origen y la API (`NEXT_PUBLIC_API_URL`). `Permissions-Policy` permite la cámara solo a esta app (lector de QR de asistencia) y cierra micrófono, geolocalización y pagos.
+
+- **Si una pantalla se rompe por la CSP** (consola: «Content Security Policy»): define `CSP_ENFORCE=false` en Vercel y redespliega; vuelve a modo «solo informar». Luego añade el origen que falte a la política y quita la variable.
+- Si agregas analítica, CAPTCHA o una pasarela embebida, añade su dominio a `script-src`/`connect-src`/`frame-src`.
+- `NEXT_PUBLIC_API_URL` debe ser `https://` en producción (la política incluye `upgrade-insecure-requests`), y `public/unete.html` debe usar ese mismo origen en `API_BASE`.
+- Limitación conocida: la política mantiene `'unsafe-inline'` en scripts y estilos (Next hidrata con scripts en línea). Un nonce y sacar el token de `localStorage` son mejoras futuras.

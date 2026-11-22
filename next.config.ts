@@ -22,9 +22,10 @@ const csp = [
   ...(esDev ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
-// Se estrena en modo Report-Only (el navegador avisa en consola pero NO bloquea). Cuando navegues toda la app sin
-// avisos, define CSP_ENFORCE=true en Vercel y vuelve a desplegar para que bloquee de verdad.
-const cabeceraCsp = process.env.CSP_ENFORCE === "true" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
+// La CSP BLOQUEA por defecto (SEC-04). Para volver a solo informar (el navegador avisa en consola y no bloquea), por ejemplo si
+// una pantalla nueva necesita un origen que aun no esta en la politica: define CSP_ENFORCE=false en Vercel y vuelve a desplegar.
+// Si agregas analitica, Turnstile/reCAPTCHA o una pasarela embebida, anade su dominio a script-src/connect-src/frame-src.
+const cabeceraCsp = process.env.CSP_ENFORCE === "false" ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy";
 
 const nextConfig: NextConfig = {
   images: {
@@ -40,8 +41,8 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          // Sin cámara, micrófono ni geolocalización: la app no los usa.
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // La camara solo para esta app (lector de QR de asistencia: getUserMedia); sin microfono, geolocalizacion ni pagos.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" },
         ],
       },
     ];
