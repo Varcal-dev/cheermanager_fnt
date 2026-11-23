@@ -89,7 +89,7 @@ export default function ObjetivosPage() {
     Promise.allSettled([
       api.get("/api/objetivos"),
       api.get("/api/estados-objetivo"),
-      api.get("/api/deportistas"),
+      api.get("/api/deportistas/opciones"),
     ]).then(([resObjetivos, resEstados, resDeportistas]) => {
       if (resObjetivos.status === "fulfilled") setObjetivos(resObjetivos.value.data);
       else toast.error("No se pudieron cargar los objetivos");

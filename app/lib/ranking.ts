@@ -25,6 +25,6 @@ export const rankingTemporada = (temporadaId?: number) =>
 export const historialDeportista = (id: number) => api.get<HistorialDeportista>(`/api/ranking/deportista/${id}`).then((r) => r.data);
 export const rankingHabilidades = (anio: number, mes?: number) =>
   api.get<RankingHabilidades>("/api/ranking/habilidades", { params: mes ? { anio, mes } : { anio } }).then((r) => r.data);
-export const listarDeportistasOpcion = () => api.get<DeportistaOpcion[]>("/api/deportistas").then((r) => r.data);
+export const listarDeportistasOpcion = () => api.get<DeportistaOpcion[]>("/api/deportistas/opciones").then((r) => r.data);
 
 export const medalla = (pos: number | null) => (pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : pos ? `${pos}º` : "—");

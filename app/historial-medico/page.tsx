@@ -75,7 +75,7 @@ function badgeGravedad(gravedad: string | null): "success" | "default" | "destru
 }
 
 interface DeportistaOpcion {
-  id: number;
+  deportistaId: number;
   nombre: string;
   apellidos: string;
 }
@@ -136,7 +136,7 @@ export default function HistorialMedicoPage() {
 
   useEffect(() => {
     api
-      .get("/api/deportistas")
+      .get("/api/deportistas/opciones")
       .then((res) => setDeportistas(res.data))
       .catch(() => {
         // silencioso: el selector de deportista en el formulario simplemente queda vacío
@@ -621,7 +621,7 @@ export default function HistorialMedicoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {deportistas.map((d) => (
-                        <SelectItem key={d.id} value={String(d.id)}>
+                        <SelectItem key={d.deportistaId} value={String(d.deportistaId)}>
                           {d.nombre} {d.apellidos}
                         </SelectItem>
                       ))}

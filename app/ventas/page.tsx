@@ -271,7 +271,7 @@ export default function VentasPage() {
     setModalAbierto(true);
 
     Promise.allSettled([
-      api.get("/api/deportistas"),
+      api.get("/api/deportistas/opciones"),
       api.get("/api/productos/activos"),
     ]).then(([resDeportistas, resProductos]) => {
       if (resDeportistas.status === "fulfilled")

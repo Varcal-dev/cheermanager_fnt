@@ -22,7 +22,7 @@ interface DeportistaResultado {
   deportistaId: number;
   nombre: string;
   apellidos: string;
-  nivelNombre: string;
+  nivelNombre: string | null;
 }
 
 export default function CommandPalette() {
@@ -57,14 +57,10 @@ export default function CommandPalette() {
     setBuscando(true);
     const timeout = setTimeout(() => {
       api
-        .get("/api/deportistas")
-        .then((res) => {
-          const q = query.trim().toLowerCase();
-          const filtrados = (res.data as DeportistaResultado[]).filter((d) =>
-            `${d.nombre} ${d.apellidos}`.toLowerCase().includes(q),
-          );
-          setDeportistas(filtrados.slice(0, 6));
+        .get<DeportistaResultado[]>("/api/deportistas/buscar", {
+          params: { q: query.trim(), limite: 6 },
         })
+        .then((res) => setDeportistas(res.data))
         .catch(() => setDeportistas([]))
         .finally(() => setBuscando(false));
     }, 250);
