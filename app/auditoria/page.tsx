@@ -109,7 +109,6 @@ export default function AuditoriaPage() {
       })
       .catch(() => toast.error("No se pudieron cargar los registros de auditoría"))
       .finally(() => setCargando(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tablaFiltro, accionFiltro, searchTerm, fechaDesde, fechaHasta, page]);
 
   const cargarResumen = () => {

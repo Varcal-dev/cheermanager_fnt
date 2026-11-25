@@ -45,7 +45,7 @@ function Temporada() {
     rankingTemporada(sel ? Number(sel) : undefined)
       .then((d) => { setDatos(d); if (!sel) setSel(String(d.temporada.id)); })
       .catch((e) => toast.error(getErrorMessage(e, "No se pudo cargar el ranking")));
-  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sel]);
 
   return (
     <div className="space-y-4">

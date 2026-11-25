@@ -38,3 +38,23 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8081
+
+  # TST-01: lint y pruebas en un trabajo APARTE (corre en paralelo y no depende de que tsc/build pasen).
+  calidad:
+    name: Lint y pruebas (eslint + vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      # 0 errores y como maximo los avisos que ya existian: no se puede anadir ninguno nuevo (solo bajar este numero).
+      # Si una tarea necesita de verdad un aviso mas, se sube el numero a proposito en esta linea.
+      - name: Lint
+        run: npm run lint -- --max-warnings 144
+      - name: Pruebas
+        run: npm test

@@ -48,7 +48,6 @@ export function Logo({
   const comunes = {
     width: ancho,
     height: alto,
-    alt: "CheerManager",
     priority: prioridad,
     style: { width: ancho, height: alto },
   }
@@ -56,7 +55,7 @@ export function Logo({
   if (tono === "auto") {
     return (
       <span className={`inline-flex ${className}`}>
-        <Image src={archivo(variante, "color")} className="dark:hidden" {...comunes} />
+        <Image src={archivo(variante, "color")} className="dark:hidden" alt="CheerManager" {...comunes} />
         <Image
           src={archivo(variante, "blanco")}
           className="hidden dark:block"
@@ -68,7 +67,7 @@ export function Logo({
     )
   }
 
-  return <Image src={archivo(variante, tono)} className={className} {...comunes} />
+  return <Image src={archivo(variante, tono)} className={className} alt="CheerManager" {...comunes} />
 }
 
 export default Logo
