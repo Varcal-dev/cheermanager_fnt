@@ -13,6 +13,11 @@ updates:
     groups:
       menores-y-parches:
         update-types: [minor, patch]
+    # zod 4 rompio el build (tipos de z.coerce y la opcion errorMap eliminada): se migra con plan y pruebas de los
+    # formularios, no con un PR automatico. Las subidas menores y parches de zod 3 siguen entrando agrupadas.
+    ignore:
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
